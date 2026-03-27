@@ -106,7 +106,7 @@ public class AuthenticationService {
                 .toInstant().plus(refreshTokenDuration, ChronoUnit.HOURS).toEpochMilli())
                 :signedJWT.getJWTClaimsSet().getExpirationTime();
         var verified = signedJWT.verify(verifier);
-        if(!verified && expirationTime.after(new Date()))
+        if(!verified || expirationTime.after(new Date()))
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
         if(invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
