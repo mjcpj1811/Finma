@@ -39,7 +39,8 @@ public class Debt extends BaseEntity {
 
     @OneToMany(mappedBy = "debt", fetch = FetchType.LAZY)
     private List<DebtPayment> payments;
-    @ManyToOne
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 }

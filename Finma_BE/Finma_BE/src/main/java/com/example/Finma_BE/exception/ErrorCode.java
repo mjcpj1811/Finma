@@ -22,6 +22,14 @@ public enum ErrorCode {
     PAYMENT_NOT_FOUND(10013, "Payment not found", HttpStatus.NOT_FOUND),
     CANNOT_REOPEN_PAID_DEBT(10014, "Cannot reopen paid debt", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_AMOUNT(10015, "Invalid Payment Amount", HttpStatus.BAD_REQUEST),
+    RECURRING_NOT_FOUND(10016, "Recurring Transaction not found", HttpStatus.NOT_FOUND),
+    RECURRING_ALREADY_CANCELLED(10017, "Recurring Transaction cancelled", HttpStatus.BAD_REQUEST),
+    INVALID_RECURRING_DAY_OF_WEEK(10018, "Invalid Recurring Day of Week", HttpStatus.BAD_REQUEST),
+    INVALID_RECURRING_DAY_OF_MONTH(10019, "Invalid Recurring Day of Month", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_FOUND(10020, "Account not found", HttpStatus.NOT_FOUND),
+    CATEGORY_NOT_FOUND(10021, "Category not found", HttpStatus.NOT_FOUND),
+    INVALID_FREQUENCY(10022, "Invalid Frequency", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS(10023, "Invalid Status", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "An uncategorized exception occurred", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;
