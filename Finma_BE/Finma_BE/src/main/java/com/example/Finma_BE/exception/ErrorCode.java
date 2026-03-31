@@ -14,6 +14,14 @@ public enum ErrorCode {
     USER_NOT_EXIST(1005, "User does not exist", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED_ACCESS(1006, "Unauthenticated access", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED_ACCESS(1007, "Unauthorized access", HttpStatus.FORBIDDEN),
+    DEBT_NOT_FOUND(1008, "Debt not found", HttpStatus.NOT_FOUND),
+    RETURN_DATE_MUST_BE_AFTER_START_DATE(1009, "Return Date must be after start date", HttpStatus.BAD_REQUEST),
+    CANNOT_MARK_AS_PAID_WITH_REMAINING_AMOUNT(10010, "Cannot mark as Paid With Remaining Amount", HttpStatus.BAD_REQUEST),
+    DEBT_ALREADY_PAID(10011, "Debt already paid", HttpStatus.BAD_REQUEST),
+    PAYMENT_AMOUNT_EXCEEDS_REMAINING(10012, "Payment Amount Exceeds Remaining Amount", HttpStatus.BAD_REQUEST),
+    PAYMENT_NOT_FOUND(10013, "Payment not found", HttpStatus.NOT_FOUND),
+    CANNOT_REOPEN_PAID_DEBT(10014, "Cannot reopen paid debt", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT_AMOUNT(10015, "Invalid Payment Amount", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "An uncategorized exception occurred", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;
