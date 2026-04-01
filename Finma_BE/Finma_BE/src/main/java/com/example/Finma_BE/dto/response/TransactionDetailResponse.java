@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance.dto.response;
+package com.example.Finma_BE.dto.response;
 
 import com.example.Finma_BE.enums.TransactionType;
 import lombok.Builder;
@@ -8,18 +8,17 @@ import java.math.BigDecimal;
 
 @Data
 @Builder
-public class TransactionListItemResponse {
+public class TransactionDetailResponse {
     private Long id;
     private TransactionType type;
     private BigDecimal amount;
     private Long categoryId;
-    private String category;
+    private String categoryName;
     private Long accountId;
-    private String account;
+    private String accountName;
     private String note;
-    // Format: yyyy-MM-dd
-    private String date;
+    private String imageUrl;
+    private String location;
     /** yyyy-MM-dd HH:mm:ss */
-    private String transactionDateTime;
+    private String transactionDate;
 }
-

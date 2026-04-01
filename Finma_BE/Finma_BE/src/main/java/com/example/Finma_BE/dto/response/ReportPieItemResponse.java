@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance.dto.response;
+package com.example.Finma_BE.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
@@ -11,4 +11,3 @@ public class ReportPieItemResponse {
     private String category;
     private BigDecimal amount;
 }
-

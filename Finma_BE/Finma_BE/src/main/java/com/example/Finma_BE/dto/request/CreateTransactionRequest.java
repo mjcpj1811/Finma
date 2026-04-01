@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance.dto.request;
+package com.example.Finma_BE.dto.request;
 
 import com.example.Finma_BE.enums.TransactionType;
 import jakarta.validation.constraints.NotNull;
@@ -8,7 +8,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class UpdateTransactionRequest {
+public class CreateTransactionRequest {
     @NotNull
     private TransactionType type;
 
@@ -26,6 +26,7 @@ public class UpdateTransactionRequest {
     private String imageUrl;
     private String location;
 
+    // Format: yyyy-MM-dd HH:mm:ss (Asia/Ho_Chi_Minh)
     @NotNull
     private String transactionDate;
 }

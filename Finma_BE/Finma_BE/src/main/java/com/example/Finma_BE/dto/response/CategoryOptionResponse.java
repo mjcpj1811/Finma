@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance.dto.response;
+package com.example.Finma_BE.dto.response;
 
 import com.example.Finma_BE.enums.CategoryType;
 import lombok.Builder;

@@ -1,11 +1,11 @@
-package com.example.Finma_BE.finance.controller;
+package com.example.Finma_BE.controller;
 
 import com.example.Finma_BE.dto.request.ApiResponse;
-import com.example.Finma_BE.finance.dto.response.ReportChartResponse;
-import com.example.Finma_BE.finance.dto.response.ReportPieItemResponse;
-import com.example.Finma_BE.finance.dto.response.ReportSummaryResponse;
-import com.example.Finma_BE.finance.service.AuthContext;
-import com.example.Finma_BE.finance.service.ReportService;
+import com.example.Finma_BE.dto.response.ReportChartResponse;
+import com.example.Finma_BE.dto.response.ReportPieItemResponse;
+import com.example.Finma_BE.dto.response.ReportSummaryResponse;
+import com.example.Finma_BE.service.AuthContext;
+import com.example.Finma_BE.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -67,4 +67,3 @@ public class ReportController {
                 .build();
     }
 }
-

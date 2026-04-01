@@ -1,12 +1,12 @@
-package com.example.Finma_BE.finance.service;
+package com.example.Finma_BE.service;
 
+import com.example.Finma_BE.dto.response.AccountOptionResponse;
+import com.example.Finma_BE.dto.response.CategoryOptionResponse;
 import com.example.Finma_BE.entity.User;
 import com.example.Finma_BE.enums.CategoryType;
-import com.example.Finma_BE.finance.dto.response.AccountOptionResponse;
-import com.example.Finma_BE.finance.dto.response.CategoryOptionResponse;
-import com.example.Finma_BE.finance.exception.ApiException;
-import com.example.Finma_BE.finance.repository.FinanceAccountRepository;
-import com.example.Finma_BE.finance.repository.FinanceCategoryRepository;
+import com.example.Finma_BE.exception.ApiException;
+import com.example.Finma_BE.repository.AccountRepository;
+import com.example.Finma_BE.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,8 +16,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class FinanceLookupService {
-    private final FinanceCategoryRepository categoryRepository;
-    private final FinanceAccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
+    private final AccountRepository accountRepository;
 
     public List<CategoryOptionResponse> categories(User user, CategoryType type) {
         if (type == null) {

@@ -1,24 +1,31 @@
-package com.example.Finma_BE.finance.dto.response;
+package com.example.Finma_BE.dto.request;
 
 import com.example.Finma_BE.enums.TransactionType;
-import lombok.Builder;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
 @Data
-@Builder
-public class TransactionDetailResponse {
-    private Long id;
+public class UpdateTransactionRequest {
+    @NotNull
     private TransactionType type;
+
+    @NotNull
+    @Positive
     private BigDecimal amount;
+
+    @NotNull
     private Long categoryId;
-    private String categoryName;
+
+    @NotNull
     private Long accountId;
-    private String accountName;
+
     private String note;
     private String imageUrl;
     private String location;
-    /** yyyy-MM-dd HH:mm:ss */
+
+    @NotNull
     private String transactionDate;
 }

@@ -1,14 +1,14 @@
-package com.example.Finma_BE.finance.service;
+package com.example.Finma_BE.service;
 
+import com.example.Finma_BE.dto.response.ReportChartResponse;
+import com.example.Finma_BE.dto.response.ReportPieItemResponse;
+import com.example.Finma_BE.dto.response.ReportSummaryResponse;
 import com.example.Finma_BE.entity.Transaction;
 import com.example.Finma_BE.entity.User;
 import com.example.Finma_BE.enums.TransactionType;
-import com.example.Finma_BE.finance.dto.response.ReportChartResponse;
-import com.example.Finma_BE.finance.dto.response.ReportPieItemResponse;
-import com.example.Finma_BE.finance.dto.response.ReportSummaryResponse;
-import com.example.Finma_BE.finance.exception.ApiException;
-import com.example.Finma_BE.finance.repository.FinanceTransactionRepository;
-import com.example.Finma_BE.finance.util.DateTimeFormats;
+import com.example.Finma_BE.exception.ApiException;
+import com.example.Finma_BE.repository.TransactionRepository;
+import com.example.Finma_BE.util.DateTimeFormats;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 @Service
 @RequiredArgsConstructor
 public class ReportService {
-    private final FinanceTransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
 
     public ReportSummaryResponse summary(User user, String from, String to, Long categoryId, Long accountId) {
         var txns = queryUserTransactions(user, from, to, null, categoryId, accountId);
@@ -221,4 +221,3 @@ public class ReportService {
         return IntStream.rangeClosed(start, end).mapToObj(String::valueOf).toList();
     }
 }
-

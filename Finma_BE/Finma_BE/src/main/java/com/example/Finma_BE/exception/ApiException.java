@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance.exception;
+package com.example.Finma_BE.exception;
 
 import org.springframework.http.HttpStatus;
 
@@ -14,4 +14,3 @@ public class ApiException extends RuntimeException {
         return status;
     }
 }
-

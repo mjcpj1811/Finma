@@ -1,20 +1,20 @@
-package com.example.Finma_BE.finance.service;
+package com.example.Finma_BE.service;
 
+import com.example.Finma_BE.dto.request.CreateTransactionRequest;
+import com.example.Finma_BE.dto.request.UpdateTransactionRequest;
+import com.example.Finma_BE.dto.response.TransactionDetailResponse;
+import com.example.Finma_BE.dto.response.TransactionListItemResponse;
 import com.example.Finma_BE.entity.Account;
 import com.example.Finma_BE.entity.Category;
 import com.example.Finma_BE.entity.Transaction;
 import com.example.Finma_BE.entity.User;
 import com.example.Finma_BE.enums.CategoryType;
 import com.example.Finma_BE.enums.TransactionType;
-import com.example.Finma_BE.finance.dto.request.CreateTransactionRequest;
-import com.example.Finma_BE.finance.dto.request.UpdateTransactionRequest;
-import com.example.Finma_BE.finance.dto.response.TransactionDetailResponse;
-import com.example.Finma_BE.finance.dto.response.TransactionListItemResponse;
-import com.example.Finma_BE.finance.exception.ApiException;
-import com.example.Finma_BE.finance.repository.FinanceAccountRepository;
-import com.example.Finma_BE.finance.repository.FinanceCategoryRepository;
-import com.example.Finma_BE.finance.repository.FinanceTransactionRepository;
-import com.example.Finma_BE.finance.util.DateTimeFormats;
+import com.example.Finma_BE.exception.ApiException;
+import com.example.Finma_BE.repository.AccountRepository;
+import com.example.Finma_BE.repository.CategoryRepository;
+import com.example.Finma_BE.repository.TransactionRepository;
+import com.example.Finma_BE.util.DateTimeFormats;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -29,9 +29,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
-    private final FinanceTransactionRepository transactionRepository;
-    private final FinanceAccountRepository accountRepository;
-    private final FinanceCategoryRepository categoryRepository;
+    private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
 
     @Transactional
     public TransactionListItemResponse create(User user, CreateTransactionRequest request) {
@@ -162,7 +162,7 @@ public class TransactionService {
     }
 
     /**
-     * @param apply true = áp dụng giao dịch (tạo mới / sau khi sửa), false = hoàn tác (trước khi sửa / xóa)
+     * @param apply true = ap dung giao dich (tao moi / sau khi sua), false = hoan tac (truoc khi sua / xoa)
      */
     private void applyBalanceEffect(Account account, TransactionType type, BigDecimal amount, boolean apply) {
         if (account == null || type == null || amount == null) {

@@ -1,11 +1,11 @@
-package com.example.Finma_BE.finance.controller;
+package com.example.Finma_BE.controller;
 
 import com.example.Finma_BE.dto.request.ApiResponse;
+import com.example.Finma_BE.dto.response.AccountOptionResponse;
+import com.example.Finma_BE.dto.response.CategoryOptionResponse;
 import com.example.Finma_BE.enums.CategoryType;
-import com.example.Finma_BE.finance.dto.response.AccountOptionResponse;
-import com.example.Finma_BE.finance.dto.response.CategoryOptionResponse;
-import com.example.Finma_BE.finance.service.AuthContext;
-import com.example.Finma_BE.finance.service.FinanceLookupService;
+import com.example.Finma_BE.service.AuthContext;
+import com.example.Finma_BE.service.FinanceLookupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

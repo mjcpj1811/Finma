@@ -1,13 +1,13 @@
-package com.example.Finma_BE.finance.controller;
+package com.example.Finma_BE.controller;
 
 import com.example.Finma_BE.dto.request.ApiResponse;
+import com.example.Finma_BE.dto.request.CreateTransactionRequest;
+import com.example.Finma_BE.dto.request.UpdateTransactionRequest;
+import com.example.Finma_BE.dto.response.TransactionDetailResponse;
+import com.example.Finma_BE.dto.response.TransactionListItemResponse;
 import com.example.Finma_BE.enums.TransactionType;
-import com.example.Finma_BE.finance.dto.request.CreateTransactionRequest;
-import com.example.Finma_BE.finance.dto.request.UpdateTransactionRequest;
-import com.example.Finma_BE.finance.dto.response.TransactionDetailResponse;
-import com.example.Finma_BE.finance.dto.response.TransactionListItemResponse;
-import com.example.Finma_BE.finance.service.AuthContext;
-import com.example.Finma_BE.finance.service.TransactionService;
+import com.example.Finma_BE.service.AuthContext;
+import com.example.Finma_BE.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

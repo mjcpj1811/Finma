@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance.dto.response;
+package com.example.Finma_BE.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
@@ -15,4 +15,3 @@ public class ReportChartResponse {
     private List<BigDecimal> expense;
     private ReportSummaryResponse summary;
 }
-
