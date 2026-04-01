@@ -22,7 +22,7 @@ public class DebtPayment extends BaseEntity {
     private BigDecimal amount;
     private LocalDate paymentDate;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "debt_id")
     private Debt debt;
 }

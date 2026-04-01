@@ -28,12 +28,12 @@ public class Category extends BaseEntity {
     @Column(name = "is_default")
     private Boolean isDefault;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
     // self reference
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Category parent;
 }

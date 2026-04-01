@@ -4,12 +4,34 @@ import com.example.Finma_BE.dto.request.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiResponse<Void>> handlingAppException(AppException exception) {
+        ErrorCode errorCode = exception.getErrorCode();
+        return ResponseEntity.status(errorCode.getHttpStatusCode())
+                .body(ApiResponse.<Void>builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handlingAccessDeniedException(AccessDeniedException exception) {
+        ErrorCode errorCode = ErrorCode.UNAUTHORIZED_ACCESS;
+        return ResponseEntity.status(errorCode.getHttpStatusCode())
+                .body(ApiResponse.<Void>builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiResponse<Void>> handleApiException(ApiException ex) {
         return ResponseEntity.status(ex.getStatus()).body(ApiResponse.<Void>builder()
@@ -36,9 +58,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnknown(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.<Void>builder()
-                .code(9999)
-                .message("Co loi xay ra")
+        ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
+        return ResponseEntity.status(errorCode.getHttpStatusCode()).body(ApiResponse.<Void>builder()
+                .code(errorCode.getCode())
+                .message(errorCode.getMessage())
                 .build());
     }
 }
