@@ -22,6 +22,8 @@ public class Goal extends BaseEntity {
 
     private String name;
 
+    private String description;
+
     private BigDecimal targetAmount;
 
     private LocalDate startDate;
@@ -29,7 +31,8 @@ public class Goal extends BaseEntity {
     private LocalDate completedAt;
 
     @Enumerated(EnumType.STRING)
-    private GoalStatus status;
+    @Builder.Default
+    private GoalStatus status = GoalStatus.IN_PROGRESS;
 
     private String icon;
     private String color;
@@ -38,3 +41,4 @@ public class Goal extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 }
+

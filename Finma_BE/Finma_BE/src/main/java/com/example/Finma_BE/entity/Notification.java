@@ -1,5 +1,6 @@
 package com.example.Finma_BE.entity;
 
+import com.example.Finma_BE.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,11 +18,23 @@ public class Notification extends BaseEntity {
     private Long id;
 
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String content;
-    private String type;
 
-    private Boolean isRead;
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
 
-    @ManyToOne
+    /** ID của đối tượng liên quan (budgetId hoặc goalId) */
+    private Long referenceId;
+
+    /** Loại đối tượng: "BUDGET" hoặc "GOAL" */
+    private String referenceType;
+
+    @Builder.Default
+    private Boolean isRead = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
-}
+}

@@ -28,6 +28,22 @@ public class Budget extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    /**
+     * true  → budget sẽ được tự động sinh lại vào ngày 1 hàng tháng
+     * false → budget 1 lần, không tự lặp
+     */
+    @Column(name = "is_recurring", nullable = false)
+    @Builder.Default
+    private Boolean isRecurring = false;
+
+    /**
+     * ID của budget gốc (tháng đầu tiên người dùng tạo).
+     * Các budget sinh tự động sau này sẽ trỏ về budget gốc đó.
+     * null → đây là budget gốc.
+     */
+    @Column(name = "parent_budget_id")
+    private Long parentBudgetId;
+
     @ManyToOne
     private User user;
 
