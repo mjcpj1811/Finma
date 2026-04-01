@@ -8,7 +8,8 @@ import org.mapstruct.*;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring"
+        , nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface DebtPaymentMapper {
     List<DebtPaymentResponse> toDebtPaymentResponseList(List<DebtPayment> debtPayments);
 
@@ -16,10 +17,7 @@ public interface DebtPaymentMapper {
 
     DebtPaymentResponse toDebtPaymentResponse(DebtPayment debtPayment);
 
-    @BeanMapping(
-            nullValuePropertyMappingStrategy =
-                    NullValuePropertyMappingStrategy.IGNORE
-    )
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "debt", ignore = true)
     void updateDebtPayment(@MappingTarget DebtPayment debtPayment, DebtPaymentUpdateRequest debtPaymentUpdateRequest);

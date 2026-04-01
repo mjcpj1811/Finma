@@ -17,4 +17,5 @@ public class DebtPaymentResponse {
     BigDecimal amount;
     LocalDate paymentDate;
     LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 }

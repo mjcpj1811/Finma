@@ -9,7 +9,8 @@ import org.mapstruct.*;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring"
+        , nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface RecurringTransactionMapper {
     RecurringTransactionResponse toResponse(RecurringTransaction recurringTransaction);
 
@@ -22,10 +23,6 @@ public interface RecurringTransactionMapper {
     RecurringTransaction toRecurringTransaction(
             RecurringTransactionCreateRequest recurringTransactionCreateRequest);
 
-    @BeanMapping(
-            nullValuePropertyMappingStrategy =
-                    NullValuePropertyMappingStrategy.IGNORE
-    )
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
     @Mapping(target = "category", ignore = true)

@@ -30,6 +30,12 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(10021, "Category not found", HttpStatus.NOT_FOUND),
     INVALID_FREQUENCY(10022, "Invalid Frequency", HttpStatus.BAD_REQUEST),
     INVALID_STATUS(10023, "Invalid Status", HttpStatus.BAD_REQUEST),
+    CATEGORY_NAME_EXISTED(10024, "Category name already exists", HttpStatus.BAD_REQUEST),
+    PARENT_CATEGORY_NOT_FOUND(10025, "Parent Category not found", HttpStatus.NOT_FOUND),
+    CANNOT_MODIFY_DEFAULT_CATEGORY(10026, "Cannot modify default category", HttpStatus.BAD_REQUEST),
+    CATEGORY_CIRCULAR_REFERENCE(10027, "Category circular reference", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_DEFAULT_CATEGORY(10028, "Cannot delete default category", HttpStatus.BAD_REQUEST),
+    CATEGORY_HAS_TRANSACTIONS(10029, "Category has transactions", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "An uncategorized exception occurred", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;

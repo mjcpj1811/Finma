@@ -6,7 +6,8 @@ import com.example.Finma_BE.dto.response.debt.DebtSumaryResponse;
 import com.example.Finma_BE.entity.Debt;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring"
+        , nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface DebtMapper {
     DebtSumaryResponse toDebtSumaryResponse(Debt debt);
 
@@ -14,10 +15,6 @@ public interface DebtMapper {
 
     Debt toDebt(DebtCreateRequest debtCreateRequest);
 
-    @BeanMapping(
-            nullValuePropertyMappingStrategy =
-                    NullValuePropertyMappingStrategy.IGNORE
-    )
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user",ignore = true)
     @Mapping(target = "payments", ignore = true)

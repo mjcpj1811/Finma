@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping("/recurring-transaction")
+@RequestMapping("/recurring-transactions")
 public class RecurringTransactionController {
 
     RecurringTransactionService recurringTransactionService;
