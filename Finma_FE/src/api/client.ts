@@ -7,14 +7,19 @@ export async function apiFetch<T>(
 ): Promise<ApiResponse<T>> {
   const { token, headers, ...rest } = options;
   const url = `${getApiBase()}${path.startsWith('/') ? path : `/${path}`}`;
-  const res = await fetch(url, {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...rest,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    });
+  } catch {
+    throw new Error('Mất kết nối');
+  }
   const text = await res.text();
   let json: ApiResponse<T>;
   try {

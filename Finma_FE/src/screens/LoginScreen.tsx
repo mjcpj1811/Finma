@@ -13,22 +13,41 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 
+function mapLoginError(raw: string): string {
+  if (raw.includes('Failed to fetch') || raw.includes('NetworkError') || raw === 'Mất kết nối') {
+    return 'Mất kết nối — kiểm tra backend đã chạy và CORS (thường gặp khi test trên web).';
+  }
+  if (raw === 'Unauthenticated access') {
+    return 'Sai tên đăng nhập hoặc mật khẩu.';
+  }
+  if (raw.toLowerCase().includes('user does not exist')) {
+    return 'Tài khoản không tồn tại.';
+  }
+  return raw;
+}
+
 export function LoginScreen() {
   const { signIn } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const onSubmit = async () => {
+    setLoginError(null);
     if (!username.trim() || !password) {
-      Alert.alert('Lỗi', 'Nhập username và mật khẩu');
+      const msg = 'Nhập username và mật khẩu';
+      setLoginError(msg);
+      Alert.alert('Lỗi', msg);
       return;
     }
     setBusy(true);
     try {
       await signIn(username.trim(), password);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Đăng nhập thất bại';
+      const raw = e instanceof Error ? e.message : 'Đăng nhập thất bại';
+      const msg = mapLoginError(raw);
+      setLoginError(msg);
       Alert.alert('Lỗi', msg);
     } finally {
       setBusy(false);
@@ -47,15 +66,22 @@ export function LoginScreen() {
         placeholder="Username hoặc email"
         autoCapitalize="none"
         value={username}
-        onChangeText={setUsername}
+        onChangeText={(t) => {
+          setLoginError(null);
+          setUsername(t);
+        }}
       />
       <TextInput
         style={styles.input}
         placeholder="Mật khẩu"
         secureTextEntry
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(t) => {
+          setLoginError(null);
+          setPassword(t);
+        }}
       />
+      {loginError ? <Text style={styles.error}>{loginError}</Text> : null}
       <TouchableOpacity style={styles.btn} onPress={onSubmit} disabled={busy}>
         {busy ? (
           <ActivityIndicator color="#fff" />
@@ -102,4 +128,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   btnText: { color: colors.white, fontWeight: '700', fontSize: 16 },
+  error: {
+    color: '#c62828',
+    marginBottom: 8,
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });
