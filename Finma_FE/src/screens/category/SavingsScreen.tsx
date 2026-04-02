@@ -856,7 +856,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+<<<<<<< HEAD
   detailLabel:  {
+=======
+  detailLabel: {
+>>>>>>> a169f131b017b0854214a40d977eb2c75e858eac
     color: '#DFF7E2',
     fontFamily: typography.poppins.medium,
     fontSize: 12,
