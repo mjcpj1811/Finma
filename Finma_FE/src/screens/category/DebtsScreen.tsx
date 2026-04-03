@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { debtApi } from '../../api/debtApi';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import {
   type DebtDirection,
@@ -344,6 +344,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải vay nợ...</Text>
         </View>
+        <ScreenBottomNavigation activeTab="layers" />
       </SafeAreaView>
     );
   }
@@ -653,18 +654,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
         </View>
       </Modal>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="layers"
-          onPress={(tab) => {
-            if (tab === 'home') navigation.navigate('Home');
-            if (tab === 'report') navigation.navigate('Report');
-            if (tab === 'exchange') navigation.navigate('Transactions');
-            if (tab === 'layers') navigation.navigate('Categories');
-            if (tab === 'profile') navigation.navigate('Profile');
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="layers" />
     </SafeAreaView>
   );
 };
@@ -945,19 +935,7 @@ const styles = StyleSheet.create({
     color: '#0C6657',
     fontFamily: typography.poppins.semibold,
     fontSize: 14,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
   loaderWrap: {
     flex: 1,
     alignItems: 'center',

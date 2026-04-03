@@ -14,7 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { profileApi } from '../../api/profileApi';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type ProfileData } from '../../types/profile';
@@ -87,6 +87,7 @@ export const EditProfileScreen = ({ navigation }: Props) => {
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải thông tin...</Text>
         </View>
+        <ScreenBottomNavigation activeTab="profile" />
       </SafeAreaView>
     );
   }
@@ -168,28 +169,7 @@ export const EditProfileScreen = ({ navigation }: Props) => {
         </ScrollView>
       </View>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="profile"
-          onPress={(tab) => {
-            if (tab === 'home') {
-              navigation.navigate('Home');
-            }
-            if (tab === 'report') {
-              navigation.navigate('Report');
-            }
-            if (tab === 'exchange') {
-              navigation.navigate('Transactions');
-            }
-            if (tab === 'layers') {
-              navigation.navigate('Categories');
-            }
-            if (tab === 'profile') {
-              navigation.navigate('Profile');
-            }
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="profile" />
     </SafeAreaView>
   );
 };
@@ -358,19 +338,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.semibold,
     fontSize: 15,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
   loaderWrap: {
     flex: 1,
     alignItems: 'center',

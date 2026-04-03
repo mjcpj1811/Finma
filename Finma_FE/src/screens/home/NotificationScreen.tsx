@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { notificationApi } from '../../api/notificationApi';
 import { type NotificationGroup } from '../../types/notification';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -84,28 +84,7 @@ export const NotificationScreen = ({ navigation }: Props) => {
         )}
       </View>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="home"
-          onPress={(tab) => {
-            if (tab === 'home') {
-              navigation.navigate('Home');
-            }
-            if (tab === 'report') {
-              navigation.navigate('Report');
-            }
-            if (tab === 'exchange') {
-              navigation.navigate('Transactions');
-            }
-            if (tab === 'layers') {
-              navigation.navigate('Categories');
-            }
-            if (tab === 'profile') {
-              navigation.navigate('Profile');
-            }
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="home" />
     </SafeAreaView>
   );
 };
@@ -236,17 +215,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'right',
     marginTop: 8,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
 });

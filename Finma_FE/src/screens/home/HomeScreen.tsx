@@ -12,7 +12,7 @@ import {
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { homeApi } from '../../api/homeApi';
 import { type HomeDashboard, type PeriodFilter } from '../../types/home';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -64,6 +64,7 @@ export const HomeScreen = ({ navigation }: Props) => {
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải dữ liệu trang chủ...</Text>
         </View>
+        <ScreenBottomNavigation activeTab="home" />
       </SafeAreaView>
     );
   }
@@ -164,28 +165,7 @@ export const HomeScreen = ({ navigation }: Props) => {
         </ScrollView>
       </View>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="home"
-          onPress={(tab) => {
-            if (tab === 'home') {
-              navigation.navigate('Home');
-            }
-            if (tab === 'report') {
-              navigation.navigate('Report');
-            }
-            if (tab === 'exchange') {
-              navigation.navigate('Transactions');
-            }
-            if (tab === 'layers') {
-              navigation.navigate('Categories');
-            }
-            if (tab === 'profile') {
-              navigation.navigate('Profile');
-            }
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="home" />
     </SafeAreaView>
   );
 };
@@ -404,17 +384,5 @@ const styles = StyleSheet.create({
   },
   expenseText: {
     color: colors.blueDark,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 44,
-    borderTopRightRadius: 44,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
 });

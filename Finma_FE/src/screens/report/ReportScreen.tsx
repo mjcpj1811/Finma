@@ -14,7 +14,7 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { ReportIncomeExpenseChart } from '../../components/ReportIncomeExpenseChart';
 import { reportApi } from '../../api/reportApi';
 import { type ReportDashboard, type ReportFilter } from '../../types/report';
@@ -93,6 +93,7 @@ export const ReportScreen = ({ navigation }: Props) => {
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải dữ liệu phân tích...</Text>
         </View>
+        <ScreenBottomNavigation activeTab="report" />
       </SafeAreaView>
     );
   }
@@ -181,28 +182,7 @@ export const ReportScreen = ({ navigation }: Props) => {
         </ScrollView>
       </View>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="report"
-          onPress={(tab) => {
-            if (tab === 'home') {
-              navigation.navigate('Home');
-            }
-            if (tab === 'report') {
-              navigation.navigate('Report');
-            }
-            if (tab === 'exchange') {
-              navigation.navigate('Transactions');
-            }
-            if (tab === 'layers') {
-              navigation.navigate('Categories');
-            }
-            if (tab === 'profile') {
-              navigation.navigate('Profile');
-            }
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="report" />
     </SafeAreaView>
   );
 };
@@ -393,17 +373,5 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
 });
