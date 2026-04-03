@@ -15,8 +15,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { recurringApi } from '../../api/recurringApi';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type RecurringDashboard, type RecurringRuleItem, type UpsertRecurringRulePayload } from '../../types/recurring';
 import { colors } from '../../theme/colors';
@@ -136,21 +136,12 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.leftSlot} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>Định Kỳ</Text>
-
-        <View style={styles.rightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={dashboard.overview.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title="Định Kỳ"
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={dashboard.overview.unreadNotifications > 0}
+      />
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryCol}>

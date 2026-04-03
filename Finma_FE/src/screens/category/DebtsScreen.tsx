@@ -14,8 +14,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { debtApi } from '../../api/debtApi';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import {
   type DebtDirection,
@@ -352,21 +352,12 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.leftSlot} onPress={onBack}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>{title}</Text>
-
-        <View style={styles.rightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={dashboard.overview.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title={title}
+        onPressBack={onBack}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={dashboard.overview.unreadNotifications > 0}
+      />
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryCol}>

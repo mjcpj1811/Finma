@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { sourceApi } from '../../api/sourceApi';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -155,21 +155,12 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backSlot} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>Quản Lý Nguồn Tiền</Text>
-
-        <View style={styles.rightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={dashboard.summary.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title="Quản Lý Nguồn Tiền"
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={dashboard.summary.unreadNotifications > 0}
+      />
 
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Tổng số dư tất cả tài khoản</Text>

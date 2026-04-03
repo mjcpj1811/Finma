@@ -12,9 +12,9 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { ReportIncomeExpenseChart } from '../../components/ReportIncomeExpenseChart';
 import { reportApi } from '../../api/reportApi';
 import { type ReportDashboard, type ReportFilter } from '../../types/report';
@@ -100,14 +100,11 @@ export const ReportScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.topSection}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerSpacer} />
-          <Text style={styles.headerTitle}>Phân Tích</Text>
-          <NotificationBellButton
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={dashboard.unreadNotifications > 0}
-          />
-        </View>
+        <AppScreenHeader
+          title="Phân Tích"
+          onPressNotification={() => navigation.navigate('Notifications')}
+          showNotificationBadge={dashboard.unreadNotifications > 0}
+        />
 
         <BalanceSummaryCard
           totalBalance={dashboard.overview.totalBalance}

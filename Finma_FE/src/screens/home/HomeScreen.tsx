@@ -10,9 +10,9 @@ import {
   View,
 } from 'react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { homeApi } from '../../api/homeApi';
 import { type HomeDashboard, type PeriodFilter } from '../../types/home';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -71,16 +71,14 @@ export const HomeScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.topSection}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.welcomeText}>Chào mừng {activeDashboard.user.name}</Text>
-            <Text style={styles.subText}>{activeDashboard.user.greetingText}</Text>
-          </View>
-
-          <NotificationBellButton
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={activeDashboard.user.unreadNotifications > 0}
-          />
+        <AppScreenHeader
+          title="Trang Chủ"
+          onPressNotification={() => navigation.navigate('Notifications')}
+          showNotificationBadge={activeDashboard.user.unreadNotifications > 0}
+        />
+        <View>
+          <Text style={styles.welcomeText}>Chào mừng {activeDashboard.user.name}</Text>
+          <Text style={styles.subText}>{activeDashboard.user.greetingText}</Text>
         </View>
 
         <BalanceSummaryCard
@@ -213,14 +211,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
-  headerRow: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   welcomeText: {
     color: colors.text,

@@ -9,9 +9,8 @@ import {
   View,
 } from 'react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
-import { MaterialIcons } from '@expo/vector-icons';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { notificationApi } from '../../api/notificationApi';
 import { type NotificationGroup } from '../../types/notification';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -49,13 +48,7 @@ export const NotificationScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Thông báo</Text>
-        <NotificationBellButton />
-      </View>
+      <AppScreenHeader title="Thông báo" onPressBack={() => navigation.goBack()} />
 
       <Pressable style={styles.readAllWrap} onPress={onMarkAllRead}>
         <Text style={styles.readAllText}>Đã đọc tất cả</Text>

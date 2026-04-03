@@ -8,6 +8,7 @@ import {
   type TransactionFilter,
   type TransactionFormOptions,
   type TransactionItem,
+  type TransactionType,
   type UpdateTransactionPayload,
 } from '../types/transaction';
 

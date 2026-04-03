@@ -12,8 +12,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { transactionApi } from '../../api/transactionApi';
 import { recurringApi } from '../../api/recurringApi';
 import { type TransactionDashboard, type TransactionFilter, type TransactionItem } from '../../types/transaction';
@@ -90,17 +90,11 @@ export const TransactionScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerSpacer} />
-        <Text style={styles.headerTitle}>Giao Dịch</Text>
-        <View style={styles.headerRightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={dashboard.overview.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title="Giao Dịch"
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={dashboard.overview.unreadNotifications > 0}
+      />
 
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Tổng Số Dư</Text>
