@@ -11,8 +11,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { transactionApi } from '../../api/transactionApi';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type TransactionDashboard, type TransactionItem, type TransactionType } from '../../types/transaction';
 import { colors } from '../../theme/colors';
@@ -117,21 +117,12 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backSlot} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>{categoryName}</Text>
-
-        <View style={styles.rightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={dashboard.overview.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title={categoryName}
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={dashboard.overview.unreadNotifications > 0}
+      />
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryCol}>

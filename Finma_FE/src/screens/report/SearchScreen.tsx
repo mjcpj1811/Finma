@@ -12,8 +12,8 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { searchApi } from '../../api/searchApi';
 import { type SearchCategoryOption, type SearchReportType, type SearchResultItem } from '../../types/search';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -81,15 +81,11 @@ export const SearchScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.topHeader}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.title}>Tìm Kiếm</Text>
-
-        <NotificationBellButton onPress={() => navigation.navigate('Notifications')} />
-      </View>
+      <AppScreenHeader
+        title="Tìm Kiếm"
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+      />
 
       <View style={styles.searchInputWrap}>
         <TextInput

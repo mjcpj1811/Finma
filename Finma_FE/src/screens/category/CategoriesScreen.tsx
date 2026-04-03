@@ -14,9 +14,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { categoryApi } from '../../api/categoryApi';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type CategoryDashboard, type CategoryGroup, type CategoryItem } from '../../types/category';
 import { colors } from '../../theme/colors';
@@ -170,19 +170,11 @@ export const CategoriesScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.topSection}>
-        <View style={styles.headerRow}>
-          <View style={styles.backSlot} />
-
-          <Text style={styles.headerTitle}>Danh Mục</Text>
-
-          <View style={styles.rightSlot}>
-            <NotificationBellButton
-              size={30}
-              onPress={() => navigation.navigate('Notifications')}
-              showBadge={data.overview.unreadNotifications > 0}
-            />
-          </View>
-        </View>
+        <AppScreenHeader
+          title="Danh Mục"
+          onPressNotification={() => navigation.navigate('Notifications')}
+          showNotificationBadge={data.overview.unreadNotifications > 0}
+        />
 
         <BalanceSummaryCard
           totalBalance={data.overview.totalBalance}

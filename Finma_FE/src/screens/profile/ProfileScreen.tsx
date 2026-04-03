@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { profileApi } from '../../api/profileApi';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type ProfileData, type ProfileMenuKey } from '../../types/profile';
@@ -101,19 +101,11 @@ export const ProfileScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <View style={styles.backButton} />
-
-        <Text style={styles.headerTitle}>Hồ sơ</Text>
-
-        <View style={styles.headerRightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={profile.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title="Hồ sơ"
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={profile.unreadNotifications > 0}
+      />
 
       <View style={styles.mainPanel}>
         <View style={styles.avatarWrap}>

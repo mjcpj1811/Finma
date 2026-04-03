@@ -6,6 +6,7 @@ import {
   type SavingTransactionItem,
   type SavingTransactionsResponse,
   type SavingsDashboard,
+  type UpdateSavingTransactionPayload,
   type UpsertSavingPayload,
 } from '../types/savings';
 
@@ -17,6 +18,8 @@ const SAVINGS_ENDPOINTS = {
   update: (id: string) => `/savings/${id}`,
   remove: (id: string) => `/savings/${id}`,
   transactions: (id: string) => `/savings/${id}/transactions`,
+  updateTransaction: (savingId: string, transactionId: string) => `/savings/${savingId}/transactions/${transactionId}`,
+  removeTransaction: (savingId: string, transactionId: string) => `/savings/${savingId}/transactions/${transactionId}`,
 };
 
 let mockSavings: SavingItem[] = [
@@ -54,6 +57,7 @@ let mockSavingTransactions: SavingTransactionItem[] = [
   {
     id: 'sav-txn-1',
     savingId: 'sav-1',
+    dateIso: '2026-04-30T16:56:00.000Z',
     monthLabel: 'April',
     title: 'Tiết Kiệm Du Lịch',
     timeLabel: '16:56 - April 30',
@@ -64,6 +68,7 @@ let mockSavingTransactions: SavingTransactionItem[] = [
   {
     id: 'sav-txn-2',
     savingId: 'sav-1',
+    dateIso: '2026-04-14T17:42:00.000Z',
     monthLabel: 'April',
     title: 'Tiết Kiệm Du Lịch',
     timeLabel: '17:42 - April 14',
@@ -74,6 +79,7 @@ let mockSavingTransactions: SavingTransactionItem[] = [
   {
     id: 'sav-txn-3',
     savingId: 'sav-1',
+    dateIso: '2026-04-02T13:29:00.000Z',
     monthLabel: 'April',
     title: 'Tiết Kiệm Du Lịch',
     timeLabel: '13:29 - April 02',
@@ -84,6 +90,7 @@ let mockSavingTransactions: SavingTransactionItem[] = [
   {
     id: 'sav-txn-4',
     savingId: 'sav-2',
+    dateIso: '2026-04-21T09:10:00.000Z',
     monthLabel: 'April',
     title: 'Tiết Kiệm Mua Nhà',
     timeLabel: '09:10 - April 21',
@@ -94,6 +101,7 @@ let mockSavingTransactions: SavingTransactionItem[] = [
   {
     id: 'sav-txn-5',
     savingId: 'sav-3',
+    dateIso: '2026-04-10T11:05:00.000Z',
     monthLabel: 'April',
     title: 'Tiết Kiệm Mua Xe',
     timeLabel: '11:05 - April 10',
@@ -267,6 +275,7 @@ export const savingsApi = {
         {
           id: transactionId,
           savingId,
+          dateIso: payload.dateIso,
           monthLabel: toMonthLabel(payload.dateIso),
           title: payload.title.trim(),
           timeLabel: toTimeLabel(payload.dateIso),
@@ -298,6 +307,92 @@ export const savingsApi = {
     return request<SavingActionResponse>(`${SAVINGS_ENDPOINTS.transactions(savingId)}`, {
       method: 'POST',
       body: payload,
+      token,
+    });
+  },
+
+  updateSavingTransaction: async (
+    savingId: string,
+    transactionId: string,
+    payload: UpdateSavingTransactionPayload,
+    token?: string,
+  ) => {
+    if (SAVINGS_API_USE_MOCK) {
+      await sleep(120);
+
+      const existing = mockSavingTransactions.find((item) => item.id === transactionId && item.savingId === savingId);
+      if (!existing) {
+        return { success: false, message: 'Không tìm thấy giao dịch tiết kiệm.' } satisfies SavingActionResponse;
+      }
+
+      const signedAmount = payload.kind === 'deposit' ? Math.abs(payload.amount) : -Math.abs(payload.amount);
+      const amountDelta = signedAmount - existing.amount;
+
+      mockSavingTransactions = mockSavingTransactions.map((item) => {
+        if (item.id !== transactionId || item.savingId !== savingId) {
+          return item;
+        }
+
+        return {
+          ...item,
+          dateIso: payload.dateIso,
+          monthLabel: toMonthLabel(payload.dateIso),
+          title: payload.title.trim(),
+          timeLabel: toTimeLabel(payload.dateIso),
+          note: payload.note.trim() || (payload.kind === 'deposit' ? 'Nạp quỹ' : 'Rút quỹ'),
+          amount: signedAmount,
+          kind: payload.kind,
+        };
+      });
+
+      mockSavings = mockSavings.map((item) => {
+        if (item.id !== savingId) {
+          return item;
+        }
+
+        return {
+          ...item,
+          currentAmount: Math.max(item.currentAmount + amountDelta, 0),
+        };
+      });
+
+      return { success: true, transactionId } satisfies SavingActionResponse;
+    }
+
+    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.updateTransaction(savingId, transactionId), {
+      method: 'PUT',
+      body: payload,
+      token,
+    });
+  },
+
+  deleteSavingTransaction: async (savingId: string, transactionId: string, token?: string) => {
+    if (SAVINGS_API_USE_MOCK) {
+      await sleep(120);
+
+      const existing = mockSavingTransactions.find((item) => item.id === transactionId && item.savingId === savingId);
+      if (!existing) {
+        return { success: false, message: 'Không tìm thấy giao dịch tiết kiệm.' } satisfies SavingActionResponse;
+      }
+
+      mockSavingTransactions = mockSavingTransactions.filter((item) => !(item.id === transactionId && item.savingId === savingId));
+
+      mockSavings = mockSavings.map((item) => {
+        if (item.id !== savingId) {
+          return item;
+        }
+
+        return {
+          ...item,
+          currentAmount: Math.max(item.currentAmount - existing.amount, 0),
+        };
+      });
+
+      return { success: true, transactionId } satisfies SavingActionResponse;
+    }
+
+    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.removeTransaction(savingId, transactionId), {
+      method: 'DELETE',
       token,
     });
   },

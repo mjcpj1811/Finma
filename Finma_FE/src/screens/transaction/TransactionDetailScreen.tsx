@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { transactionApi } from '../../api/transactionApi';
 import { type TransactionDetail } from '../../types/transaction';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -89,15 +89,11 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Chi Tiết Giao Dịch</Text>
-        <View style={styles.headerRightSlot}>
-          <NotificationBellButton size={30} onPress={() => navigation.navigate('Notifications')} />
-        </View>
-      </View>
+      <AppScreenHeader
+        title="Chi Tiết Giao Dịch"
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+      />
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentWrap}>

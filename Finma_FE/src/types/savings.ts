@@ -9,6 +9,7 @@ export type SavingItem = {
 export type SavingTransactionItem = {
   id: string;
   savingId: string;
+  dateIso: string;
   monthLabel: string;
   title: string;
   timeLabel: string;
@@ -54,6 +55,8 @@ export type CreateSavingTransactionPayload = {
   amount: number;
   kind: 'deposit' | 'withdraw';
 };
+
+export type UpdateSavingTransactionPayload = CreateSavingTransactionPayload;
 
 export type SavingActionResponse = {
   success: boolean;

@@ -13,8 +13,8 @@ import {
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { transactionApi } from '../../api/transactionApi';
 import {
   type TransactionFormOptions,
@@ -193,15 +193,11 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-        <Text style={styles.headerTitle}>{isEditMode ? 'Sửa Giao Dịch' : presetType === 'expense' ? 'Thêm Chi Tiêu' : presetType === 'income' ? 'Thêm Thu Nhập' : 'Thêm Giao Dịch'}</Text>
-        <View style={styles.headerRightSlot}>
-          <NotificationBellButton size={30} onPress={() => navigation.navigate('Notifications')} />
-        </View>
-      </View>
+      <AppScreenHeader
+        title={isEditMode ? 'Sửa Giao Dịch' : presetType === 'expense' ? 'Thêm Chi Tiêu' : presetType === 'income' ? 'Thêm Thu Nhập' : 'Thêm Giao Dịch'}
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+      />
 
       <View style={styles.mainPanel}>
         {loading ? (

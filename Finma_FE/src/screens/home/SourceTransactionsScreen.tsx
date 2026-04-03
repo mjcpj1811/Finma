@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { sourceApi } from '../../api/sourceApi';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type MoneySourceTransactionsResponse } from '../../types/source';
@@ -79,21 +79,12 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backSlot} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>{data.source.name}</Text>
-
-        <View style={styles.rightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={data.overview.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title={data.source.name}
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={data.overview.unreadNotifications > 0}
+      />
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryCol}>

@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { profileApi } from '../../api/profileApi';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type SettingsMenuData, type SettingsMenuItem } from '../../types/settings';
@@ -67,21 +67,12 @@ export const SettingsScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>Cài Đặt</Text>
-
-        <View style={styles.headerRightSlot}>
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={data.unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title="Cài Đặt"
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={data.unreadNotifications > 0}
+      />
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>

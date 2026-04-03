@@ -11,8 +11,8 @@ import {
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BottomNavBar } from '../../components/BottomNavBar';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { calendarApi } from '../../api/calendarApi';
 import {
   type CalendarCategorySlice,
@@ -151,18 +151,12 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>Lịch</Text>
-
-        <NotificationBellButton
-          onPress={() => navigation.navigate('Notifications')}
-          showBadge={unreadNotifications > 0}
-        />
-      </View>
+      <AppScreenHeader
+        title="Lịch"
+        onPressBack={() => navigation.goBack()}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={unreadNotifications > 0}
+      />
 
       <View style={styles.panel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
