@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { transactionApi } from '../../api/transactionApi';
 import { type TransactionDetail } from '../../types/transaction';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -81,6 +81,7 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải chi tiết giao dịch...</Text>
         </View>
+        <ScreenBottomNavigation activeTab="exchange" />
       </SafeAreaView>
     );
   }
@@ -145,28 +146,7 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
         </ScrollView>
       </View>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="exchange"
-          onPress={(tab) => {
-            if (tab === 'home') {
-              navigation.navigate('Home');
-            }
-            if (tab === 'report') {
-              navigation.navigate('Report');
-            }
-            if (tab === 'exchange') {
-              navigation.navigate('Transactions');
-            }
-            if (tab === 'layers') {
-              navigation.navigate('Categories');
-            }
-            if (tab === 'profile') {
-              navigation.navigate('Profile');
-            }
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="exchange" />
     </SafeAreaView>
   );
 };
@@ -308,17 +288,5 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
 });

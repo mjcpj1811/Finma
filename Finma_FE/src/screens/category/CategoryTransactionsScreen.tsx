@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { transactionApi } from '../../api/transactionApi';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type TransactionDashboard, type TransactionItem, type TransactionType } from '../../types/transaction';
 import { colors } from '../../theme/colors';
@@ -111,6 +111,7 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải giao dịch danh mục...</Text>
         </View>
+        <ScreenBottomNavigation activeTab="layers" />
       </SafeAreaView>
     );
   }
@@ -196,18 +197,7 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
         </ScrollView>
       </View>
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="layers"
-          onPress={(tab) => {
-            if (tab === 'home') navigation.navigate('Home');
-            if (tab === 'report') navigation.navigate('Report');
-            if (tab === 'exchange') navigation.navigate('Transactions');
-            if (tab === 'layers') navigation.navigate('Categories');
-            if (tab === 'profile') navigation.navigate('Profile');
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="layers" />
     </SafeAreaView>
   );
 };
@@ -382,19 +372,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
     marginBottom: 8,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
   loaderWrap: {
     flex: 1,
     alignItems: 'center',

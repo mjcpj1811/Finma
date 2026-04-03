@@ -13,7 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BottomNavBar } from '../../components/BottomNavBar';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { searchApi } from '../../api/searchApi';
 import { type SearchCategoryOption, type SearchReportType, type SearchResultItem } from '../../types/search';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -203,28 +203,7 @@ export const SearchScreen = ({ navigation }: Props) => {
         />
       ) : null}
 
-      <View style={styles.fixedBottomNav}>
-        <BottomNavBar
-          activeTab="report"
-          onPress={(tab) => {
-            if (tab === 'home') {
-              navigation.navigate('Home');
-            }
-            if (tab === 'report') {
-              navigation.navigate('Report');
-            }
-            if (tab === 'exchange') {
-              navigation.navigate('Transactions');
-            }
-            if (tab === 'layers') {
-              navigation.navigate('Categories');
-            }
-            if (tab === 'profile') {
-              navigation.navigate('Profile');
-            }
-          }}
-        />
-      </View>
+      <ScreenBottomNavigation activeTab="report" />
     </SafeAreaView>
   );
 };
@@ -422,17 +401,5 @@ const styles = StyleSheet.create({
   },
   expenseAmount: {
     color: colors.blueDark,
-  },
-  fixedBottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#D4EDE4',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
+  },
 });

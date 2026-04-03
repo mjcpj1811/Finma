@@ -1,7 +1,7 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '../theme/colors';
 
-type TabKey = 'home' | 'report' | 'exchange' | 'layers' | 'profile';
+export type TabKey = 'home' | 'report' | 'exchange' | 'layers' | 'profile';
 
 type Props = {
   activeTab: TabKey;
