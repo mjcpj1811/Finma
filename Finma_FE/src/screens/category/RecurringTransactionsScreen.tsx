@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,35 +15,82 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { recurringApi } from '../../api/recurringApi';
+import { transactionApi } from '../../api/transactionApi';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
-import { type RecurringDashboard, type RecurringRuleItem, type UpsertRecurringRulePayload } from '../../types/recurring';
+import { type TransactionFormOptions } from '../../types/transaction';
+import { type RecurringCycle, type RecurringDashboard, type RecurringRuleItem, type UpsertRecurringRulePayload } from '../../types/recurring';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Recurring'>;
 
 type FormState = {
+  cycle: RecurringCycle;
   title: string;
   amount: string;
   dayOfMonth: string;
+  dayOfWeek: string;
+  categoryId: string;
+  sourceId: string;
+  startDate: string;
   note: string;
 };
 
 const defaultForm: FormState = {
+  cycle: 'monthly',
   title: '',
   amount: '',
   dayOfMonth: '',
+  dayOfWeek: '',
+  categoryId: '',
+  sourceId: '',
+  startDate: '',
   note: '',
 };
 
-const formatCurrency = (value: number) => `${Math.round(value).toLocaleString('vi-VN')} đ`;
+const formatCurrency = (value: number) => `${Math.round(value).toLocaleString('vi-VN')}`;
 
-const ToggleSwitch = ({ value, onPress }: { value: boolean; onPress: () => void }) => {
+const cycleOptions: Array<{ value: RecurringCycle; label: string }> = [
+  { value: 'daily', label: 'Hàng ngày' },
+  { value: 'weekly', label: 'Hàng tuần' },
+  { value: 'monthly', label: 'Hàng tháng' },
+  { value: 'yearly', label: 'Hàng năm' },
+];
+
+const weekdayOptions = [
+  { value: '0', label: 'Chủ Nhật' },
+  { value: '1', label: 'Thứ Hai' },
+  { value: '2', label: 'Thứ Ba' },
+  { value: '3', label: 'Thứ Tư' },
+  { value: '4', label: 'Thứ Năm' },
+  { value: '5', label: 'Thứ Sáu' },
+  { value: '6', label: 'Thứ Bảy' },
+];
+
+const ToggleSwitch = ({
+  value,
+  onPress,
+  disabled,
+  loading,
+}: {
+  value: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) => {
   return (
-    <Pressable style={[styles.toggleTrack, value && styles.toggleTrackActive]} onPress={onPress}>
-      <View style={[styles.toggleThumb, value && styles.toggleThumbActive]} />
+    <Pressable
+      style={[styles.toggleTrack, value && styles.toggleTrackActive, disabled && styles.toggleTrackDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.white} />
+      ) : (
+        <View style={[styles.toggleThumb, value && styles.toggleThumbActive]} />
+      )}
     </Pressable>
   );
 };
@@ -51,15 +98,37 @@ const ToggleSwitch = ({ value, onPress }: { value: boolean; onPress: () => void 
 export const RecurringTransactionsScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
   const [dashboard, setDashboard] = useState<RecurringDashboard | null>(null);
+  const [options, setOptions] = useState<TransactionFormOptions>({ categories: [], sources: [] });
   const [showModal, setShowModal] = useState(false);
+  const [showCycleList, setShowCycleList] = useState(false);
+  const [showWeekdayList, setShowWeekdayList] = useState(false);
+  const [showCategoryList, setShowCategoryList] = useState(false);
+  const [showSourceList, setShowSourceList] = useState(false);
+  const [togglingRuleId, setTogglingRuleId] = useState<string | null>(null);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await recurringApi.getDashboard();
+      const [response, formOptions] = await Promise.all([
+        recurringApi.getDashboard(),
+        transactionApi.getFormOptions(),
+      ]);
+      const expenseCategories = formOptions.categories.filter((item) => item.type === 'expense');
+
+      setOptions({
+        categories: expenseCategories,
+        sources: formOptions.sources,
+      });
       setDashboard(response);
+      setForm((prev) => ({
+        ...prev,
+        categoryId: prev.categoryId || expenseCategories[0]?.id || '',
+        sourceId: prev.sourceId || formOptions.sources[0]?.id || '',
+      }));
     } catch {
       setDashboard(null);
     } finally {
@@ -80,55 +149,197 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
         text: 'Xóa',
         style: 'destructive',
         onPress: async () => {
-          await recurringApi.deleteRecurringRule(item.id);
-          await loadData();
+          try {
+            await recurringApi.deleteRecurringRule(item.id);
+            await loadData();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Không thể xóa giao dịch định kỳ.';
+            Alert.alert('Xóa thất bại', message);
+          }
         },
       },
     ]);
   };
 
   const onToggleRule = async (item: RecurringRuleItem) => {
-    await recurringApi.toggleRecurringRule(item.id, !item.isActive);
-    await loadData();
+    if (togglingRuleId) {
+      return;
+    }
+
+    setTogglingRuleId(item.id);
+    setDashboard((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        items: prev.items.map((rule) =>
+          rule.id === item.id ? { ...rule, isActive: !rule.isActive } : rule,
+        ),
+      };
+    });
+
+    try {
+      await recurringApi.toggleRecurringRule(item.id, !item.isActive);
+      await loadData();
+    } catch (error) {
+      setDashboard((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          items: prev.items.map((rule) =>
+            rule.id === item.id ? { ...rule, isActive: item.isActive } : rule,
+          ),
+        };
+      });
+      const message = error instanceof Error ? error.message : 'Không thể cập nhật trạng thái giao dịch định kỳ.';
+      Alert.alert('Cập nhật thất bại', message);
+    } finally {
+      setTogglingRuleId(null);
+    }
   };
 
-  const onAdd = async () => {
+  const onOpenAddModal = () => {
+    setEditingRuleId(null);
+    setShowCycleList(false);
+    setShowWeekdayList(false);
+    setShowCategoryList(false);
+    setShowSourceList(false);
+    setForm({
+      ...defaultForm,
+      cycle: 'monthly',
+      categoryId: options.categories[0]?.id ?? '',
+      sourceId: options.sources[0]?.id ?? '',
+      startDate: new Date().toISOString(),
+      note: 'Hàng tháng',
+    });
+    setShowModal(true);
+  };
+
+  const onOpenEditModal = async (item: RecurringRuleItem) => {
+    setModalLoading(true);
+    try {
+      const detail = await recurringApi.getRecurringRuleById(item.id);
+      setEditingRuleId(item.id);
+      setForm({
+        cycle: detail.cycle,
+        title: detail.title,
+        amount: String(Math.round(Math.abs(detail.amount))),
+        dayOfMonth: detail.dayOfMonth ? String(detail.dayOfMonth) : '',
+        dayOfWeek: detail.dayOfWeek != null ? String(detail.dayOfWeek) : '',
+        categoryId: detail.categoryId ?? options.categories[0]?.id ?? '',
+        sourceId: detail.sourceId ?? options.sources[0]?.id ?? '',
+        startDate: detail.startDate,
+        note: detail.note ?? '',
+      });
+      setShowCycleList(false);
+      setShowWeekdayList(false);
+      setShowCategoryList(false);
+      setShowSourceList(false);
+      setShowModal(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu giao dịch định kỳ.';
+      Alert.alert('Không thể sửa', message);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const onSubmit = async () => {
     const amount = Number(form.amount.replace(/[^\d]/g, ''));
     const dayOfMonth = Number(form.dayOfMonth.replace(/[^\d]/g, ''));
+    const dayOfWeek = Number(form.dayOfWeek.replace(/[^\d]/g, ''));
 
-    if (!form.title.trim() || !amount || !dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên, số tiền và ngày hợp lệ (1-31).');
+    if (!form.title.trim() || !amount || !form.categoryId || !form.sourceId) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ tên, số tiền, danh mục và nguồn tiền.');
+      return;
+    }
+
+    if ((form.cycle === 'monthly' || form.cycle === 'yearly') && (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31)) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập ngày hợp lệ (1-31).');
+      return;
+    }
+
+    if (form.cycle === 'weekly' && (Number.isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6)) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng chọn thứ trong tuần hợp lệ.');
       return;
     }
 
     const payload: UpsertRecurringRulePayload = {
       title: form.title.trim(),
       amount,
-      cycle: 'monthly',
-      dayOfMonth,
-      categoryId: 'other',
-      sourceId: 'cash',
+      cycle: form.cycle,
+      dayOfMonth: form.cycle === 'monthly' || form.cycle === 'yearly' ? dayOfMonth : undefined,
+      dayOfWeek: form.cycle === 'weekly' ? dayOfWeek : undefined,
+      startDate: form.startDate || new Date().toISOString(),
+      categoryId: form.categoryId,
+      sourceId: form.sourceId,
       note: form.note.trim() || 'Hàng tháng',
-      isActive: true,
     };
 
     setSaving(true);
     try {
-      await recurringApi.createRecurringRule(payload);
+      if (editingRuleId) {
+        await recurringApi.updateRecurringRule(editingRuleId, payload);
+      } else {
+        await recurringApi.createRecurringRule(payload);
+      }
       setShowModal(false);
+      setEditingRuleId(null);
       setForm(defaultForm);
       await loadData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể lưu giao dịch định kỳ.';
+      Alert.alert('Lưu thất bại', message);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading || !dashboard) {
+  const selectedCategoryLabel = useMemo(
+    () => options.categories.find((item) => item.id === form.categoryId)?.label ?? 'Chọn danh mục',
+    [form.categoryId, options.categories],
+  );
+
+  const selectedSourceLabel = useMemo(
+    () => options.sources.find((item) => item.id === form.sourceId)?.label ?? 'Chọn nguồn tiền',
+    [form.sourceId, options.sources],
+  );
+
+  const selectedCycleLabel = useMemo(
+    () => cycleOptions.find((item) => item.value === form.cycle)?.label ?? 'Hàng tháng',
+    [form.cycle],
+  );
+
+  const selectedWeekdayLabel = useMemo(
+    () => weekdayOptions.find((item) => item.value === form.dayOfWeek)?.label ?? 'Chọn thứ trong tuần',
+    [form.dayOfWeek],
+  );
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải giao dịch định kỳ...</Text>
+        </View>
+        <ScreenBottomNavigation activeTab="layers" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.loaderWrap}>
+          <Text style={styles.loaderText}>Không tải được dữ liệu giao dịch định kỳ.</Text>
+          <Pressable style={styles.retryButton} onPress={() => void loadData()}>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </Pressable>
         </View>
         <ScreenBottomNavigation activeTab="layers" />
       </SafeAreaView>
@@ -168,23 +379,32 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
 
               <View style={styles.ruleContent}>
                 <Text style={styles.ruleTitle}>{item.title}</Text>
-                <View style={styles.ruleMetaRow}>
-                  <Text style={styles.ruleMetaText}>Hàng Tháng</Text>
-                  <Text style={styles.ruleMetaText}>Ngày {item.dayOfMonth}</Text>
-                  <Text style={styles.ruleMetaAmount}>{formatCurrency(item.amount)}</Text>
-                </View>
+                <Text style={styles.ruleMetaText}>
+                  {item.executionLabel?.trim() || item.frequencyLabel?.trim() || 'Chưa có lịch thực hiện'}
+                </Text>
               </View>
 
-              <View style={styles.ruleActions}>
-                <Pressable style={styles.deleteBtn} onPress={() => onDeleteRule(item)}>
-                  <MaterialIcons name="delete-outline" size={14} color="#EF4444" />
-                </Pressable>
-                <ToggleSwitch value={item.isActive} onPress={() => onToggleRule(item)} />
+              <View style={styles.ruleRight}>
+                <Text style={styles.ruleAmountTop}>{formatCurrency(item.amount)}</Text>
+                <View style={styles.ruleActionRow}>
+                  <Pressable style={styles.editBtn} onPress={() => void onOpenEditModal(item)} disabled={modalLoading}>
+                    <MaterialIcons name="edit" size={14} color="#0E62D0" />
+                  </Pressable>
+                  <Pressable style={styles.deleteBtn} onPress={() => onDeleteRule(item)}>
+                    <MaterialIcons name="delete-outline" size={14} color="#EF4444" />
+                  </Pressable>
+                  <ToggleSwitch
+                    value={item.isActive}
+                    onPress={() => void onToggleRule(item)}
+                    disabled={togglingRuleId === item.id}
+                    loading={togglingRuleId === item.id}
+                  />
+                </View>
               </View>
             </View>
           ))}
 
-          <Pressable style={styles.addButton} onPress={() => setShowModal(true)}>
+          <Pressable style={styles.addButton} onPress={onOpenAddModal}>
             <Text style={styles.addButtonText}>Thêm Mới</Text>
           </Pressable>
         </ScrollView>
@@ -195,23 +415,152 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Thêm Mới</Text>
+            <Text style={styles.modalTitle}>{editingRuleId ? 'Cập nhật giao dịch định kỳ' : 'Thêm giao dịch định kỳ'}</Text>
 
             <Text style={styles.modalLabel}>Chu kỳ</Text>
-            <View style={styles.readonlyInput}>
-              <Text style={styles.readonlyText}>Hàng tháng</Text>
+            <Pressable
+              style={styles.selectField}
+              onPress={() => {
+                setShowCycleList((prev) => !prev);
+                setShowWeekdayList(false);
+                setShowCategoryList(false);
+                setShowSourceList(false);
+              }}
+            >
+              <Text style={styles.fieldText}>{selectedCycleLabel}</Text>
               <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
-            </View>
+            </Pressable>
+            {showCycleList ? (
+              <View style={styles.dropdownList}>
+                {cycleOptions.map((item) => (
+                  <Pressable
+                    key={item.value}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        cycle: item.value,
+                        dayOfMonth: item.value === 'weekly' || item.value === 'daily' ? '' : prev.dayOfMonth,
+                        dayOfWeek: item.value === 'weekly' ? prev.dayOfWeek : '',
+                      }));
+                      setShowCycleList(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
 
-            <Text style={styles.modalLabel}>Ngày thực hiện</Text>
-            <TextInput
-              value={form.dayOfMonth}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
-              placeholder="15"
-              keyboardType="numeric"
-              style={styles.input}
-              placeholderTextColor={colors.textMuted}
-            />
+            {form.cycle === 'weekly' ? (
+              <>
+                <Text style={styles.modalLabel}>Thứ thực hiện</Text>
+                <Pressable
+                  style={styles.selectField}
+                  onPress={() => {
+                    setShowWeekdayList((prev) => !prev);
+                    setShowCycleList(false);
+                    setShowCategoryList(false);
+                    setShowSourceList(false);
+                  }}
+                >
+                  <Text style={styles.fieldText}>{selectedWeekdayLabel}</Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+                </Pressable>
+                {showWeekdayList ? (
+                  <View style={styles.dropdownList}>
+                    {weekdayOptions.map((item) => (
+                      <Pressable
+                        key={item.value}
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                          setForm((prev) => ({ ...prev, dayOfWeek: item.value }));
+                          setShowWeekdayList(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownText}>{item.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            ) : form.cycle === 'monthly' || form.cycle === 'yearly' ? (
+              <>
+                <Text style={styles.modalLabel}>Ngày thực hiện</Text>
+                <TextInput
+                  value={form.dayOfMonth}
+                  onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
+                  placeholder="15"
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalLabel}>Ngày thực hiện</Text>
+                <View style={styles.readonlyInput}>
+                  <Text style={styles.readonlyText}>Tự động mỗi ngày</Text>
+                  <MaterialIcons name="event-repeat" size={18} color={colors.primary} />
+                </View>
+              </>
+            )}
+
+            <Text style={styles.modalLabel}>Danh mục chi tiêu</Text>
+            <Pressable
+              style={styles.selectField}
+              onPress={() => {
+                setShowCategoryList((prev) => !prev);
+                setShowSourceList(false);
+              }}
+            >
+              <Text style={styles.fieldText}>{selectedCategoryLabel}</Text>
+              <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+            </Pressable>
+            {showCategoryList ? (
+              <View style={styles.dropdownList}>
+                {options.categories.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setForm((prev) => ({ ...prev, categoryId: item.id }));
+                      setShowCategoryList(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            <Text style={styles.modalLabel}>Nguồn tiền</Text>
+            <Pressable
+              style={styles.selectField}
+              onPress={() => {
+                setShowSourceList((prev) => !prev);
+                setShowCategoryList(false);
+              }}
+            >
+              <Text style={styles.fieldText}>{selectedSourceLabel}</Text>
+              <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+            </Pressable>
+            {showSourceList ? (
+              <View style={styles.dropdownList}>
+                {options.sources.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setForm((prev) => ({ ...prev, sourceId: item.id }));
+                      setShowSourceList(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
 
             <Text style={styles.modalLabel}>Tiêu đề</Text>
             <TextInput
@@ -243,12 +592,22 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
             />
 
             <View style={styles.modalActionRow}>
-              <Pressable style={styles.cancelBtn} onPress={() => setShowModal(false)}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setShowModal(false);
+                  setEditingRuleId(null);
+                  setShowCycleList(false);
+                  setShowWeekdayList(false);
+                  setShowCategoryList(false);
+                  setShowSourceList(false);
+                }}
+              >
                 <Text style={styles.cancelText}>Hủy</Text>
               </Pressable>
 
-              <Pressable style={styles.saveBtn} onPress={onAdd} disabled={saving}>
-                <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
+              <Pressable style={styles.saveBtn} onPress={onSubmit} disabled={saving || modalLoading}>
+                <Text style={styles.saveText}>{saving ? 'Đang lưu...' : editingRuleId ? 'Cập nhật' : 'Lưu'}</Text>
               </Pressable>
             </View>
           </View>
@@ -376,14 +735,21 @@ const styles = StyleSheet.create({
     fontFamily: typography.poppins.medium,
     fontSize: 11,
   },
-  ruleMetaAmount: {
+  ruleRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 120,
+  },
+  ruleAmountTop: {
     color: '#1F2937',
     fontFamily: typography.poppins.semibold,
-    fontSize: 11,
+    fontSize: 12,
   },
-  ruleActions: {
-    alignItems: 'flex-end',
+  ruleActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
+    marginTop: 6,
   },
   deleteBtn: {
     width: 20,
@@ -393,21 +759,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  editBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#DCEAFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   toggleTrack: {
-    width: 24,
-    height: 14,
-    borderRadius: 8,
+    width: 36,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#2D2D2D',
-    paddingHorizontal: 2,
+    paddingHorizontal: 3,
     justifyContent: 'center',
   },
   toggleTrackActive: {
     backgroundColor: '#47E0C7',
   },
+  toggleTrackDisabled: {
+    opacity: 0.6,
+  },
   toggleThumb: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#ffffff',
   },
   toggleThumbActive: {
@@ -427,7 +804,8 @@ const styles = StyleSheet.create({
     color: '#0C6657',
     fontFamily: typography.poppins.semibold,
     fontSize: 13,
-  },
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
@@ -435,7 +813,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalCard: {
-    backgroundColor: colors.white,
+    backgroundColor: '#F1FFF3',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingTop: 14,
@@ -456,6 +834,7 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 42,
+    backgroundColor: '#DFF7E2',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D4EFE8',
@@ -463,6 +842,39 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 14,
+  },
+  selectField: {
+    minHeight: 42,
+    backgroundColor: '#DFF7E2',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D4EFE8',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  fieldText: {
+    color: colors.text,
+    fontFamily: typography.poppins.regular,
+    fontSize: 14,
+  },
+  dropdownList: {
+    marginTop: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D4EFE8',
+    backgroundColor: '#DFF7E2',
+  },
+  dropdownItem: {
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  dropdownText: {
+    color: colors.text,
+    fontFamily: typography.poppins.regular,
+    fontSize: 13,
   },
   noteInput: {
     minHeight: 88,
@@ -472,7 +884,7 @@ const styles = StyleSheet.create({
   readonlyInput: {
     minHeight: 42,
     borderRadius: 10,
-    backgroundColor: '#E6F5EC',
+    backgroundColor: '#DFF7E2',
     borderWidth: 1,
     borderColor: '#D4EFE8',
     paddingHorizontal: 12,
@@ -527,5 +939,18 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
+  },
+  retryButton: {
+    minHeight: 34,
+    borderRadius: 17,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  retryButtonText: {
+    color: colors.primary,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 13,
   },
 });

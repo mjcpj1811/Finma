@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type RootStackParamList } from '../navigation/RootNavigator';
 import { BottomNavBar, type TabKey } from './BottomNavBar';
 
@@ -18,9 +19,21 @@ const targetRouteByTab: Record<TabKey, 'Home' | 'Report' | 'Transactions' | 'Cat
 
 export const ScreenBottomNavigation = ({ activeTab }: Props) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom + 6, 10) : 10;
+  const sideInset = Platform.OS === 'android' ? insets.left + insets.right : 0;
 
   return (
-    <View style={styles.fixedBottomNav}>
+    <View
+      style={[
+        styles.fixedBottomNav,
+        {
+          paddingBottom: bottomPadding,
+          paddingLeft: 18 + (sideInset > 0 ? insets.left : 0),
+          paddingRight: 18 + (sideInset > 0 ? insets.right : 0),
+        },
+      ]}
+    >
       <BottomNavBar
         activeTab={activeTab}
         onPress={(tab) => {
@@ -42,8 +55,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#DFF7E2',
     borderTopWidth: 1,
     borderColor: '#E1EDE6',
-    paddingHorizontal: 18,
     paddingTop: 8,
-    paddingBottom: 10,
   },
 });

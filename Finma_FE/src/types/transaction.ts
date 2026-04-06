@@ -10,6 +10,7 @@ export type TransactionOverview = {
 
 export type TransactionItem = {
   id: string;
+  categoryId: string;
   monthLabel: string;
   title: string;
   timeLabel: string;

@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
   ScrollView,
   type ImageSourcePropType,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
@@ -50,13 +52,17 @@ type SocialButtonsProps = {
 };
 
 export const AuthLayout = ({ title, children, contentMode = 'top' }: AuthLayoutProps) => {
+  const insets = useSafeAreaInsets();
+  const headerTopPadding = Platform.OS === 'android' ? Math.max(insets.top, 20) : 20;
+  const cardBottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : 0;
+
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerWrap}>
+      <View style={[styles.headerWrap, { paddingTop: headerTopPadding }]}>
         <Text style={styles.title}>{title}</Text>
       </View>
 
-      <View style={styles.card}>
+      <View style={[styles.card, { paddingBottom: cardBottomPadding }]}>
         <ScrollView
           contentContainerStyle={[styles.formContent, contentMode === 'center' && styles.formContentCentered]}
           keyboardShouldPersistTaps="handled"
@@ -117,7 +123,12 @@ export const PasswordInput = ({
           style={[styles.input, styles.passwordInput]}
         />
         <Pressable onPress={() => setHidden((prev) => !prev)} style={styles.eyeButton}>
-          <Image source={hidden ? eyeOffIcon : eyeIcon} style={styles.eyeIcon} resizeMode="contain" />
+          <Image
+            source={hidden ? eyeOffIcon : eyeIcon}
+            style={styles.eyeIcon}
+            tintColor={colors.textSecondary}
+            resizeMode="contain"
+          />
         </Pressable>
       </View>
     </View>
@@ -245,7 +256,6 @@ const styles = StyleSheet.create({
   eyeIcon: {
     width: 18,
     height: 18,
-    tintColor: colors.textSecondary,
   },
   button: {
     borderRadius: 14,

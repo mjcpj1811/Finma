@@ -40,6 +40,15 @@ export type CreateCategoryPayload = {
   name: string;
   group: CategoryGroup;
   iconKey: CategoryItem['iconKey'];
+  color?: string;
+  parentId?: string | null;
+};
+
+export type UpdateCategoryPayload = CreateCategoryPayload;
+
+export type CategoryDetail = CategoryItem & {
+  color?: string | null;
+  parentId?: string | null;
 };
 
 export type CategoryActionResponse = {
