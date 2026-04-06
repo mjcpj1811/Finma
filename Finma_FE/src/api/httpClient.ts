@@ -1,4 +1,5 @@
 import { API_CONFIG } from './config';
+import { getAccessToken } from '../utils/authTokenStorage';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -19,6 +20,7 @@ const buildUrl = (path: string) => {
 
 export const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
   const { method = 'GET', body, token, signal } = options;
+  const authToken = token ?? (await getAccessToken()) ?? undefined;
 
   const controller = signal ? null : new AbortController();
   const timeoutId = controller
@@ -33,7 +35,7 @@ export const request = async <T>(path: string, options: RequestOptions = {}): Pr
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
       signal: signal ?? controller?.signal,

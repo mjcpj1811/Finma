@@ -2,109 +2,145 @@ import { request } from './httpClient';
 import {
   type CategoryActionResponse,
   type CategoryDashboard,
-  type CategoryGroup,
   type CategoryItem,
   type CreateCategoryPayload,
 } from '../types/category';
 
-const CATEGORY_API_USE_MOCK = true;
-
 const CATEGORY_ENDPOINTS = {
-  dashboard: '/categories/dashboard',
+  list: '/categories',
   create: '/categories',
   remove: (id: string) => `/categories/${id}`,
 };
 
-let mockCategories: CategoryItem[] = [
-  { id: 'cat-1', name: 'Tiết Kiệm', group: 'financial', iconKey: 'savings', isDefault: true },
-  { id: 'cat-2', name: 'Định Kỳ', group: 'financial', iconKey: 'schedule', isDefault: true },
-  { id: 'cat-3', name: 'Vay Nợ', group: 'financial', iconKey: 'payments', isDefault: true },
-  { id: 'cat-4', name: 'Thực Phẩm', group: 'expense', iconKey: 'shopping', isDefault: true },
-  { id: 'cat-5', name: 'Ăn Uống', group: 'expense', iconKey: 'restaurant', isDefault: true },
-  { id: 'cat-6', name: 'Quà Tặng', group: 'expense', iconKey: 'card_giftcard', isDefault: true },
-  { id: 'cat-7', name: 'Y Tế', group: 'expense', iconKey: 'healing', isDefault: true },
-  { id: 'cat-8', name: 'Giải Trí', group: 'expense', iconKey: 'movie', isDefault: true },
-  { id: 'cat-9', name: 'Di Chuyển', group: 'expense', iconKey: 'directions_bus', isDefault: true },
-  { id: 'cat-10', name: 'Lương', group: 'income', iconKey: 'attach_money', isDefault: true },
-  { id: 'cat-11', name: 'Trợ Cấp', group: 'income', iconKey: 'account_balance_wallet', isDefault: true },
-];
+type ApiResponse<T> = {
+  code: number;
+  message?: string;
+  result: T;
+};
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+type BackendCategoryType = 'FINANCE' | 'EXPENSE' | 'INCOME';
 
-const byGroup = (group: CategoryGroup) => mockCategories.filter((item) => item.group === group);
+type BackendCategory = {
+  id: number;
+  name: string;
+  type: BackendCategoryType;
+  icon?: string | null;
+  isDefault?: boolean | null;
+  children?: BackendCategory[] | null;
+};
 
-const buildDashboard = (): CategoryDashboard => ({
-  overview: {
-    totalBalance: 10000000,
-    totalExpense: 3000000,
-    budgetUsedPercent: 30,
-    budgetLimit: 10000000,
-    unreadNotifications: 1,
-  },
-  groups: {
-    financial: byGroup('financial'),
-    expense: byGroup('expense'),
-    income: byGroup('income'),
-  },
+const groupToType = {
+  financial: 'FINANCE',
+  expense: 'EXPENSE',
+  income: 'INCOME',
+} as const;
+
+const typeToGroup = {
+  FINANCE: 'financial',
+  EXPENSE: 'expense',
+  INCOME: 'income',
+} as const;
+
+const iconAliases: Record<string, CategoryItem['iconKey']> = {
+  savings: 'savings',
+  schedule: 'schedule',
+  payments: 'payments',
+  shopping: 'shopping',
+  shopping_bag: 'shopping',
+  restaurant: 'restaurant',
+  card_giftcard: 'card_giftcard',
+  healing: 'healing',
+  movie: 'movie',
+  directions_bus: 'directions_bus',
+  attach_money: 'attach_money',
+  account_balance_wallet: 'account_balance_wallet',
+};
+
+const fallbackIconByType: Record<BackendCategoryType, CategoryItem['iconKey']> = {
+  FINANCE: 'savings',
+  EXPENSE: 'shopping',
+  INCOME: 'attach_money',
+};
+
+const normalizeIconKey = (
+  icon: string | null | undefined,
+  type: BackendCategoryType,
+): CategoryItem['iconKey'] => {
+  if (!icon) {
+    return fallbackIconByType[type];
+  }
+
+  const normalized = icon.trim().toLowerCase().replace(/-/g, '_');
+  return iconAliases[normalized] ?? fallbackIconByType[type];
+};
+
+const flattenCategories = (nodes: BackendCategory[]): BackendCategory[] => {
+  return nodes.flatMap((node) => [
+    node,
+    ...(Array.isArray(node.children) ? flattenCategories(node.children) : []),
+  ]);
+};
+
+const mapCategory = (item: BackendCategory): CategoryItem => ({
+  id: String(item.id),
+  name: item.name,
+  group: typeToGroup[item.type],
+  iconKey: normalizeIconKey(item.icon, item.type),
+  isDefault: Boolean(item.isDefault),
 });
+
+const fetchByType = async (type: BackendCategoryType, token?: string): Promise<CategoryItem[]> => {
+  const response = await request<ApiResponse<BackendCategory[]>>(`${CATEGORY_ENDPOINTS.list}?type=${type}`, { token });
+  return flattenCategories(response.result ?? []).map(mapCategory);
+};
 
 export const categoryApi = {
   getDashboard: async (token?: string) => {
-    if (CATEGORY_API_USE_MOCK) {
-      await sleep(180);
-      return buildDashboard();
-    }
+    const [financial, expense, income] = await Promise.all([
+      fetchByType('FINANCE', token),
+      fetchByType('EXPENSE', token),
+      fetchByType('INCOME', token),
+    ]);
 
-    return request<CategoryDashboard>(CATEGORY_ENDPOINTS.dashboard, { token });
+    return {
+      overview: {
+        totalBalance: 0,
+        totalExpense: 0,
+        budgetUsedPercent: 0,
+        budgetLimit: 0,
+        unreadNotifications: 0,
+      },
+      groups: {
+        financial,
+        expense,
+        income,
+      },
+    } satisfies CategoryDashboard;
   },
 
   createCategory: async (payload: CreateCategoryPayload, token?: string) => {
-    if (CATEGORY_API_USE_MOCK) {
-      await sleep(120);
-      const categoryId = `cat-${Date.now()}`;
-      mockCategories = [
-        ...mockCategories,
-        {
-          id: categoryId,
-          name: payload.name.trim(),
-          group: payload.group,
-          iconKey: payload.iconKey,
-          isDefault: false,
-        },
-      ];
-
-      return { success: true, categoryId } satisfies CategoryActionResponse;
-    }
-
-    return request<CategoryActionResponse>(CATEGORY_ENDPOINTS.create, {
+    const response = await request<ApiResponse<BackendCategory>>(CATEGORY_ENDPOINTS.create, {
       method: 'POST',
-      body: payload,
+      body: {
+        name: payload.name.trim(),
+        type: groupToType[payload.group],
+        icon: payload.iconKey,
+      },
       token,
     });
+
+    return {
+      success: true,
+      categoryId: String(response.result.id),
+    } as CategoryActionResponse;
   },
 
   deleteCategory: async (categoryId: string, token?: string) => {
-    if (CATEGORY_API_USE_MOCK) {
-      await sleep(120);
-      const found = mockCategories.find((item) => item.id === categoryId);
-      if (!found) {
-        return { success: false, message: 'Không tìm thấy danh mục.' } satisfies CategoryActionResponse;
-      }
-
-      if (found.isDefault) {
-        return {
-          success: false,
-          message: 'Danh mục mặc định không thể xóa.',
-        } satisfies CategoryActionResponse;
-      }
-
-      mockCategories = mockCategories.filter((item) => item.id !== categoryId);
-      return { success: true, categoryId } satisfies CategoryActionResponse;
-    }
-
-    return request<CategoryActionResponse>(CATEGORY_ENDPOINTS.remove(categoryId), {
+    await request<ApiResponse<null>>(CATEGORY_ENDPOINTS.remove(categoryId), {
       method: 'DELETE',
       token,
     });
+
+    return { success: true, categoryId } as CategoryActionResponse;
   },
 };

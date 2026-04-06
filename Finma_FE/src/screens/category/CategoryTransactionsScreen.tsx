@@ -50,7 +50,7 @@ const categoryIdMap: Record<string, string> = {
 const formatCurrency = (value: number) => `${Math.round(value).toLocaleString('vi-VN')} đ`;
 
 export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
-  const { categoryName, categoryGroup, categoryIconKey } = route.params;
+  const { categoryId, categoryName, categoryGroup, categoryIconKey } = route.params;
 
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<TransactionDashboard | null>(null);
@@ -187,7 +187,7 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
             onPress={() =>
               navigation.navigate('AddTransaction', {
                 presetType: categoryGroup === 'income' ? 'income' : 'expense',
-                presetCategoryId: categoryIdMap[categoryIconKey],
+                presetCategoryId: categoryId || categoryIdMap[categoryIconKey],
                 presetTitle: categoryName,
               })
             }
@@ -372,7 +372,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
     marginBottom: 8,
-  },
+  },
+
   loaderWrap: {
     flex: 1,
     alignItems: 'center',
