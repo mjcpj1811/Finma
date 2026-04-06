@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "debts")
@@ -31,10 +32,15 @@ public class Debt extends BaseEntity {
 
     private LocalDate startDate;
     private LocalDate dueDate;
+    private String note;
 
     @Enumerated(EnumType.STRING)
     private DebtStatus status;
 
-    @ManyToOne
+    @OneToMany(mappedBy = "debt", fetch = FetchType.LAZY)
+    private List<DebtPayment> payments;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 }

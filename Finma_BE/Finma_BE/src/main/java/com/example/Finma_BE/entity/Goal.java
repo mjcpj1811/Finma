@@ -34,7 +34,7 @@ public class Goal extends BaseEntity {
     private String icon;
     private String color;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 }

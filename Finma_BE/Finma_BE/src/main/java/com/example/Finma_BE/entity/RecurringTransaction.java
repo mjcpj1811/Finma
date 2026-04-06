@@ -39,12 +39,12 @@ public class RecurringTransaction extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private RecurringStatus status;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Account account;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Category category;
 }
