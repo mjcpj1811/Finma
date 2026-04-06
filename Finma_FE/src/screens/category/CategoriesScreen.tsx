@@ -49,6 +49,19 @@ const iconMeta: Record<CategoryItem['iconKey'], { name: keyof typeof MaterialIco
   directions_bus: { name: 'directions-bus', label: 'Di chuyển' },
   attach_money: { name: 'attach-money', label: 'Lương' },
   account_balance_wallet: { name: 'account-balance-wallet', label: 'Trợ cấp' },
+  local_grocery_store: { name: 'local-grocery-store', label: 'Siêu thị' },
+  directions_car: { name: 'directions-car', label: 'Xe cộ' },
+  home: { name: 'home', label: 'Nhà ở' },
+  school: { name: 'school', label: 'Học tập' },
+  fitness_center: { name: 'fitness-center', label: 'Thể thao' },
+  pets: { name: 'pets', label: 'Thú cưng' },
+  phone_iphone: { name: 'phone-iphone', label: 'Điện thoại' },
+  book: { name: 'book', label: 'Sách' },
+  music_note: { name: 'music-note', label: 'Âm nhạc' },
+  local_cafe: { name: 'local-cafe', label: 'Cà phê' },
+  work: { name: 'work', label: 'Công việc' },
+  child_care: { name: 'child-care', label: 'Con cái' },
+  checkroom: { name: 'checkroom', label: 'Thời trang' },
 };
 
 const sectionMeta: Array<{ key: CategoryGroup; title: string }> = [
