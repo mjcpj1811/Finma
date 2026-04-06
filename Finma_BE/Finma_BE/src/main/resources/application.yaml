@@ -5,7 +5,11 @@ server:
 
 spring:
   datasource:
+<<<<<<< HEAD
+    url: jdbc:mysql://localhost:3306/finance_app?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+=======
     url: jdbc:mysql://localhost:3306/finance_app?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
     username: root
     password: tuancuong@1
     driver-class-name: com.mysql.cj.jdbc.Driver

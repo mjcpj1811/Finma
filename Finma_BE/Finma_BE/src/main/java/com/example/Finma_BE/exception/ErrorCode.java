@@ -14,6 +14,18 @@ public enum ErrorCode {
     USER_NOT_EXIST(1005, "User does not exist", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED_ACCESS(1006, "Unauthenticated access", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED_ACCESS(1007, "Unauthorized access", HttpStatus.FORBIDDEN),
+<<<<<<< HEAD
+    CATEGORY_NOT_FOUND(1008, "Category not found", HttpStatus.NOT_FOUND),
+    BUDGET_NOT_FOUND(1009, "Budget not found", HttpStatus.NOT_FOUND),
+    BUDGET_ALREADY_EXISTS(1010, "Budget already exists for this category in the given period", HttpStatus.CONFLICT),
+    BUDGET_UNAUTHORIZED(1011, "You are not authorized to access this budget", HttpStatus.FORBIDDEN),
+    GOAL_NOT_FOUND(1012, "Goal not found", HttpStatus.NOT_FOUND),
+    GOAL_UNAUTHORIZED(1013, "You are not authorized to access this goal", HttpStatus.FORBIDDEN),
+    GOAL_ALREADY_COMPLETED(1014, "Goal is already completed or cancelled", HttpStatus.BAD_REQUEST),
+    GOAL_DEPOSIT_NOT_FOUND(1015, "Goal deposit not found", HttpStatus.NOT_FOUND),
+    GOAL_DEPOSIT_EXCEEDS_TARGET(1016, "Deposit amount exceeds remaining target amount", HttpStatus.BAD_REQUEST),
+    NOTIFICATION_NOT_FOUND(1017, "Notification not found", HttpStatus.NOT_FOUND),
+=======
     INCORRECT_PASSWORD(1008, "Incorrect password", HttpStatus.BAD_REQUEST),
     DEBT_NOT_FOUND(1008, "Debt not found", HttpStatus.NOT_FOUND),
     RETURN_DATE_MUST_BE_AFTER_START_DATE(1009, "Return Date must be after start date", HttpStatus.BAD_REQUEST),
@@ -37,6 +49,7 @@ public enum ErrorCode {
     CATEGORY_CIRCULAR_REFERENCE(10027, "Category circular reference", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_DEFAULT_CATEGORY(10028, "Cannot delete default category", HttpStatus.BAD_REQUEST),
     CATEGORY_HAS_TRANSACTIONS(10029, "Category has transactions", HttpStatus.BAD_REQUEST),
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
     UNCATEGORIZED_EXCEPTION(9999, "An uncategorized exception occurred", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;

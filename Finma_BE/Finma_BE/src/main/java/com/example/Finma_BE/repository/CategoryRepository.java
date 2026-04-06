@@ -11,6 +11,21 @@ import java.util.Optional;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
+<<<<<<< HEAD
+    // Lấy tất cả category của user (cả default và riêng của user)
+    @Query("SELECT c FROM Category c WHERE c.isDefault = true OR c.user.id = :userId ORDER BY c.name ASC")
+    List<Category> findAllByUser(@Param("userId") Long userId);
+
+    // Lấy category theo type (EXPENSE) cho user - dùng để tạo budget
+    @Query("SELECT c FROM Category c WHERE (c.isDefault = true OR c.user.id = :userId) " +
+           "AND c.type = com.example.Finma_BE.enums.CategoryType.EXPENSE ORDER BY c.name ASC")
+    List<Category> findExpenseCategoriesByUser(@Param("userId") Long userId);
+
+    Optional<Category> findByIdAndIsDefaultTrue(Long id);
+
+    @Query("SELECT c FROM Category c WHERE c.id = :id AND (c.isDefault = true OR c.user.id = :userId)")
+    Optional<Category> findByIdAccessibleToUser(@Param("id") Long id, @Param("userId") Long userId);
+=======
     List<Category> findByUser_IdAndType(Long userId, CategoryType type);
 
     Optional<Category> findByIdAndUserId(Long id, Long userId);
@@ -29,4 +44,5 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("SELECT COUNT(t) > 0 FROM Transaction t WHERE t.category.id = :categoryId")
     boolean hasTransactions(@Param("categoryId") Long categoryId);
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
 }
