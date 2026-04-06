@@ -1,12 +1,6 @@
 package com.example.Finma_BE.service;
-
-
-
-import java.util.List;
-import java.util.stream.Collectors;
 import com.example.Finma_BE.dto.request.CreateTransactionRequest;
 import com.example.Finma_BE.dto.request.UpdateTransactionRequest;
-import com.example.Finma_BE.dto.response.TransactionDetailResponse;
 import com.example.Finma_BE.dto.response.TransactionListItemResponse;
 import com.example.Finma_BE.entity.Account;
 import com.example.Finma_BE.entity.Category;
@@ -28,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,18 +35,19 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
 
     @Transactional
-    public TransactionListItemResponse create(User user, CreateTransactionRequest request) {
+    @SuppressWarnings("null")
+    public Transaction create(User user, CreateTransactionRequest request) {
         validateAmount(request.getAmount());
-        Account account = loadAccountOwnedByUser(request.getAccountId(), user);
+        Account account = loadAccountOwnedByUser(resolveAccountId(request.getAccountId(), request.getSourceId()), user);
         Category category = loadCategoryOwnedByUser(request.getCategoryId(), user);
         validateCategoryMatchesTransactionType(request.getType(), category);
 
-        LocalDateTime txnDate = parseTransactionDate(request.getTransactionDate());
+        LocalDateTime txnDate = parseTransactionDate(resolveTransactionDate(request.getTransactionDate(), request.getDate()));
 
         Transaction txn = Transaction.builder()
                 .type(request.getType())
                 .amount(request.getAmount())
-                .note(request.getNote())
+                .note(resolveNote(request.getNote(), request.getDetail(), request.getTitle()))
                 .imageUrl(request.getImageUrl())
                 .location(request.getLocation())
                 .transactionDate(txnDate)
@@ -59,7 +57,7 @@ public class TransactionService {
                 .build();
 
         applyBalanceEffect(account, request.getType(), request.getAmount(), true);
-        return toListItem(transactionRepository.save(txn));
+        return Objects.requireNonNull(transactionRepository.save(txn));
     }
 
     public List<Transaction> getRecentTransactionsByUserId(Long userId, int limit) {
@@ -67,23 +65,22 @@ public class TransactionService {
                 .stream().limit(limit).collect(Collectors.toList());
     }
 
-    public TransactionDetailResponse getById(User user, Long id) {
-        Transaction txn = loadTransactionOwnedByUser(id, user);
-        return toDetail(txn);
+    public Transaction getById(User user, Long id) {
+        return loadTransactionOwnedByUser(id, user);
     }
 
     @Transactional
-    public TransactionDetailResponse update(User user, Long id, UpdateTransactionRequest request) {
+    public Transaction update(User user, Long id, UpdateTransactionRequest request) {
         validateAmount(request.getAmount());
         Transaction txn = loadTransactionOwnedByUser(id, user);
         Account oldAccount = resolveAccountForBalance(txn.getAccount());
         TransactionType oldType = txn.getType();
         BigDecimal oldAmount = txn.getAmount();
 
-        Account newAccount = loadAccountOwnedByUser(request.getAccountId(), user);
+        Account newAccount = loadAccountOwnedByUser(resolveAccountId(request.getAccountId(), request.getSourceId()), user);
         Category category = loadCategoryOwnedByUser(request.getCategoryId(), user);
         validateCategoryMatchesTransactionType(request.getType(), category);
-        LocalDateTime txnDate = parseTransactionDate(request.getTransactionDate());
+        LocalDateTime txnDate = parseTransactionDate(resolveTransactionDate(request.getTransactionDate(), request.getDate()));
 
         if (oldAccount != null) {
             applyBalanceEffect(oldAccount, oldType, oldAmount, false);
@@ -91,7 +88,7 @@ public class TransactionService {
 
         txn.setType(request.getType());
         txn.setAmount(request.getAmount());
-        txn.setNote(request.getNote());
+        txn.setNote(resolveNote(request.getNote(), request.getDetail(), request.getTitle()));
         txn.setImageUrl(request.getImageUrl());
         txn.setLocation(request.getLocation());
         txn.setTransactionDate(txnDate);
@@ -100,7 +97,7 @@ public class TransactionService {
 
         transactionRepository.save(txn);
         applyBalanceEffect(newAccount, request.getType(), request.getAmount(), true);
-        return toDetail(txn);
+        return txn;
     }
 
     @Transactional
@@ -164,6 +161,16 @@ public class TransactionService {
                 .toList();
     }
 
+    public List<Transaction> listRaw(User user, TransactionType type) {
+        Specification<Transaction> spec = (root, query, cb) -> cb.equal(root.get("user"), user);
+        if (type != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
+        }
+        return transactionRepository.findAll(spec).stream()
+                .sorted((a, b) -> b.getTransactionDate().compareTo(a.getTransactionDate()))
+                .toList();
+    }
+
     private void validateAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "amount must be > 0");
@@ -195,15 +202,18 @@ public class TransactionService {
         };
     }
 
+    @SuppressWarnings("null")
     private Account resolveAccountForBalance(Account ref) {
         if (ref == null || ref.getId() == null) {
             return null;
         }
-        return accountRepository.findById(ref.getId()).orElse(null);
+        Long accountId = ref.getId();
+        return accountRepository.findById(accountId).orElse(null);
     }
 
     private Transaction loadTransactionOwnedByUser(Long id, User user) {
-        Transaction txn = transactionRepository.findById(id)
+        Long transactionId = Objects.requireNonNull(id, "transaction id is required");
+        Transaction txn = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "transaction not found"));
         if (txn.getUser() == null || !txn.getUser().getId().equals(user.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "transaction not accessible");
@@ -227,11 +237,8 @@ public class TransactionService {
         if (categoryId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "categoryId is required");
         }
-        Category category = categoryRepository.findById(categoryId)
+        Category category = categoryRepository.findByIdAccessibleToUser(categoryId, user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "category not found"));
-        if (category.getUser() == null || !category.getUser().getId().equals(user.getId())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "category does not belong to user");
-        }
         return category;
     }
 
@@ -260,11 +267,49 @@ public class TransactionService {
     }
 
     private LocalDateTime parseTransactionDate(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "transactionDate is required");
+        }
         try {
             return LocalDateTime.parse(raw.trim(), DateTimeFormats.API_DATE_TIME);
         } catch (Exception e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "transactionDate invalid format (yyyy-MM-dd HH:mm:ss)");
+            try {
+                return OffsetDateTime.parse(raw.trim()).toLocalDateTime();
+            } catch (Exception ignored) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "transactionDate invalid format");
+            }
         }
+    }
+
+    private Long resolveAccountId(Long accountId, String sourceId) {
+        if (accountId != null) {
+            return accountId;
+        }
+        if (sourceId == null || sourceId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(sourceId.trim());
+        } catch (NumberFormatException ignored) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "sourceId must be numeric account id");
+        }
+    }
+
+    private String resolveTransactionDate(String transactionDate, String date) {
+        if (transactionDate != null && !transactionDate.isBlank()) {
+            return transactionDate;
+        }
+        return date;
+    }
+
+    private String resolveNote(String note, String detail, String title) {
+        if (detail != null && !detail.isBlank()) {
+            return detail;
+        }
+        if (note != null && !note.isBlank()) {
+            return note;
+        }
+        return title;
     }
 
     private LocalDateTime parseDateBound(String dateOrDateTime, boolean isStart) {
@@ -294,19 +339,4 @@ public class TransactionService {
                 .build();
     }
 
-    private TransactionDetailResponse toDetail(Transaction txn) {
-        return TransactionDetailResponse.builder()
-                .id(txn.getId())
-                .type(txn.getType())
-                .amount(txn.getAmount())
-                .categoryId(txn.getCategory() != null ? txn.getCategory().getId() : null)
-                .categoryName(txn.getCategory() != null ? txn.getCategory().getName() : null)
-                .accountId(txn.getAccount() != null ? txn.getAccount().getId() : null)
-                .accountName(txn.getAccount() != null ? txn.getAccount().getName() : null)
-                .note(txn.getNote())
-                .imageUrl(txn.getImageUrl())
-                .location(txn.getLocation())
-                .transactionDate(txn.getTransactionDate() != null ? txn.getTransactionDate().format(DateTimeFormats.API_DATE_TIME) : null)
-                .build();
-    }
 }

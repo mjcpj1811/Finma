@@ -1,7 +1,7 @@
 import { request } from './httpClient';
 import { type ReportDashboard, type ReportFilter } from '../types/report';
 
-const REPORT_API_USE_MOCK = true;
+const REPORT_API_USE_MOCK = false;
 
 const REPORT_ENDPOINTS = {
   dashboard: '/report/dashboard',

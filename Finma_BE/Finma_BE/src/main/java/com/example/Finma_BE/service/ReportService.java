@@ -3,10 +3,12 @@ package com.example.Finma_BE.service;
 import com.example.Finma_BE.dto.response.ReportChartResponse;
 import com.example.Finma_BE.dto.response.ReportPieItemResponse;
 import com.example.Finma_BE.dto.response.ReportSummaryResponse;
+import com.example.Finma_BE.entity.Category;
 import com.example.Finma_BE.entity.Transaction;
 import com.example.Finma_BE.entity.User;
 import com.example.Finma_BE.enums.TransactionType;
 import com.example.Finma_BE.exception.ApiException;
+import com.example.Finma_BE.repository.CategoryRepository;
 import com.example.Finma_BE.repository.TransactionRepository;
 import com.example.Finma_BE.util.DateTimeFormats;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class ReportService {
     private final TransactionRepository transactionRepository;
+    private final CategoryRepository categoryRepository;
 
     public ReportSummaryResponse summary(User user, String from, String to, Long categoryId, Long accountId) {
         var txns = queryUserTransactions(user, from, to, null, categoryId, accountId);
@@ -220,4 +223,61 @@ public class ReportService {
         int end = t.getYear();
         return IntStream.rangeClosed(start, end).mapToObj(String::valueOf).toList();
     }
+
+    public BigDecimal sumSavingByGoal(Long goalId) {
+        return transactionRepository.sumSavingByGoalId(goalId);
+    }
+
+    public List<Category> searchCategories(User user) {
+        return categoryRepository.findAllByUser(user.getId());
+    }
+
+    public List<Transaction> calendarTransactions(User user, int month, int year, Integer day) {
+        var txns = queryUserTransactions(user, null, null, null, null, null);
+        return txns.stream()
+                .filter(t -> t.getTransactionDate() != null)
+                .filter(t -> t.getTransactionDate().getMonthValue() == month)
+                .filter(t -> t.getTransactionDate().getYear() == year)
+                .filter(t -> day == null || t.getTransactionDate().getDayOfMonth() == day)
+                .sorted((a, b) -> b.getTransactionDate().compareTo(a.getTransactionDate()))
+                .toList();
+    }
+
+    public List<CalendarSlice> calendarCategorySlices(User user, int month, int year, Integer day) {
+        var txns = calendarTransactions(user, month, year, day).stream()
+                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                .toList();
+        BigDecimal total = txns.stream()
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            return List.of();
+        }
+
+        Map<String, BigDecimal> byCategory = new HashMap<>();
+        for (Transaction t : txns) {
+            String label = t.getCategory() == null ? "Other" : t.getCategory().getName();
+            byCategory.put(label, byCategory.getOrDefault(label, BigDecimal.ZERO).add(zeroIfNull(t.getAmount())));
+        }
+
+        String[] colors = {"#2563EB", "#1D9BF0", "#60A5FA", "#93C5FD", "#DBEAFE"};
+        int index = 0;
+        List<CalendarSlice> result = new ArrayList<>();
+        for (var entry : byCategory.entrySet()) {
+            int percent = entry.getValue()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(total, 0, java.math.RoundingMode.HALF_UP)
+                    .intValue();
+            result.add(new CalendarSlice(
+                    entry.getKey().toLowerCase(Locale.ROOT).replace(" ", "-"),
+                    entry.getKey(),
+                    percent,
+                    colors[index % colors.length]
+            ));
+            index++;
+        }
+        return result;
+    }
+
+    public record CalendarSlice(String id, String label, int percent, String color) {}
 }

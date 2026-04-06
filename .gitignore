@@ -1,4 +1,6 @@
 PROJECT_CONTEXT.md
+.vscode/
+
 node_modules/
 .expo/
 .expo-shared/

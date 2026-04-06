@@ -12,7 +12,7 @@ import {
   type UpdateTransactionPayload,
 } from '../types/transaction';
 
-const TRANSACTION_API_USE_MOCK = true;
+const TRANSACTION_API_USE_MOCK = false;
 
 const TRANSACTION_ENDPOINTS = {
   dashboard: '/transactions/dashboard',

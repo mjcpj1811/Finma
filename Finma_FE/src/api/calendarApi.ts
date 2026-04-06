@@ -5,7 +5,7 @@ import {
   type CalendarTransactionsResponse,
 } from '../types/calendar';
 
-const CALENDAR_API_USE_MOCK = true;
+const CALENDAR_API_USE_MOCK = false;
 
 const CALENDAR_ENDPOINTS = {
   transactions: '/report/calendar/transactions',

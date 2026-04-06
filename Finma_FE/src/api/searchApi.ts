@@ -6,7 +6,7 @@ import {
   type SearchResultResponse,
 } from '../types/search';
 
-const SEARCH_API_USE_MOCK = true;
+const SEARCH_API_USE_MOCK = false;
 
 const SEARCH_ENDPOINTS = {
   options: '/report/search/options',

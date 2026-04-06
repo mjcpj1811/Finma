@@ -1,6 +1,7 @@
 package com.example.Finma_BE.dto.request;
 
 import com.example.Finma_BE.enums.TransactionType;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -19,13 +20,19 @@ public class UpdateTransactionRequest {
     @NotNull
     private Long categoryId;
 
-    @NotNull
     private Long accountId;
+    @JsonAlias("sourceId")
+    private String sourceId;
 
     private String note;
+    @JsonAlias("detail")
+    private String detail;
+    @JsonAlias("title")
+    private String title;
     private String imageUrl;
     private String location;
 
-    @NotNull
     private String transactionDate;
+    @JsonAlias("date")
+    private String date;
 }
