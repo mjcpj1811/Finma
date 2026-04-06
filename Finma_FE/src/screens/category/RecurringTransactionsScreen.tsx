@@ -69,6 +69,46 @@ const weekdayOptions = [
   { value: '6', label: 'Thứ Bảy' },
 ];
 
+const monthOptions = Array.from({ length: 12 }, (_, index) => ({
+  value: String(index + 1),
+  label: `Tháng ${index + 1}`,
+}));
+
+const toDateOnly = (year: number, month: number, day: number) => {
+  const monthText = String(month).padStart(2, '0');
+  const dayText = String(day).padStart(2, '0');
+  return `${year}-${monthText}-${dayText}`;
+};
+
+const getDateParts = (value?: string) => {
+  const matched = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (matched) {
+    return {
+      year: Number(matched[1]),
+      month: Number(matched[2]),
+      day: Number(matched[3]),
+    };
+  }
+
+  const parsed = value ? new Date(value) : new Date();
+  if (!Number.isNaN(parsed.getTime())) {
+    return {
+      year: parsed.getFullYear(),
+      month: parsed.getMonth() + 1,
+      day: parsed.getDate(),
+    };
+  }
+
+  const now = new Date();
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    day: now.getDate(),
+  };
+};
+
+const getMaxDayOfMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
+
 const ToggleSwitch = ({
   value,
   onPress,
@@ -104,6 +144,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
   const [showModal, setShowModal] = useState(false);
   const [showCycleList, setShowCycleList] = useState(false);
   const [showWeekdayList, setShowWeekdayList] = useState(false);
+  const [showYearMonthList, setShowYearMonthList] = useState(false);
   const [showCategoryList, setShowCategoryList] = useState(false);
   const [showSourceList, setShowSourceList] = useState(false);
   const [togglingRuleId, setTogglingRuleId] = useState<string | null>(null);
@@ -207,6 +248,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
     setEditingRuleId(null);
     setShowCycleList(false);
     setShowWeekdayList(false);
+    setShowYearMonthList(false);
     setShowCategoryList(false);
     setShowSourceList(false);
     setForm({
@@ -238,6 +280,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
       });
       setShowCycleList(false);
       setShowWeekdayList(false);
+      setShowYearMonthList(false);
       setShowCategoryList(false);
       setShowSourceList(false);
       setShowModal(true);
@@ -253,20 +296,34 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
     const amount = Number(form.amount.replace(/[^\d]/g, ''));
     const dayOfMonth = Number(form.dayOfMonth.replace(/[^\d]/g, ''));
     const dayOfWeek = Number(form.dayOfWeek.replace(/[^\d]/g, ''));
+    const dateParts = getDateParts(form.startDate);
 
     if (!form.title.trim() || !amount || !form.categoryId || !form.sourceId) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ tên, số tiền, danh mục và nguồn tiền.');
       return;
     }
 
-    if ((form.cycle === 'monthly' || form.cycle === 'yearly') && (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31)) {
+    if (form.cycle === 'monthly' && (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31)) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập ngày hợp lệ (1-31).');
       return;
+    }
+
+    if (form.cycle === 'yearly') {
+      const maxDay = getMaxDayOfMonth(dateParts.year, dateParts.month);
+      if (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > maxDay) {
+        Alert.alert('Thiếu thông tin', `Vui lòng nhập ngày hợp lệ (1-${maxDay}) cho tháng đã chọn.`);
+        return;
+      }
     }
 
     if (form.cycle === 'weekly' && (Number.isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6)) {
       Alert.alert('Thiếu thông tin', 'Vui lòng chọn thứ trong tuần hợp lệ.');
       return;
+    }
+
+    let normalizedStartDate = form.startDate || new Date().toISOString();
+    if (form.cycle === 'yearly') {
+      normalizedStartDate = toDateOnly(dateParts.year, dateParts.month, dayOfMonth);
     }
 
     const payload: UpsertRecurringRulePayload = {
@@ -275,7 +332,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
       cycle: form.cycle,
       dayOfMonth: form.cycle === 'monthly' || form.cycle === 'yearly' ? dayOfMonth : undefined,
       dayOfWeek: form.cycle === 'weekly' ? dayOfWeek : undefined,
-      startDate: form.startDate || new Date().toISOString(),
+      startDate: normalizedStartDate,
       categoryId: form.categoryId,
       sourceId: form.sourceId,
       note: form.note.trim() || 'Hàng tháng',
@@ -318,6 +375,16 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
   const selectedWeekdayLabel = useMemo(
     () => weekdayOptions.find((item) => item.value === form.dayOfWeek)?.label ?? 'Chọn thứ trong tuần',
     [form.dayOfWeek],
+  );
+
+  const selectedYearMonthValue = useMemo(
+    () => String(getDateParts(form.startDate).month),
+    [form.startDate],
+  );
+
+  const selectedYearMonthLabel = useMemo(
+    () => monthOptions.find((item) => item.value === selectedYearMonthValue)?.label ?? 'Chọn tháng thực hiện',
+    [selectedYearMonthValue],
   );
 
   if (loading) {
@@ -388,7 +455,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
                 <Text style={styles.ruleAmountTop}>{formatCurrency(item.amount)}</Text>
                 <View style={styles.ruleActionRow}>
                   <Pressable style={styles.editBtn} onPress={() => void onOpenEditModal(item)} disabled={modalLoading}>
-                    <MaterialIcons name="edit" size={14} color="#0E62D0" />
+                    <MaterialIcons name="edit" size={13} color={colors.text} />
                   </Pressable>
                   <Pressable style={styles.deleteBtn} onPress={() => onDeleteRule(item)}>
                     <MaterialIcons name="delete-outline" size={14} color="#EF4444" />
@@ -423,6 +490,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
               onPress={() => {
                 setShowCycleList((prev) => !prev);
                 setShowWeekdayList(false);
+                setShowYearMonthList(false);
                 setShowCategoryList(false);
                 setShowSourceList(false);
               }}
@@ -442,6 +510,10 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
                         cycle: item.value,
                         dayOfMonth: item.value === 'weekly' || item.value === 'daily' ? '' : prev.dayOfMonth,
                         dayOfWeek: item.value === 'weekly' ? prev.dayOfWeek : '',
+                        startDate:
+                          item.value === 'yearly' && !prev.startDate
+                            ? new Date().toISOString()
+                            : prev.startDate,
                       }));
                       setShowCycleList(false);
                     }}
@@ -460,6 +532,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
                   onPress={() => {
                     setShowWeekdayList((prev) => !prev);
                     setShowCycleList(false);
+                    setShowYearMonthList(false);
                     setShowCategoryList(false);
                     setShowSourceList(false);
                   }}
@@ -484,7 +557,62 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
                   </View>
                 ) : null}
               </>
-            ) : form.cycle === 'monthly' || form.cycle === 'yearly' ? (
+            ) : form.cycle === 'yearly' ? (
+              <>
+                <Text style={styles.modalLabel}>Tháng thực hiện</Text>
+                <Pressable
+                  style={styles.selectField}
+                  onPress={() => {
+                    setShowYearMonthList((prev) => !prev);
+                    setShowCycleList(false);
+                    setShowWeekdayList(false);
+                    setShowCategoryList(false);
+                    setShowSourceList(false);
+                  }}
+                >
+                  <Text style={styles.fieldText}>{selectedYearMonthLabel}</Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+                </Pressable>
+                {showYearMonthList ? (
+                  <View style={styles.dropdownList}>
+                    {monthOptions.map((item) => (
+                      <Pressable
+                        key={item.value}
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                          setForm((prev) => {
+                            const parts = getDateParts(prev.startDate);
+                            const nextMonth = Number(item.value);
+                            const typedDay = Number(prev.dayOfMonth.replace(/[^\d]/g, ''));
+                            const maxDay = getMaxDayOfMonth(parts.year, nextMonth);
+                            const safeDay = typedDay > 0 ? Math.min(typedDay, maxDay) : Math.min(parts.day, maxDay);
+
+                            return {
+                              ...prev,
+                              startDate: toDateOnly(parts.year, nextMonth, safeDay),
+                              dayOfMonth: typedDay > 0 ? String(safeDay) : prev.dayOfMonth,
+                            };
+                          });
+                          setShowYearMonthList(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownText}>{item.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                <Text style={styles.modalLabel}>Ngày thực hiện</Text>
+                <TextInput
+                  value={form.dayOfMonth}
+                  onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
+                  placeholder="15"
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </>
+            ) : form.cycle === 'monthly' ? (
               <>
                 <Text style={styles.modalLabel}>Ngày thực hiện</Text>
                 <TextInput
@@ -511,6 +639,9 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
               style={styles.selectField}
               onPress={() => {
                 setShowCategoryList((prev) => !prev);
+                setShowCycleList(false);
+                setShowWeekdayList(false);
+                setShowYearMonthList(false);
                 setShowSourceList(false);
               }}
             >
@@ -539,6 +670,9 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
               style={styles.selectField}
               onPress={() => {
                 setShowSourceList((prev) => !prev);
+                setShowCycleList(false);
+                setShowWeekdayList(false);
+                setShowYearMonthList(false);
                 setShowCategoryList(false);
               }}
             >
@@ -599,6 +733,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
                   setEditingRuleId(null);
                   setShowCycleList(false);
                   setShowWeekdayList(false);
+                  setShowYearMonthList(false);
                   setShowCategoryList(false);
                   setShowSourceList(false);
                 }}
@@ -763,7 +898,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#DCEAFF',
+    backgroundColor: '#DFF7E2',
     alignItems: 'center',
     justifyContent: 'center',
   },
