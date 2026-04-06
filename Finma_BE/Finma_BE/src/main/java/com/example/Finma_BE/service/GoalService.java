@@ -1,5 +1,6 @@
 package com.example.Finma_BE.service;
 
+<<<<<<< HEAD
 import com.example.Finma_BE.dto.request.GoalDepositRequest;
 import com.example.Finma_BE.dto.request.GoalRequest;
 import com.example.Finma_BE.dto.response.GoalDepositResponse;
@@ -33,11 +34,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
+=======
+import com.example.Finma_BE.entity.Goal;
+import com.example.Finma_BE.enums.GoalStatus;
+import com.example.Finma_BE.repository.GoalRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class GoalService {
 
+<<<<<<< HEAD
     GoalRepository       goalRepository;
     TransactionRepository transactionRepository;
     AccountRepository    accountRepository;
@@ -362,3 +375,11 @@ public class GoalService {
         log.info("Deleted deposit id={} from goal id={} for user={}", transactionId, goal.getId(), user.getUsername());
     }
 }
+=======
+    GoalRepository goalRepository;
+
+    public List<Goal> getActiveGoalsByUserId(Long userId) {
+        return goalRepository.findAllByUserIdAndStatus(userId, GoalStatus.IN_PROGRESS);
+    }
+}
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5

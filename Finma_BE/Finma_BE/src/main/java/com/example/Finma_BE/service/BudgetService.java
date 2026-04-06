@@ -1,5 +1,6 @@
 package com.example.Finma_BE.service;
 
+<<<<<<< HEAD
 import com.example.Finma_BE.dto.request.BudgetRequest;
 import com.example.Finma_BE.dto.response.BudgetResponse;
 import com.example.Finma_BE.dto.response.CategoryResponse;
@@ -28,12 +29,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
+=======
+import com.example.Finma_BE.entity.Budget;
+import com.example.Finma_BE.repository.BudgetRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class BudgetService {
 
     BudgetRepository budgetRepository;
+<<<<<<< HEAD
     CategoryRepository categoryRepository;
     TransactionRepository transactionRepository;
     UserRepository userRepository;
@@ -311,3 +323,10 @@ public class BudgetService {
         log.info("Deleted budget id={} for user={}", budgetId, user.getUsername());
     }
 }
+=======
+
+    public List<Budget> getBudgetsByUserId(Long userId) {
+        return budgetRepository.findAllByUserId(userId);
+    }
+}
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+<<<<<<< HEAD
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -50,4 +51,10 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     boolean existsByUserAndCategoryAndStartDate(@Param("userId") Long userId,
                                                 @Param("categoryId") Long categoryId,
                                                 @Param("startDate") LocalDate startDate);
+=======
+import java.util.List;
+
+public interface BudgetRepository extends JpaRepository<Budget,Long> {
+    List<Budget> findAllByUserId(Long userId);
+>>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
 }

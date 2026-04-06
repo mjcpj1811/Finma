@@ -5,12 +5,15 @@ import com.example.Finma_BE.dto.response.AuthenticationResponse;
 import com.example.Finma_BE.dto.response.IntrospectResponse;
 import com.example.Finma_BE.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.text.ParseException;
 
 @RestController
@@ -28,6 +31,13 @@ public class AuthenticationController {
         return ApiResponse.<AuthenticationResponse>builder()
                 .result(result)
                 .build();
+    }
+
+    @GetMapping("/oauth2/authorize/{provider}")
+    void oauth2Authorize(@PathVariable("provider") String provider,
+                         HttpServletRequest request,
+                         HttpServletResponse response) throws IOException {
+        response.sendRedirect(request.getContextPath() + "/oauth2/authorization/" + provider);
     }
 
     @PostMapping("/introspect")
