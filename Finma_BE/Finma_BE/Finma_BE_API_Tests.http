@@ -1,0 +1,184 @@
+### ========================================
+### 0. AUTHENTICATION (LẤY TOKEN)
+### ========================================
+
+# Biến lưu trữ token (Sẽ được tự động cập nhật nếu dùng WebStorm/IntelliJ, hoặc bạn tự copy dán vào nếu dùng công cụ khác)
+@baseUrl = http://localhost:8080
+@token = YOUR_JWT_TOKEN_HERE
+
+### Đăng nhập để lấy JWT Token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123"
+}
+
+> {%
+// Script này chỉ chạy trên IntelliJ IDEA/WebStorm để tự động hứng Token đưa vào biến @token ở trên
+if (response.status === 200) {
+    client.global.set("token", response.body.result.token);
+    client.log("Đã lấy thành công JWT Token: " + response.body.result.token);
+}
+%}
+### ========================================
+### 1. BUDGET MODULE
+### ========================================
+
+### 1.1 Lấy danh sách danh mục (EXPENSE) để tạo ngân sách
+GET {{baseUrl}}/budgets/categories
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 1.2 Tạo mới một ngân sách
+POST {{baseUrl}}/budgets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "amountLimit": 5000000,
+  "periodType": "MONTHLY",
+  "isRecurring": true
+}
+
+### 1.3 Lấy toàn bộ ngân sách
+GET {{baseUrl}}/budgets
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 1.4 Lấy các ngân sách đang trong kỳ hiện tại
+GET {{baseUrl}}/budgets/active
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 1.5 Cập nhật ngân sách
+PUT {{baseUrl}}/budgets/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "amountLimit": 6000000,
+  "periodType": "MONTHLY",
+  "isRecurring": true
+}
+
+### 1.6 Xóa ngân sách
+DELETE {{baseUrl}}/budgets/1
+Authorization: Bearer {{token}}
+
+### ========================================
+### 2. GOAL MODULE
+### ========================================
+
+### 2.1 Tạo mục tiêu tiết kiệm mới
+POST {{baseUrl}}/goals
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Mua MacBook Pro",
+  "description": "Tiết kiệm tiền mua laptop mới để code",
+  "targetAmount": 45000000,
+  "startDate": "2024-05-01",
+  "endDate": "2024-12-31",
+  "icon": "laptop_mac",
+  "color": "#000000"
+}
+
+### 2.2 Lấy tất cả mục tiêu
+GET {{baseUrl}}/goals
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 2.3 Lấy mục tiêu theo trạng thái (IN_PROGRESS)
+GET {{baseUrl}}/goals/filter?status=IN_PROGRESS
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 2.4 Xem chi tiết 1 mục tiêu
+GET {{baseUrl}}/goals/1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 2.5 Nạp tiền vào mục tiêu
+POST {{baseUrl}}/goals/deposits
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "goalId": 1,
+  "amount": 5000000,
+  "accountId": 1,
+  "depositDate": "2024-05-15",
+  "note": "Nạp tiền tiết kiệm tháng 5"
+}
+
+### 2.6 Xem lịch sử nạp tiền của một mục tiêu
+GET {{baseUrl}}/goals/1/deposits
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 2.7 Cập nhật mục tiêu
+PUT {{baseUrl}}/goals/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Mua MacBook Pro M3",
+  "description": "Nâng cấp mục tiêu lấy bản M3",
+  "targetAmount": 50000000,
+  "startDate": "2024-05-01",
+  "endDate": "2024-12-31",
+  "icon": "laptop_mac",
+  "color": "#000000"
+}
+
+### 2.8 Huỷ (Cancel) mục tiêu
+PATCH {{baseUrl}}/goals/1/cancel
+Authorization: Bearer {{token}}
+
+### 2.9 Hoàn tác một lần nạp tiền (Xóa Deposit)
+DELETE {{baseUrl}}/goals/deposits/1
+Authorization: Bearer {{token}}
+
+### 2.10 Xóa toàn bộ mục tiêu
+DELETE {{baseUrl}}/goals/1
+Authorization: Bearer {{token}}
+
+### ========================================
+### 3. NOTIFICATION MODULE
+### ========================================
+
+### 3.1 Lấy tất cả thông báo
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 3.2 Lấy thông báo chưa đọc
+GET {{baseUrl}}/notifications/unread
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 3.3 Đếm số lượng thông báo chưa đọc (Dùng cho Badge UI)
+GET {{baseUrl}}/notifications/unread/count
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 3.4 Đánh dấu 1 thông báo đã đọc
+PATCH {{baseUrl}}/notifications/1/read
+Authorization: Bearer {{token}}
+
+### 3.5 Đánh dấu TẤT CẢ thông báo là đã đọc
+PATCH {{baseUrl}}/notifications/read-all
+Authorization: Bearer {{token}}
+
+### 3.6 Xoá 1 thông báo
+DELETE {{baseUrl}}/notifications/1
+Authorization: Bearer {{token}}
+
+### 3.7 Xóa toàn bộ thông báo ĐÃ ĐỌC
+DELETE {{baseUrl}}/notifications/read
+Authorization: Bearer {{token}}
