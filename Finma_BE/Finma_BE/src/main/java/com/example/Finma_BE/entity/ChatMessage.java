@@ -17,6 +17,7 @@ public class ChatMessage extends BaseEntity {
     private Long id;
 
     private String role;
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

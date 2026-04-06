@@ -12,10 +12,7 @@ import com.example.Finma_BE.exception.AppException;
 import com.example.Finma_BE.exception.ErrorCode;
 import com.example.Finma_BE.repository.InvalidatedTokenRepository;
 import com.example.Finma_BE.repository.UserRepository;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -44,6 +41,7 @@ import java.util.UUID;
 public class AuthenticationService {
     UserRepository userRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
+    PasswordEncoder passwordEncoder;
     @NonFinal
     @Value("${jwt.signing-key}")
     protected String key;
@@ -57,15 +55,10 @@ public class AuthenticationService {
         var user = userRepository.findByUsername(request.getUsername())
                 .or(() -> userRepository.findByEmail(request.getUsername()))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
-        PasswordEncoder encoder = new BCryptPasswordEncoder(10);
-        boolean authenticated =  encoder.matches(request.getPassword(), user.getPassword());
+        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
         if(!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
-        var token = generateToken(user);
-        return AuthenticationResponse.builder()
-                .token(token)
-                .authenticated(true)
-                .build();
+        return createAuthenticationResponse(user);
     }
 
     public IntrospectResponse introspect(IntrospectRequest request)
@@ -80,6 +73,13 @@ public class AuthenticationService {
         }
         return IntrospectResponse.builder()
                 .valid(isvalid)
+                .build();
+    }
+
+    public AuthenticationResponse createAuthenticationResponse(User user) {
+        return AuthenticationResponse.builder()
+                .token(generateToken(user))
+                .authenticated(true)
                 .build();
     }
 
@@ -106,7 +106,7 @@ public class AuthenticationService {
                 .toInstant().plus(refreshTokenDuration, ChronoUnit.HOURS).toEpochMilli())
                 :signedJWT.getJWTClaimsSet().getExpirationTime();
         var verified = signedJWT.verify(verifier);
-        if(!verified || expirationTime.after(new Date()))
+        if(!verified || expirationTime.before(new Date()))
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
         if(invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);

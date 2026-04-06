@@ -14,6 +14,7 @@ public enum ErrorCode {
     USER_NOT_EXIST(1005, "User does not exist", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED_ACCESS(1006, "Unauthenticated access", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED_ACCESS(1007, "Unauthorized access", HttpStatus.FORBIDDEN),
+    INCORRECT_PASSWORD(1008, "Incorrect password", HttpStatus.BAD_REQUEST),
     DEBT_NOT_FOUND(1008, "Debt not found", HttpStatus.NOT_FOUND),
     RETURN_DATE_MUST_BE_AFTER_START_DATE(1009, "Return Date must be after start date", HttpStatus.BAD_REQUEST),
     CANNOT_MARK_AS_PAID_WITH_REMAINING_AMOUNT(10010, "Cannot mark as Paid With Remaining Amount", HttpStatus.BAD_REQUEST),
