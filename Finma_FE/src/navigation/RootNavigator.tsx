@@ -50,6 +50,7 @@ export type RootStackParamList = {
   Home: undefined;
   Categories: undefined;
   CategoryTransactions: {
+    categoryId: string;
     categoryName: string;
     categoryGroup: 'financial' | 'expense' | 'income';
     categoryIconKey: string;

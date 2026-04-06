@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { authApi } from '../../api/authApi';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { saveAccessToken } from '../../utils/authTokenStorage';
 import {
   AuthButton,
   AuthInput,
@@ -22,7 +23,7 @@ const ICON_EYE_OFF = require('../../../assets/icons/Eye-Pass.png');
 const ICON_FACEBOOK = require('../../../assets/icons/Facebook.png');
 const ICON_GOOGLE = require('../../../assets/icons/Google.png');
 
-const ENABLE_MOCK_LOGIN = true;
+const ENABLE_MOCK_LOGIN = false;
 
 export const LoginScreen = ({ navigation }: Props) => {
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -43,6 +44,11 @@ export const LoginScreen = ({ navigation }: Props) => {
     setLoading(true);
     try {
       const response = await authApi.login({ usernameOrEmail, password });
+
+      if (response.accessToken) {
+        await saveAccessToken(response.accessToken);
+      }
+
       Alert.alert('Đăng nhập', response.message || 'Đăng nhập thành công.', [
         {
           text: 'Vào Home',

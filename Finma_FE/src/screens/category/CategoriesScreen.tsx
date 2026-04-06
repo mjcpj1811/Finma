@@ -56,6 +56,21 @@ const sectionMeta: Array<{ key: CategoryGroup; title: string }> = [
   { key: 'income', title: 'Thu Nhập' },
 ];
 
+const emptyDashboard: CategoryDashboard = {
+  overview: {
+    totalBalance: 0,
+    totalExpense: 0,
+    budgetUsedPercent: 0,
+    budgetLimit: 0,
+    unreadNotifications: 0,
+  },
+  groups: {
+    financial: [],
+    expense: [],
+    income: [],
+  },
+};
+
 export const CategoriesScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,8 +83,10 @@ export const CategoriesScreen = ({ navigation }: Props) => {
     try {
       const response = await categoryApi.getDashboard();
       setData(response);
-    } catch {
-      setData(null);
+    } catch (error) {
+      setData(emptyDashboard);
+      const message = error instanceof Error ? error.message : 'Không tải được danh mục.';
+      Alert.alert('Thông báo', message);
     } finally {
       setLoading(false);
     }
@@ -93,12 +110,18 @@ export const CategoriesScreen = ({ navigation }: Props) => {
         text: 'Xóa',
         style: 'destructive',
         onPress: async () => {
-          const response = await categoryApi.deleteCategory(item.id);
-          if (!response.success) {
-            Alert.alert('Thông báo', response.message || 'Xóa danh mục thất bại.');
-            return;
+          try {
+            const response = await categoryApi.deleteCategory(item.id);
+            if (!response.success) {
+              Alert.alert('Thông báo', response.message || 'Xóa danh mục thất bại.');
+              return;
+            }
+
+            await loadDashboard();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Xóa danh mục thất bại.';
+            Alert.alert('Thông báo', message);
           }
-          await loadDashboard();
         },
       },
     ]);
@@ -126,6 +149,9 @@ export const CategoriesScreen = ({ navigation }: Props) => {
       setShowModal(false);
       setForm(defaultForm);
       await loadDashboard();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể tạo danh mục.';
+      Alert.alert('Thông báo', message);
     } finally {
       setSaving(false);
     }
@@ -148,6 +174,7 @@ export const CategoriesScreen = ({ navigation }: Props) => {
     }
 
     navigation.navigate('CategoryTransactions', {
+      categoryId: item.id,
       categoryName: item.name,
       categoryGroup: item.group,
       categoryIconKey: item.iconKey,
@@ -196,7 +223,7 @@ export const CategoriesScreen = ({ navigation }: Props) => {
 
                 <View style={styles.grid}>
                   {items.map((item) => {
-                    const icon = iconMeta[item.iconKey];
+                    const icon = iconMeta[item.iconKey] ?? iconMeta.shopping;
                     return (
                       <View key={item.id} style={styles.cardWrap}>
                         <Pressable
@@ -417,7 +444,8 @@ const styles = StyleSheet.create({
     color: '#0C6657',
     fontFamily: typography.poppins.semibold,
     fontSize: 15,
-  },
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
