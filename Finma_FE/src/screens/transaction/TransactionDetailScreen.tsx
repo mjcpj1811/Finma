@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -56,6 +57,27 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
   }, [transactionId]);
 
   const onDelete = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Bạn có chắc muốn xóa giao dịch này?');
+      if (!confirmed) {
+        return;
+      }
+
+      void (async () => {
+        setDeleting(true);
+        try {
+          await transactionApi.deleteTransaction(transactionId);
+          navigation.goBack();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Không thể xóa giao dịch.';
+          window.alert(message);
+        } finally {
+          setDeleting(false);
+        }
+      })();
+      return;
+    }
+
     Alert.alert('Xóa giao dịch', 'Bạn có chắc muốn xóa giao dịch này?', [
       { text: 'Hủy', style: 'cancel' },
       {
@@ -66,6 +88,9 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
           try {
             await transactionApi.deleteTransaction(transactionId);
             navigation.goBack();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Không thể xóa giao dịch.';
+            Alert.alert('Thông báo', message);
           } finally {
             setDeleting(false);
           }
@@ -288,5 +313,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
+  },
+
 });

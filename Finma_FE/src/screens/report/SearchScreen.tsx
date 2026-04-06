@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -23,6 +25,34 @@ import { typography } from '../../theme/typography';
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportSearch'>;
 
 const formatDateValue = (date: Date) => date.toLocaleDateString('vi-VN');
+const toApiDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const buildCalendarDays = (year: number, monthIndex: number) => {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const firstDayNative = new Date(year, monthIndex, 1).getDay();
+  const firstDayMondayIndex = (firstDayNative + 6) % 7;
+
+  const cells: Array<number | null> = [];
+  for (let i = 0; i < firstDayMondayIndex; i += 1) {
+    cells.push(null);
+  }
+
+  for (let d = 1; d <= daysInMonth; d += 1) {
+    cells.push(d);
+  }
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  return cells;
+};
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
@@ -33,6 +63,9 @@ export const SearchScreen = ({ navigation }: Props) => {
   const [showCategoryList, setShowCategoryList] = useState(false);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showWebCalendar, setShowWebCalendar] = useState(false);
+  const [webCalendarYear, setWebCalendarYear] = useState(new Date().getFullYear());
+  const [webCalendarMonth, setWebCalendarMonth] = useState(new Date().getMonth());
   const [reportType, setReportType] = useState<SearchReportType>('expense');
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -40,6 +73,14 @@ export const SearchScreen = ({ navigation }: Props) => {
 
   const openDatePicker = () => {
     setShowCategoryList(false);
+
+    if (Platform.OS === 'web') {
+      setWebCalendarYear(date.getFullYear());
+      setWebCalendarMonth(date.getMonth());
+      setShowWebCalendar(true);
+      return;
+    }
+
     setShowDatePicker(true);
   };
 
@@ -48,10 +89,11 @@ export const SearchScreen = ({ navigation }: Props) => {
       setLoadingOptions(true);
       try {
         const response = await searchApi.getOptions();
-        setCategories(response.categories);
-        if (response.categories.length > 0) {
-          setCategoryId(response.categories[0].id);
-        }
+        setCategories([
+          { id: 'all', label: 'Tất cả danh mục' },
+          ...response.categories,
+        ]);
+        setCategoryId('all');
       } finally {
         setLoadingOptions(false);
       }
@@ -64,13 +106,41 @@ export const SearchScreen = ({ navigation }: Props) => {
     return categories.find((item) => item.id === categoryId)?.label ?? 'Chọn danh mục';
   }, [categories, categoryId]);
 
+  const webCalendarCells = useMemo(
+    () => buildCalendarDays(webCalendarYear, webCalendarMonth),
+    [webCalendarYear, webCalendarMonth],
+  );
+
+  const webCalendarTitle = useMemo(
+    () => `${new Date(webCalendarYear, webCalendarMonth, 1).toLocaleString('vi-VN', { month: 'long' })} ${webCalendarYear}`,
+    [webCalendarYear, webCalendarMonth],
+  );
+
+  const onPrevMonth = () => {
+    if (webCalendarMonth === 0) {
+      setWebCalendarMonth(11);
+      setWebCalendarYear((prev) => prev - 1);
+      return;
+    }
+    setWebCalendarMonth((prev) => prev - 1);
+  };
+
+  const onNextMonth = () => {
+    if (webCalendarMonth === 11) {
+      setWebCalendarMonth(0);
+      setWebCalendarYear((prev) => prev + 1);
+      return;
+    }
+    setWebCalendarMonth((prev) => prev + 1);
+  };
+
   const onSearch = async () => {
     setLoadingSearch(true);
     try {
       const response = await searchApi.searchReport({
         keyword,
         categoryId,
-        date: date.toISOString(),
+        date: toApiDate(date),
         reportType,
       });
       setResults(response.items);
@@ -201,6 +271,58 @@ export const SearchScreen = ({ navigation }: Props) => {
             }
           }}
         />
+      ) : null}
+
+      {showWebCalendar ? (
+        <Modal transparent animationType="fade" visible={showWebCalendar} onRequestClose={() => setShowWebCalendar(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Pressable style={styles.monthNavButton} onPress={onPrevMonth}>
+                  <MaterialIcons name="chevron-left" size={20} color={colors.primary} />
+                </Pressable>
+                <Text style={styles.modalTitle}>{webCalendarTitle}</Text>
+                <Pressable style={styles.monthNavButton} onPress={onNextMonth}>
+                  <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
+                </Pressable>
+              </View>
+
+              <View style={styles.calendarGrid}>
+                {weekdayHeaders.map((day) => (
+                  <Text key={day} style={styles.weekdayText}>{day}</Text>
+                ))}
+
+                {webCalendarCells.map((day, index) => {
+                  if (day == null) {
+                    return <View key={`empty-${index}`} style={styles.dayCell} />;
+                  }
+
+                  const isSelected =
+                    date.getFullYear() === webCalendarYear &&
+                    date.getMonth() === webCalendarMonth &&
+                    date.getDate() === day;
+
+                  return (
+                    <Pressable
+                      key={`day-${index}`}
+                      style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                      onPress={() => {
+                        setDate(new Date(webCalendarYear, webCalendarMonth, day));
+                        setShowWebCalendar(false);
+                      }}
+                    >
+                      <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>{day}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Pressable style={styles.modalCloseButton} onPress={() => setShowWebCalendar(false)}>
+                <Text style={styles.modalCloseText}>Đóng</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       ) : null}
 
       <ScreenBottomNavigation activeTab="report" />
@@ -401,5 +523,83 @@ const styles = StyleSheet.create({
   },
   expenseAmount: {
     color: colors.blueDark,
-  },
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 16,
+    backgroundColor: '#F1FFF3',
+    padding: 14,
+    gap: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  monthNavButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#DFF7E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 15,
+    textTransform: 'capitalize',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  weekdayText: {
+    width: '14.285%',
+    textAlign: 'center',
+    color: colors.primary,
+    fontFamily: typography.poppins.medium,
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  dayCell: {
+    width: '14.285%',
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 17,
+  },
+  dayCellSelected: {
+    backgroundColor: colors.primary,
+  },
+  dayText: {
+    color: '#2D3748',
+    fontFamily: typography.poppins.regular,
+    fontSize: 13,
+  },
+  dayTextSelected: {
+    color: colors.white,
+    fontFamily: typography.poppins.semibold,
+  },
+  modalCloseButton: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    color: colors.white,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 14,
+  },
+
 });

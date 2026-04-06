@@ -26,6 +26,20 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ReportCalendar'>;
 type TabMode = 'transactions' | 'categories';
 
 const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const monthOptions = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 const formatAmount = (value: number) => value.toLocaleString('vi-VN');
 
@@ -113,14 +127,22 @@ const buildCalendarDays = (year: number, monthIndex: number) => {
 };
 
 export const ReportCalendarScreen = ({ navigation }: Props) => {
-  const [year] = useState(2023);
-  const [month] = useState(3);
-  const [selectedDay, setSelectedDay] = useState(1);
+  const currentDate = new Date();
+  const [year, setYear] = useState(currentDate.getFullYear());
+  const [month, setMonth] = useState(currentDate.getMonth());
+  const [selectedDay, setSelectedDay] = useState(currentDate.getDate());
+  const [showMonthList, setShowMonthList] = useState(false);
+  const [showYearList, setShowYearList] = useState(false);
   const [activeTab, setActiveTab] = useState<TabMode>('transactions');
   const [loading, setLoading] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [transactions, setTransactions] = useState<CalendarTransactionItem[]>([]);
   const [categorySlices, setCategorySlices] = useState<CalendarCategorySlice[]>([]);
+
+  const yearOptions = useMemo(() => {
+    const thisYear = new Date().getFullYear();
+    return Array.from({ length: 11 }, (_, index) => thisYear - 5 + index);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -149,6 +171,14 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
 
   const dayCells = useMemo(() => buildCalendarDays(year, month), [year, month]);
 
+  const daysInCurrentMonth = useMemo(() => new Date(year, month + 1, 0).getDate(), [year, month]);
+
+  useEffect(() => {
+    if (selectedDay > daysInCurrentMonth) {
+      setSelectedDay(daysInCurrentMonth);
+    }
+  }, [daysInCurrentMonth, selectedDay]);
+
   return (
     <SafeAreaView style={styles.screen}>
       <AppScreenHeader
@@ -161,16 +191,62 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
       <View style={styles.panel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
           <View style={styles.monthYearRow}>
-            <View style={styles.monthYearItem}>
+            <Pressable
+              style={styles.monthYearItem}
+              onPress={() => {
+                setShowMonthList((prev) => !prev);
+                setShowYearList(false);
+              }}
+            >
               <Text style={styles.monthYearText}>{monthText}</Text>
-              <MaterialIcons name="expand-more" size={16} color={colors.primary} />
-            </View>
+              <MaterialIcons name={showMonthList ? 'expand-less' : 'expand-more'} size={16} color={colors.primary} />
+            </Pressable>
 
-            <View style={styles.monthYearItem}>
+            <Pressable
+              style={styles.monthYearItem}
+              onPress={() => {
+                setShowYearList((prev) => !prev);
+                setShowMonthList(false);
+              }}
+            >
               <Text style={styles.monthYearText}>{year}</Text>
-              <MaterialIcons name="expand-more" size={16} color={colors.primary} />
-            </View>
+              <MaterialIcons name={showYearList ? 'expand-less' : 'expand-more'} size={16} color={colors.primary} />
+            </Pressable>
           </View>
+
+          {showMonthList ? (
+            <View style={styles.dropdownList}>
+              {monthOptions.map((option, index) => (
+                <Pressable
+                  key={option}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setMonth(index);
+                    setShowMonthList(false);
+                  }}
+                >
+                  <Text style={styles.dropdownText}>{option}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {showYearList ? (
+            <View style={styles.dropdownList}>
+              {yearOptions.map((option) => (
+                <Pressable
+                  key={option}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setYear(option);
+                    setShowYearList(false);
+                  }}
+                >
+                  <Text style={styles.dropdownText}>{option}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
 
           <View style={styles.calendarGrid}>
             {weekdayHeaders.map((day) => (
@@ -318,6 +394,22 @@ const styles = StyleSheet.create({
     fontFamily: typography.poppins.semibold,
     fontSize: 16,
   },
+  dropdownList: {
+    borderRadius: 12,
+    backgroundColor: '#DFF7E2',
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5EFEA',
+  },
+  dropdownText: {
+    color: colors.text,
+    fontFamily: typography.poppins.regular,
+    fontSize: 13,
+  },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -460,5 +552,6 @@ const styles = StyleSheet.create({
     color: '#2D3748',
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
+  },
+
 });

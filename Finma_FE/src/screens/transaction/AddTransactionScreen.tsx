@@ -38,6 +38,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [amountError, setAmountError] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTypeList, setShowTypeList] = useState(false);
   const [showCategoryList, setShowCategoryList] = useState(false);
@@ -163,8 +164,22 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
   };
 
   const onSave = async () => {
-    const parsedAmount = Number(amount.replace(/[^\d]/g, ''));
-    if (!parsedAmount || !title.trim() || !categoryId || !sourceId) {
+    const normalizedAmount = amount.replace(/,/g, '').trim();
+    const parsedAmount = Number(normalizedAmount);
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      const message = 'Số tiền không hợp lệ. Vui lòng nhập số lớn hơn 0.';
+      setAmountError(message);
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('Thông báo', message);
+      }
+      return;
+    }
+    setAmountError('');
+
+    if (!title.trim() || !categoryId || !sourceId) {
       return;
     }
 
@@ -266,12 +281,18 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
               <Text style={styles.fieldLabel}>Số Tiền</Text>
               <TextInput
                 value={amount}
-                onChangeText={setAmount}
+                onChangeText={(nextValue) => {
+                  setAmount(nextValue);
+                  if (amountError) {
+                    setAmountError('');
+                  }
+                }}
                 placeholder="30,000"
                 keyboardType="numeric"
                 placeholderTextColor="#8FB8A5"
                 style={styles.textInput}
               />
+              {amountError ? <Text style={styles.errorText}>{amountError}</Text> : null}
             </View>
 
             <View style={styles.fieldWrap}>
@@ -497,6 +518,12 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.semibold,
     fontSize: 16,
+  },
+  errorText: {
+    marginTop: 6,
+    color: '#D14343',
+    fontFamily: typography.poppins.medium,
+    fontSize: 12,
   },
   dateModalOverlay: {
     flex: 1,

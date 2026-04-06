@@ -13,6 +13,12 @@ const SEARCH_ENDPOINTS = {
   search: '/report/search',
 };
 
+type ApiResponse<T> = {
+  code: number;
+  message?: string;
+  result: T;
+};
+
 const mockOptions: SearchOptionsResponse = {
   categories: [
     { id: 'all', label: 'Chọn danh mục' },
@@ -50,7 +56,8 @@ export const searchApi = {
       return mockOptions;
     }
 
-    return request<SearchOptionsResponse>(SEARCH_ENDPOINTS.options, { token });
+    const response = await request<ApiResponse<SearchOptionsResponse>>(SEARCH_ENDPOINTS.options, { token });
+    return response.result ?? mockOptions;
   },
 
   searchReport: async (filters: SearchFilters, token?: string) => {
@@ -67,7 +74,7 @@ export const searchApi = {
       return { items: filtered } satisfies SearchResultResponse;
     }
 
-    return request<SearchResultResponse>(SEARCH_ENDPOINTS.search, {
+    const response = await request<ApiResponse<SearchResultResponse>>(SEARCH_ENDPOINTS.search, {
       method: 'POST',
       body: {
         keyword: filters.keyword,
@@ -77,5 +84,6 @@ export const searchApi = {
       },
       token,
     });
+    return response.result ?? { items: [] };
   },
 };

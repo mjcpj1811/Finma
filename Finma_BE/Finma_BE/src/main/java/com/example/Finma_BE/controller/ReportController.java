@@ -121,16 +121,19 @@ public class ReportController {
     }
 
     @GetMapping("/search/options")
-    public SearchOptionsVm searchOptions() {
+    public ApiResponse<SearchOptionsVm> searchOptions() {
         var user = authContext.requireCurrentUser();
         var options = reportService.searchCategories(user).stream()
                 .map(c -> new IdLabelVm(String.valueOf(c.getId()), c.getName()))
                 .toList();
-        return new SearchOptionsVm(options);
+        return ApiResponse.<SearchOptionsVm>builder()
+                .message("OK")
+                .result(new SearchOptionsVm(options))
+                .build();
     }
 
     @PostMapping("/search")
-    public SearchResultVm search(@RequestBody SearchRequestVm request) {
+    public ApiResponse<SearchResultVm> search(@RequestBody SearchRequestVm request) {
         var user = authContext.requireCurrentUser();
         TransactionType type = "income".equalsIgnoreCase(request.reportType) ? TransactionType.INCOME : TransactionType.EXPENSE;
         Long categoryId = parseNullableLong(request.categoryId);
@@ -144,7 +147,10 @@ public class ReportController {
                 "income".equalsIgnoreCase(request.reportType) ? "income" : "expense",
                 r.getCategoryId() == null ? null : String.valueOf(r.getCategoryId())
         )).toList();
-        return new SearchResultVm(items);
+        return ApiResponse.<SearchResultVm>builder()
+                .message("OK")
+                .result(new SearchResultVm(items))
+                .build();
     }
 
     @GetMapping("/calendar/transactions")

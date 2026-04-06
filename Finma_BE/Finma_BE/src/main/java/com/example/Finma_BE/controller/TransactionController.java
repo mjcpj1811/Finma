@@ -1,7 +1,9 @@
 package com.example.Finma_BE.controller;
 
+import com.example.Finma_BE.dto.request.ApiResponse;
 import com.example.Finma_BE.dto.request.CreateTransactionRequest;
 import com.example.Finma_BE.dto.request.UpdateTransactionRequest;
+import com.example.Finma_BE.dto.response.TransactionListItemResponse;
 import com.example.Finma_BE.entity.Transaction;
 import com.example.Finma_BE.enums.TransactionType;
 import com.example.Finma_BE.repository.AccountRepository;
@@ -9,6 +11,7 @@ import com.example.Finma_BE.repository.CategoryRepository;
 import com.example.Finma_BE.repository.NotificationRepository;
 import com.example.Finma_BE.service.AuthContext;
 import com.example.Finma_BE.service.TransactionService;
+import com.example.Finma_BE.util.DateTimeFormats;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -31,14 +34,17 @@ public class TransactionController {
     private static final DateTimeFormatter DAY_FMT = DateTimeFormatter.ofPattern("MMMM dd");
 
     @PostMapping
-    public ActionWithIdResponse create(@Valid @RequestBody CreateTransactionRequest request) {
+        public ApiResponse<CreateTransactionResultVm> create(@Valid @RequestBody CreateTransactionRequest request) {
         var user = authContext.requireCurrentUser();
         var created = transactionService.create(user, request);
-        return new ActionWithIdResponse(true, String.valueOf(created.getId()));
+                return ApiResponse.<CreateTransactionResultVm>builder()
+                                .message("Created")
+                                .result(new CreateTransactionResultVm(created.getId()))
+                                .build();
     }
 
     @GetMapping
-    public List<TransactionCardItem> list(
+        public ApiResponse<List<TransactionListItemResponse>> list(
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long accountId,
@@ -47,33 +53,42 @@ public class TransactionController {
             @RequestParam(required = false) String to
     ) {
         var user = authContext.requireCurrentUser();
-        return transactionService.list(user, type, categoryId, accountId, q, from, to).stream()
-                .map(this::toCardItem)
-                .toList();
+        var items = transactionService.list(user, type, categoryId, accountId, q, from, to);
+        return ApiResponse.<List<TransactionListItemResponse>>builder()
+                .message("OK")
+                .result(items)
+                .build();
     }
 
     @GetMapping("/{id}")
-    public TransactionDetailVm getById(@PathVariable Long id) {
+    public ApiResponse<TransactionDetailResponseVm> getById(@PathVariable Long id) {
         var user = authContext.requireCurrentUser();
         var txn = transactionService.getById(user, id);
-        return toDetailVm(txn);
+        return ApiResponse.<TransactionDetailResponseVm>builder()
+                .message("OK")
+                .result(toDetailResponseVm(txn))
+                .build();
     }
 
     @PutMapping("/{id}")
-    public ActionResponse update(
+    public ApiResponse<Void> update(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTransactionRequest request
     ) {
         var user = authContext.requireCurrentUser();
         transactionService.update(user, id, request);
-        return new ActionResponse(true);
+        return ApiResponse.<Void>builder()
+                .message("Updated")
+                .build();
     }
 
     @DeleteMapping("/{id}")
-    public ActionResponse delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Long id) {
         var user = authContext.requireCurrentUser();
         transactionService.delete(user, id);
-        return new ActionResponse(true);
+        return ApiResponse.<Void>builder()
+                .message("Deleted")
+                .build();
     }
 
     @GetMapping("/dashboard")
@@ -152,43 +167,21 @@ public class TransactionController {
         return "other";
     }
 
-    private TransactionDetailVm toDetailVm(Transaction t) {
-        String kind = t.getType() == TransactionType.INCOME ? "income" : "expense";
-        String timeLabel = t.getTransactionDate() == null ? "" :
-                t.getTransactionDate().format(TIME_FMT) + " - " + t.getTransactionDate().format(DAY_FMT);
-        return new TransactionDetailVm(
-                String.valueOf(t.getId()),
-                t.getTransactionDate() == null ? null : t.getTransactionDate().toString(),
-                kind,
-                t.getCategory() == null ? null : String.valueOf(t.getCategory().getId()),
-                t.getCategory() == null ? null : t.getCategory().getName(),
+    private TransactionDetailResponseVm toDetailResponseVm(Transaction t) {
+        return new TransactionDetailResponseVm(
+                t.getId(),
+                t.getType(),
                 t.getAmount(),
-                t.getCategory() == null ? "Giao dịch" : t.getCategory().getName(),
-                t.getAccount() == null ? null : String.valueOf(t.getAccount().getId()),
+                t.getCategory() == null ? null : t.getCategory().getId(),
+                t.getCategory() == null ? null : t.getCategory().getName(),
+                t.getAccount() == null ? null : t.getAccount().getId(),
                 t.getAccount() == null ? null : t.getAccount().getName(),
                 t.getNote(),
-                t.getNote(),
-                timeLabel,
-                t.getType() == TransactionType.INCOME ? "salary" : mapExpenseIcon(t)
+                t.getTransactionDate() == null ? null : t.getTransactionDate().format(DateTimeFormats.API_DATE_TIME)
         );
     }
 
-    private TransactionCardItem toCardItem(com.example.Finma_BE.dto.response.TransactionListItemResponse r) {
-        String kind = r.getType() == TransactionType.INCOME ? "income" : "expense";
-        return new TransactionCardItem(
-                String.valueOf(r.getId()),
-                r.getDate(),
-                r.getCategory(),
-                r.getTransactionDateTime(),
-                r.getNote(),
-                r.getAmount(),
-                kind,
-                "other"
-        );
-    }
-
-    public record ActionResponse(boolean success) {}
-    public record ActionWithIdResponse(boolean success, String transactionId) {}
+    public record CreateTransactionResultVm(Long id) {}
     public record TransactionOverviewVm(BigDecimal totalBalance, BigDecimal totalIncome, BigDecimal totalExpense, long unreadNotifications) {}
     public record TransactionDashboardVm(TransactionOverviewVm overview, List<TransactionDashboardItemVm> items) {}
     public record TransactionDashboardItemVm(
@@ -197,11 +190,15 @@ public class TransactionController {
     public record IdLabelTypeVm(String id, String label, String type) {}
     public record IdLabelVm(String id, String label) {}
     public record TransactionFormOptionsVm(List<IdLabelTypeVm> categories, List<IdLabelVm> sources) {}
-    public record TransactionDetailVm(
-            String id, String date, String type, String categoryId, String categoryLabel, BigDecimal amount, String title,
-            String sourceId, String sourceLabel, String detail, String note, String timeLabel, String iconKey
-    ) {}
-    public record TransactionCardItem(
-            String id, String monthLabel, String title, String timeLabel, String note, BigDecimal amount, String kind, String iconKey
+    public record TransactionDetailResponseVm(
+            Long id,
+            TransactionType type,
+            BigDecimal amount,
+            Long categoryId,
+            String categoryName,
+            Long accountId,
+            String accountName,
+            String note,
+            String transactionDate
     ) {}
 }
