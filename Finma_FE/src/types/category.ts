@@ -15,7 +15,20 @@ export type CategoryItem = {
     | 'movie'
     | 'directions_bus'
     | 'attach_money'
-    | 'account_balance_wallet';
+    | 'account_balance_wallet'
+    | 'local_grocery_store'
+    | 'directions_car'
+    | 'home'
+    | 'school'
+    | 'fitness_center'
+    | 'pets'
+    | 'phone_iphone'
+    | 'book'
+    | 'music_note'
+    | 'local_cafe'
+    | 'work'
+    | 'child_care'
+    | 'checkroom';
   isDefault: boolean;
 };
 
