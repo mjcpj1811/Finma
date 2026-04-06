@@ -5,6 +5,17 @@ export type LoginPayload = {
   password: string;
 };
 
+type ApiResponse<T> = {
+  code: number;
+  message?: string;
+  result?: T;
+};
+
+type BackendAuthenticationResult = {
+  token: string;
+  authenticated: boolean;
+};
+
 export type RegisterPayload = {
   username: string;
   fullName: string;
@@ -46,33 +57,47 @@ const AUTH_ENDPOINTS = {
 };
 
 export const authApi = {
-  login: (payload: LoginPayload) =>
-    request<AuthResponse>(AUTH_ENDPOINTS.login, {
+  login: async (payload: LoginPayload) => {
+    const response = await request<ApiResponse<BackendAuthenticationResult>>(AUTH_ENDPOINTS.login, {
       method: 'POST',
-      body: payload as unknown as Record<string, unknown>,
-    }),
+      omitAuth: true,
+      body: {
+        username: payload.usernameOrEmail.trim(),
+        password: payload.password,
+      },
+    });
+
+    return {
+      message: response.message ?? 'Đăng nhập thành công',
+      accessToken: response.result?.token,
+    } satisfies AuthResponse;
+  },
 
   register: (payload: RegisterPayload) =>
     request<AuthResponse>(AUTH_ENDPOINTS.register, {
       method: 'POST',
+      omitAuth: true,
       body: payload as unknown as Record<string, unknown>,
     }),
 
   forgotPassword: (payload: ForgotPasswordPayload) =>
     request<AuthResponse>(AUTH_ENDPOINTS.forgotPassword, {
       method: 'POST',
+      omitAuth: true,
       body: payload as unknown as Record<string, unknown>,
     }),
 
   verifyResetCode: (payload: VerifyResetCodePayload) =>
     request<AuthResponse>(AUTH_ENDPOINTS.verifyResetCode, {
       method: 'POST',
+      omitAuth: true,
       body: payload as unknown as Record<string, unknown>,
     }),
 
   resetPassword: (payload: ResetPasswordPayload) =>
     request<AuthResponse>(AUTH_ENDPOINTS.resetPassword, {
       method: 'POST',
+      omitAuth: true,
       body: payload as unknown as Record<string, unknown>,
     }),
 };

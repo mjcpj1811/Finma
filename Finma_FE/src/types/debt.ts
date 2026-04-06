@@ -25,6 +25,10 @@ export type DebtTransactionItem = {
 
 export type DebtsDashboard = {
   overview: {
+    totalLend: number;
+    totalBorrow: number;
+    totalLendRemaining: number;
+    totalBorrowRemaining: number;
     totalPrincipal: number;
     totalRemaining: number;
     unreadNotifications: number;
@@ -47,8 +51,12 @@ export type UpsertDebtPayload = {
   name: string;
   direction: DebtDirection;
   principalAmount: number;
-  remainingAmount: number;
-  iconKey: DebtItem['iconKey'];
+  remainingAmount?: number;
+  iconKey?: DebtItem['iconKey'];
+  interestRate?: number;
+  startDate?: string;
+  dueDate?: string;
+  note?: string;
 };
 
 export type UpsertDebtTransactionPayload = {

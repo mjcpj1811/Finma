@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBellButton } from './NotificationBellButton';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
@@ -19,8 +20,11 @@ export const AppScreenHeader = ({
   showNotificationBadge,
   notificationSize = 30,
 }: Props) => {
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'android' ? Math.max(insets.top, 10) : 10;
+
   return (
-    <View style={styles.headerRow}>
+    <View style={[styles.headerRow, { paddingTop: topPadding }]}>
       {onPressBack ? (
         <Pressable style={styles.leftSlot} onPress={onPressBack}>
           <MaterialIcons name="arrow-back" size={22} color={colors.white} />

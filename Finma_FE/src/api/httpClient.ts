@@ -8,6 +8,7 @@ type RequestOptions = {
   body?: Record<string, unknown>;
   token?: string;
   signal?: AbortSignal;
+  omitAuth?: boolean;
 };
 
 const buildUrl = (path: string) => {
@@ -19,8 +20,8 @@ const buildUrl = (path: string) => {
 };
 
 export const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-  const { method = 'GET', body, token, signal } = options;
-  const authToken = token ?? (await getAccessToken()) ?? undefined;
+  const { method = 'GET', body, token, signal, omitAuth = false } = options;
+  const authToken = omitAuth ? undefined : token ?? (await getAccessToken()) ?? undefined;
 
   const controller = signal ? null : new AbortController();
   const timeoutId = controller

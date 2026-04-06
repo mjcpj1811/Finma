@@ -16,6 +16,8 @@ public class DebtPaymentResponse {
     Long id;
     BigDecimal amount;
     LocalDate paymentDate;
+    String title;
+    String counterparty;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

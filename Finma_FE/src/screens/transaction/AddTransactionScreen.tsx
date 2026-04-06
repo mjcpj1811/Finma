@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   SafeAreaView,
@@ -186,6 +187,9 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
       }
 
       navigation.goBack();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể lưu giao dịch.';
+      Alert.alert('Thông báo', message);
     } finally {
       setSaving(false);
     }
@@ -537,5 +541,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.semibold,
     fontSize: 13,
-  },
+  },
+
 });
