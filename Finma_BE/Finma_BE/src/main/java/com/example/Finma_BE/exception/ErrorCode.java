@@ -14,6 +14,7 @@ public enum ErrorCode {
     USER_NOT_EXIST(1005, "User does not exist", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED_ACCESS(1006, "Unauthenticated access", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED_ACCESS(1007, "Unauthorized access", HttpStatus.FORBIDDEN),
+    INCORRECT_PASSWORD(1008, "Incorrect password", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "An uncategorized exception occurred", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;

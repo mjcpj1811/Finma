@@ -1,7 +1,11 @@
 package com.example.Finma_BE.controller;
 
 import com.example.Finma_BE.dto.request.ApiResponse;
+import com.example.Finma_BE.dto.request.ChangePasswordRequest;
+import com.example.Finma_BE.dto.request.ForgotPasswordRequest;
+import com.example.Finma_BE.dto.request.ResetPasswordRequest;
 import com.example.Finma_BE.dto.request.UserCreationRequest;
+import com.example.Finma_BE.dto.request.UserUpdateRequest;
 import com.example.Finma_BE.dto.response.UserResponse;
 import com.example.Finma_BE.service.UserService;
 import jakarta.validation.Valid;
@@ -55,12 +59,36 @@ public class UserController {
                 .build();
     }
 
-//    @PutMapping("/{userId}")
-//    ApiResponse<UserResponse> updateUser(@PathVariable String userId, @RequestBody @Valid UserUpdateRequest request){
-//        return ApiResponse.<UserResponse>builder()
-//                .result(userService.updateUser(userId, request))
-//                .build();
-//    }
+    @PutMapping("/me")
+    ApiResponse<UserResponse> updateMyProfile(@RequestBody @Valid UserUpdateRequest request) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.updateMyProfile(request))
+                .build();
+    }
+
+    @PutMapping("/me/password")
+    ApiResponse<UserResponse> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.changePassword(request))
+                .build();
+    }
+
+    @PostMapping("/forgot-password")
+    ApiResponse<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        String token = userService.requestPasswordReset(request);
+        return ApiResponse.<String>builder()
+                .result(token)
+                .message("Password reset token generated. Send to the user by email in production.")
+                .build();
+    }
+
+    @PostMapping("/reset-password")
+    ApiResponse<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        userService.resetPassword(request);
+        return ApiResponse.<Void>builder()
+                .message("Password has been reset successfully.")
+                .build();
+    }
 
     @DeleteMapping("/{userId}")
     ApiResponse<Boolean> deleteUser(@PathVariable String userId){

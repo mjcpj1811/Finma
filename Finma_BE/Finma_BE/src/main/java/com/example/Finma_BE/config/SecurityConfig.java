@@ -20,6 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.example.Finma_BE.config.OAuth2AuthenticationSuccessHandler;
 
 import javax.crypto.spec.SecretKeySpec;
 
@@ -33,38 +34,51 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
             "/users",
+            "/users/forgot-password",
+            "/users/reset-password",
             "/auth/login",
             "/auth/introspect",
-            "/auth/logout",
             "/auth/refresh"
     };
 
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
 
+    @Autowired
+    private OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(requests ->
                 requests.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**", "/auth/oauth2/authorize/**").permitAll()
+                        .requestMatchers("/users/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/chatbot/**").permitAll()
                         .anyRequest().authenticated());
 
         httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
-        httpSecurity.oauth2ResourceServer(oauth2ResourceServer ->
-                oauth2ResourceServer.jwt(jwt ->
-                                jwt.decoder(customJwtDecoder)
-                                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+        httpSecurity.oauth2Client(Customizer.withDefaults());
+        httpSecurity.oauth2Login(oauth2Login ->
+                oauth2Login.successHandler(oauth2AuthenticationSuccessHandler)
         );
+
+       httpSecurity.oauth2ResourceServer(oauth2ResourceServer ->
+               oauth2ResourceServer.jwt(jwt ->
+                               jwt.decoder(customJwtDecoder)
+                                       .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                       .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+       );
         httpSecurity.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
         return httpSecurity.build();
     }
 
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10);
-    }
+//
+//    @Bean
+//    PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder(10);
+//    }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
