@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { categoryApi } from '../../api/categoryApi';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -78,7 +79,7 @@ export const CategoriesScreen = ({ navigation }: Props) => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<FormState>(defaultForm);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
       const response = await categoryApi.getDashboard();
@@ -90,44 +91,27 @@ export const CategoriesScreen = ({ navigation }: Props) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    void loadDashboard();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDashboard();
+    }, [loadDashboard]),
+  );
 
   const allIcons = useMemo(() => Object.keys(iconMeta) as Array<CategoryItem['iconKey']>, []);
 
-  const onDelete = (item: CategoryItem) => {
-    if (item.isDefault) {
-      Alert.alert('Không thể xóa', 'Danh mục mặc định không thể xóa.');
-      return;
-    }
-
-    Alert.alert('Xóa danh mục', `Bạn có chắc muốn xóa "${item.name}"?`, [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const response = await categoryApi.deleteCategory(item.id);
-            if (!response.success) {
-              Alert.alert('Thông báo', response.message || 'Xóa danh mục thất bại.');
-              return;
-            }
-
-            await loadDashboard();
-          } catch (error) {
-            const message = error instanceof Error ? error.message : 'Xóa danh mục thất bại.';
-            Alert.alert('Thông báo', message);
-          }
-        },
-      },
-    ]);
+  const closeModal = () => {
+    setShowModal(false);
+    setForm(defaultForm);
   };
 
-  const onAdd = async () => {
+  const openCreateModal = () => {
+    setForm(defaultForm);
+    setShowModal(true);
+  };
+
+  const onSaveCategory = async () => {
     if (!form.name.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên danh mục.');
       return;
@@ -142,15 +126,14 @@ export const CategoriesScreen = ({ navigation }: Props) => {
       });
 
       if (!response.success) {
-        Alert.alert('Thông báo', response.message || 'Không thể tạo danh mục.');
+        Alert.alert('Thông báo', response.message || 'Không thể lưu danh mục.');
         return;
       }
 
-      setShowModal(false);
-      setForm(defaultForm);
+      closeModal();
       await loadDashboard();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể tạo danh mục.';
+      const message = error instanceof Error ? error.message : 'Không thể lưu danh mục.';
       Alert.alert('Thông báo', message);
     } finally {
       setSaving(false);
@@ -158,17 +141,17 @@ export const CategoriesScreen = ({ navigation }: Props) => {
   };
 
   const onPressCategory = (item: CategoryItem) => {
-    if (item.iconKey === 'savings') {
+    if (item.isDefault && item.iconKey === 'savings') {
       navigation.navigate('Savings');
       return;
     }
 
-    if (item.iconKey === 'payments') {
+    if (item.isDefault && item.iconKey === 'payments') {
       navigation.navigate('Debts');
       return;
     }
 
-    if (item.iconKey === 'schedule') {
+    if (item.isDefault && item.iconKey === 'schedule') {
       navigation.navigate('Recurring');
       return;
     }
@@ -178,6 +161,7 @@ export const CategoriesScreen = ({ navigation }: Props) => {
       categoryName: item.name,
       categoryGroup: item.group,
       categoryIconKey: item.iconKey,
+      categoryIsDefault: item.isDefault,
     });
   };
 
@@ -229,7 +213,6 @@ export const CategoriesScreen = ({ navigation }: Props) => {
                         <Pressable
                           style={styles.categoryCard}
                           onPress={() => onPressCategory(item)}
-                          onLongPress={() => onDelete(item)}
                         >
                           <MaterialIcons name={icon.name} size={34} color={colors.white} />
                         </Pressable>
@@ -237,13 +220,6 @@ export const CategoriesScreen = ({ navigation }: Props) => {
                         <Text style={styles.categoryName} numberOfLines={1}>
                           {item.name}
                         </Text>
-
-                        {!item.isDefault ? (
-                          <Pressable style={styles.deleteChip} onPress={() => onDelete(item)}>
-                            <MaterialIcons name="delete-outline" size={14} color="#EF4444" />
-                            <Text style={styles.deleteChipText}>Xóa</Text>
-                          </Pressable>
-                        ) : null}
                       </View>
                     );
                   })}
@@ -252,7 +228,7 @@ export const CategoriesScreen = ({ navigation }: Props) => {
             );
           })}
 
-          <Pressable style={styles.addButton} onPress={() => setShowModal(true)}>
+          <Pressable style={styles.addButton} onPress={openCreateModal}>
             <Text style={styles.addButtonText}>Thêm danh mục</Text>
           </Pressable>
         </ScrollView>
@@ -260,7 +236,7 @@ export const CategoriesScreen = ({ navigation }: Props) => {
 
       <ScreenBottomNavigation activeTab="layers" />
 
-      <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
+      <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Thêm Danh Mục</Text>
@@ -307,11 +283,11 @@ export const CategoriesScreen = ({ navigation }: Props) => {
             </View>
 
             <View style={styles.modalActions}>
-              <Pressable style={styles.cancelBtn} onPress={() => setShowModal(false)}>
+              <Pressable style={styles.cancelBtn} onPress={closeModal}>
                 <Text style={styles.cancelText}>Hủy</Text>
               </Pressable>
 
-              <Pressable style={styles.saveBtn} onPress={onAdd} disabled={saving}>
+              <Pressable style={styles.saveBtn} onPress={onSaveCategory} disabled={saving}>
                 <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
               </Pressable>
             </View>
@@ -427,6 +403,25 @@ const styles = StyleSheet.create({
   },
   deleteChipText: {
     color: '#EF4444',
+    fontFamily: typography.poppins.medium,
+    fontSize: 10,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#E8EEFF',
+  },
+  editChipText: {
+    color: '#2563EB',
     fontFamily: typography.poppins.medium,
     fontSize: 10,
   },

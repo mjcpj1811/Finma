@@ -54,6 +54,7 @@ export type RootStackParamList = {
     categoryName: string;
     categoryGroup: 'financial' | 'expense' | 'income';
     categoryIconKey: string;
+    categoryIsDefault?: boolean;
   };
   Savings: { savingId?: string } | undefined;
   Debts: { debtId?: string } | undefined;

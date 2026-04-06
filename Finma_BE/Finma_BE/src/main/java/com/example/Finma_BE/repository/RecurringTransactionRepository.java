@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +40,15 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
     Optional<RecurringTransaction> findByIdAndUserId(
             @Param("id") Long id,
             @Param("userId") Long userId);
+
+    @Query("SELECT r FROM RecurringTransaction r " +
+            "LEFT JOIN FETCH r.user " +
+            "LEFT JOIN FETCH r.category " +
+            "LEFT JOIN FETCH r.account " +
+            "WHERE r.status = 'ACTIVE' " +
+            "AND r.isActive = true " +
+            "AND r.startDate <= :today")
+    List<RecurringTransaction> findSchedulableByDate(@Param("today") LocalDate today);
 
     // Đếm số đang ACTIVE + isActive=true (cho header stats)
     int countByUserIdAndStatusAndIsActive(Long userId, RecurringStatus status, Boolean isActive);

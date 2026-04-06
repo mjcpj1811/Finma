@@ -1,4 +1,4 @@
-package com.example.Finma_BE.finance;
+package com.example.Finma_BE.util;
 
 import com.example.Finma_BE.entity.Goal;
 import com.example.Finma_BE.enums.GoalStatus;

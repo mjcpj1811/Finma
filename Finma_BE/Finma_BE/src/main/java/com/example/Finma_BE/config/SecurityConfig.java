@@ -43,6 +43,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+        JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint = new JwtAuthenticationEntryPoint();
+
         httpSecurity.authorizeHttpRequests(requests ->
                 requests.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**", "/auth/oauth2/authorize/**").permitAll()
@@ -59,11 +61,14 @@ public class SecurityConfig {
                 oauth2Login.successHandler(oauth2AuthenticationSuccessHandler)
         );
 
+    httpSecurity.exceptionHandling(exceptionHandling ->
+        exceptionHandling.authenticationEntryPoint(jwtAuthenticationEntryPoint));
+
        httpSecurity.oauth2ResourceServer(oauth2ResourceServer ->
                oauth2ResourceServer.jwt(jwt ->
                                jwt.decoder(customJwtDecoder)
                                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                       .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+               .authenticationEntryPoint(jwtAuthenticationEntryPoint)
        );
         httpSecurity.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
         return httpSecurity.build();
@@ -83,7 +88,7 @@ public class SecurityConfig {
                 "http://localhost:*",
                 "http://127.0.0.1:*"
         ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("Authorization"));

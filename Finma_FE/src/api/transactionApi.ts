@@ -1,4 +1,5 @@
 import { request } from './httpClient';
+import { categoryApi } from './categoryApi';
 import {
   type TransactionActionResponse,
   type CreateTransactionPayload,
@@ -12,20 +13,60 @@ import {
   type UpdateTransactionPayload,
 } from '../types/transaction';
 
-const TRANSACTION_API_USE_MOCK = true;
+const TRANSACTION_API_USE_MOCK = false;
 
 const TRANSACTION_ENDPOINTS = {
-  dashboard: '/transactions/dashboard',
-  formOptions: '/transactions/form-options',
+  list: '/transactions',
+  accounts: '/accounts',
   create: '/transactions',
   detail: (id: string) => `/transactions/${id}`,
   update: (id: string) => `/transactions/${id}`,
   remove: (id: string) => `/transactions/${id}`,
 };
 
+type ApiResponse<T> = {
+  code: number;
+  message?: string;
+  result: T;
+};
+
+type BackendTransactionType = 'INCOME' | 'EXPENSE';
+
+type BackendTransactionItem = {
+  id: number;
+  type: BackendTransactionType;
+  amount: number;
+  categoryId: number;
+  category: string;
+  accountId: number;
+  account: string;
+  note?: string | null;
+  date?: string | null;
+  transactionDateTime?: string | null;
+};
+
+type BackendTransactionDetail = {
+  id: number;
+  type: BackendTransactionType;
+  amount: number;
+  categoryId: number;
+  categoryName: string;
+  accountId: number;
+  accountName: string;
+  note?: string | null;
+  transactionDate: string;
+};
+
+type BackendAccount = {
+  id: number;
+  name: string;
+  balance?: number;
+};
+
 let mockItems: TransactionItem[] = [
   {
     id: 'txn-1',
+    categoryId: 'salary',
     monthLabel: 'April',
     title: 'Lương',
     timeLabel: '18:27 - April 30',
@@ -36,6 +77,7 @@ let mockItems: TransactionItem[] = [
   },
   {
     id: 'txn-2',
+    categoryId: 'food',
     monthLabel: 'April',
     title: 'Thực Phẩm',
     timeLabel: '17:00 - April 24',
@@ -46,6 +88,7 @@ let mockItems: TransactionItem[] = [
   },
   {
     id: 'txn-3',
+    categoryId: 'rent',
     monthLabel: 'April',
     title: 'Tiền Nhà',
     timeLabel: '8:30 - April 15',
@@ -56,6 +99,7 @@ let mockItems: TransactionItem[] = [
   },
   {
     id: 'txn-4',
+    categoryId: 'transport',
     monthLabel: 'April',
     title: 'Đi Chuyển',
     timeLabel: '7:30 - April 08',
@@ -66,6 +110,7 @@ let mockItems: TransactionItem[] = [
   },
   {
     id: 'txn-5',
+    categoryId: 'other',
     monthLabel: 'March',
     title: 'Ăn Uống',
     timeLabel: '19:30 - March 31',
@@ -76,7 +121,7 @@ let mockItems: TransactionItem[] = [
   },
 ];
 
-const mockFormOptions: TransactionFormOptions = {
+let mockFormOptions: TransactionFormOptions = {
   categories: [
     { id: 'food', label: 'Thực Phẩm', type: 'expense' },
     { id: 'rent', label: 'Tiền Nhà', type: 'expense' },
@@ -129,20 +174,15 @@ const filterItems = (items: TransactionItem[], filter: TransactionFilter) => {
 };
 
 const buildMockDetail = (item: TransactionItem): TransactionDetail => {
-  const categoryMap: Record<TransactionItem['iconKey'], { id: string; label: string }> = {
-    salary: { id: 'salary', label: 'Lương' },
-    food: { id: 'food', label: 'Thực Phẩm' },
-    rent: { id: 'rent', label: 'Tiền Nhà' },
-    transport: { id: 'transport', label: 'Đi Chuyển' },
-    other: { id: 'other', label: 'Khác' },
-  };
+  const categoryLabel =
+    mockFormOptions.categories.find((category) => category.id === item.categoryId)?.label ?? 'Khác';
 
   return {
     id: item.id,
     date: new Date().toISOString(),
     type: item.kind,
-    categoryId: categoryMap[item.iconKey].id,
-    categoryLabel: categoryMap[item.iconKey].label,
+    categoryId: item.categoryId,
+    categoryLabel,
     amount: Math.abs(item.amount),
     title: item.title,
     sourceId: 'cash',
@@ -151,6 +191,114 @@ const buildMockDetail = (item: TransactionItem): TransactionDetail => {
     note: item.note,
     timeLabel: item.timeLabel,
     iconKey: item.iconKey,
+  };
+};
+
+const toBackendType = (type: TransactionType): BackendTransactionType => (type === 'income' ? 'INCOME' : 'EXPENSE');
+
+const toFrontendType = (type: BackendTransactionType): TransactionType => (type === 'INCOME' ? 'income' : 'expense');
+
+const pad2 = (value: number) => String(value).padStart(2, '0');
+
+const toBackendDateTime = (dateIso: string) => {
+  const date = new Date(dateIso);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Ngày giao dịch không hợp lệ');
+  }
+
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+};
+
+const parseBackendDateTime = (value?: string | null) => {
+  if (!value) {
+    return new Date();
+  }
+
+  const [datePart, timePart = '00:00:00'] = value.trim().split(' ');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second] = timePart.split(':').map(Number);
+
+  if ([year, month, day, hour, minute, second].some((part) => Number.isNaN(part))) {
+    return new Date();
+  }
+
+  return new Date(year, month - 1, day, hour, minute, second);
+};
+
+const splitNote = (rawNote?: string | null) => {
+  const note = (rawNote ?? '').trim();
+  if (!note) {
+    return { title: 'Giao dịch', detail: '' };
+  }
+
+  const divider = ' | ';
+  const dividerIndex = note.indexOf(divider);
+  if (dividerIndex < 0) {
+    return { title: note, detail: '' };
+  }
+
+  return {
+    title: note.slice(0, dividerIndex).trim() || 'Giao dịch',
+    detail: note.slice(dividerIndex + divider.length).trim(),
+  };
+};
+
+const buildBackendNote = (payload: CreateTransactionPayload | UpdateTransactionPayload) => {
+  const title = payload.title.trim();
+  const detail = payload.detail?.trim() ?? '';
+  return detail ? `${title} | ${detail}` : title;
+};
+
+const mapCategoryIconToTransactionIcon = (iconKey?: string): TransactionItem['iconKey'] => {
+  switch (iconKey) {
+    case 'attach_money':
+      return 'salary';
+    case 'restaurant':
+    case 'shopping':
+      return 'food';
+    case 'directions_bus':
+      return 'transport';
+    case 'account_balance_wallet':
+    case 'movie':
+    case 'healing':
+    case 'card_giftcard':
+      return 'other';
+    default:
+      return 'other';
+  }
+};
+
+const buildCategoryIconMap = async (token?: string) => {
+  const dashboard = await categoryApi.getDashboard(token);
+  const allCategories = [
+    ...dashboard.groups.financial,
+    ...dashboard.groups.expense,
+    ...dashboard.groups.income,
+  ];
+
+  return allCategories.reduce<Record<string, TransactionItem['iconKey']>>((acc, category) => {
+    acc[category.id] = mapCategoryIconToTransactionIcon(category.iconKey);
+    return acc;
+  }, {});
+};
+
+const mapBackendTransactionItem = (
+  item: BackendTransactionItem,
+  categoryIconMapById: Record<string, TransactionItem['iconKey']>,
+): TransactionItem => {
+  const date = parseBackendDateTime(item.transactionDateTime ?? item.date);
+  const parsed = splitNote(item.note);
+
+  return {
+    id: String(item.id),
+    categoryId: String(item.categoryId),
+    monthLabel: date.toLocaleString('en-US', { month: 'long' }),
+    title: parsed.title || item.category || 'Giao dịch',
+    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+    note: parsed.detail,
+    amount: toFrontendType(item.type) === 'expense' ? -Math.abs(Number(item.amount) || 0) : Math.abs(Number(item.amount) || 0),
+    kind: toFrontendType(item.type),
+    iconKey: categoryIconMapById[String(item.categoryId)] ?? mapCategoryIconToTransactionIcon(),
   };
 };
 
@@ -169,16 +317,105 @@ export const transactionApi = {
       } satisfies TransactionDashboard;
     }
 
-    return request<TransactionDashboard>(`${TRANSACTION_ENDPOINTS.dashboard}?filter=${filter}`, { token });
+    const typeQuery = filter === 'all' ? '' : `?type=${toBackendType(filter)}`;
+    const [transactionResponse, accountResponse, categoryIconMapById] = await Promise.all([
+      request<ApiResponse<BackendTransactionItem[]>>(`${TRANSACTION_ENDPOINTS.list}${typeQuery}`, { token }),
+      request<ApiResponse<BackendAccount[]>>(TRANSACTION_ENDPOINTS.accounts, { token }),
+      buildCategoryIconMap(token),
+    ]);
+
+    const items = (transactionResponse.result ?? []).map((item) =>
+      mapBackendTransactionItem(item, categoryIconMapById),
+    );
+
+    const totalIncome = items
+      .filter((item) => item.kind === 'income')
+      .reduce((sum, item) => sum + Math.abs(item.amount), 0);
+
+    const totalExpense = items
+      .filter((item) => item.kind === 'expense')
+      .reduce((sum, item) => sum + Math.abs(item.amount), 0);
+
+    const totalBalance = (accountResponse.result ?? []).reduce(
+      (sum, account) => sum + Math.abs(Number(account.balance ?? 0)),
+      0,
+    );
+
+    return {
+      overview: {
+        totalBalance,
+        totalIncome,
+        totalExpense,
+        unreadNotifications: 0,
+      },
+      items,
+    } satisfies TransactionDashboard;
   },
 
   getFormOptions: async (token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(120);
+
+      try {
+        const [categoryDashboard, accountResponse] = await Promise.all([
+          categoryApi.getDashboard(token),
+          request<ApiResponse<BackendAccount[]>>(TRANSACTION_ENDPOINTS.accounts, { token }),
+        ]);
+
+        const categories = [
+          ...categoryDashboard.groups.expense.map((item) => ({
+            id: item.id,
+            label: item.name,
+            type: 'expense' as const,
+          })),
+          ...categoryDashboard.groups.income.map((item) => ({
+            id: item.id,
+            label: item.name,
+            type: 'income' as const,
+          })),
+        ];
+
+        const sources = (accountResponse.result ?? []).map((item) => ({
+          id: String(item.id),
+          label: item.name,
+        }));
+
+        if (categories.length > 0) {
+          mockFormOptions = {
+            categories,
+            sources: sources.length > 0 ? sources : mockFormOptions.sources,
+          };
+        }
+      } catch {
+        // Keep fallback mock options if live options cannot be loaded.
+      }
+
       return mockFormOptions;
     }
 
-    return request<TransactionFormOptions>(TRANSACTION_ENDPOINTS.formOptions, { token });
+    const [categoryDashboard, accountResponse] = await Promise.all([
+      categoryApi.getDashboard(token),
+      request<ApiResponse<BackendAccount[]>>(TRANSACTION_ENDPOINTS.accounts, { token }),
+    ]);
+
+    return {
+      categories: [
+        ...categoryDashboard.groups.expense.map((item) => ({
+          id: item.id,
+          label: item.name,
+          type: 'expense' as const,
+        })),
+        ...categoryDashboard.groups.income.map((item) => ({
+          id: item.id,
+          label: item.name,
+          type: 'income' as const,
+        })),
+      ],
+      sources: (accountResponse.result ?? []).map((item) => ({
+        id: String(item.id),
+        label: item.name,
+      })),
+    } satisfies TransactionFormOptions;
   },
 
   createTransaction: async (payload: CreateTransactionPayload, token?: string) => {
@@ -188,6 +425,7 @@ export const transactionApi = {
       mockItems = [
         {
           id: transactionId,
+          categoryId: payload.categoryId,
           monthLabel: monthLabelFromDate(payload.date),
           title: payload.title,
           timeLabel: timeLabelFromDate(payload.date),
@@ -205,19 +443,30 @@ export const transactionApi = {
       } satisfies CreateTransactionResponse;
     }
 
-    return request<CreateTransactionResponse>(TRANSACTION_ENDPOINTS.create, {
+    const categoryId = Number.parseInt(payload.categoryId, 10);
+    const accountId = Number.parseInt(payload.sourceId, 10);
+
+    if (!Number.isFinite(categoryId) || !Number.isFinite(accountId)) {
+      throw new Error('Danh mục hoặc nguồn tiền không hợp lệ. Vui lòng chọn lại.');
+    }
+
+    const response = await request<ApiResponse<BackendTransactionItem>>(TRANSACTION_ENDPOINTS.create, {
       method: 'POST',
       body: {
-        date: payload.date,
-        type: payload.type,
-        categoryId: payload.categoryId,
-        amount: payload.amount,
-        title: payload.title,
-        sourceId: payload.sourceId,
-        detail: payload.detail,
+        type: toBackendType(payload.type),
+        amount: Math.abs(payload.amount),
+        categoryId,
+        accountId,
+        note: buildBackendNote(payload),
+        transactionDate: toBackendDateTime(payload.date),
       },
       token,
     });
+
+    return {
+      success: true,
+      transactionId: String(response.result.id),
+    } satisfies CreateTransactionResponse;
   },
 
   getTransactionDetail: async (transactionId: string, token?: string) => {
@@ -231,7 +480,30 @@ export const transactionApi = {
       return buildMockDetail(found);
     }
 
-    return request<TransactionDetail>(TRANSACTION_ENDPOINTS.detail(transactionId), { token });
+    const [response, categoryIconMapById] = await Promise.all([
+      request<ApiResponse<BackendTransactionDetail>>(TRANSACTION_ENDPOINTS.detail(transactionId), { token }),
+      buildCategoryIconMap(token),
+    ]);
+
+    const result = response.result;
+    const date = parseBackendDateTime(result.transactionDate);
+    const parsedNote = splitNote(result.note);
+
+    return {
+      id: String(result.id),
+      date: date.toISOString(),
+      type: toFrontendType(result.type),
+      categoryId: String(result.categoryId),
+      categoryLabel: result.categoryName,
+      amount: Math.abs(Number(result.amount) || 0),
+      title: parsedNote.title || result.categoryName || 'Giao dịch',
+      sourceId: String(result.accountId),
+      sourceLabel: result.accountName,
+      detail: parsedNote.detail,
+      note: result.note ?? '',
+      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+      iconKey: categoryIconMapById[String(result.categoryId)] ?? 'other',
+    } satisfies TransactionDetail;
   },
 
   updateTransaction: async (transactionId: string, payload: UpdateTransactionPayload, token?: string) => {
@@ -245,6 +517,7 @@ export const transactionApi = {
         const nextAmount = payload.type === 'expense' ? -Math.abs(payload.amount) : Math.abs(payload.amount);
         return {
           ...item,
+          categoryId: payload.categoryId,
           monthLabel: monthLabelFromDate(payload.date),
           timeLabel: timeLabelFromDate(payload.date),
           title: payload.title,
@@ -258,19 +531,27 @@ export const transactionApi = {
       return { success: true } satisfies TransactionActionResponse;
     }
 
-    return request<TransactionActionResponse>(TRANSACTION_ENDPOINTS.update(transactionId), {
+    const categoryId = Number.parseInt(payload.categoryId, 10);
+    const accountId = Number.parseInt(payload.sourceId, 10);
+
+    if (!Number.isFinite(categoryId) || !Number.isFinite(accountId)) {
+      throw new Error('Danh mục hoặc nguồn tiền không hợp lệ. Vui lòng chọn lại.');
+    }
+
+    await request<ApiResponse<BackendTransactionDetail>>(TRANSACTION_ENDPOINTS.update(transactionId), {
       method: 'PUT',
       body: {
-        date: payload.date,
-        type: payload.type,
-        categoryId: payload.categoryId,
-        amount: payload.amount,
-        title: payload.title,
-        sourceId: payload.sourceId,
-        detail: payload.detail,
+        type: toBackendType(payload.type),
+        amount: Math.abs(payload.amount),
+        categoryId,
+        accountId,
+        note: buildBackendNote(payload),
+        transactionDate: toBackendDateTime(payload.date),
       },
       token,
     });
+
+    return { success: true } satisfies TransactionActionResponse;
   },
 
   deleteTransaction: async (transactionId: string, token?: string) => {
@@ -280,9 +561,11 @@ export const transactionApi = {
       return { success: true } satisfies TransactionActionResponse;
     }
 
-    return request<TransactionActionResponse>(TRANSACTION_ENDPOINTS.remove(transactionId), {
+    await request<ApiResponse<null>>(TRANSACTION_ENDPOINTS.remove(transactionId), {
       method: 'DELETE',
       token,
     });
+
+    return { success: true } satisfies TransactionActionResponse;
   },
 };

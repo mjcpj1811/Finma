@@ -21,6 +21,8 @@ public class DebtPayment extends BaseEntity {
 
     private BigDecimal amount;
     private LocalDate paymentDate;
+    private String title;
+    private String counterparty;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "debt_id")

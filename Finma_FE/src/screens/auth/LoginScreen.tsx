@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { authApi } from '../../api/authApi';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -30,6 +30,13 @@ export const LoginScreen = ({ navigation }: Props) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const navigateToHome = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
+  };
+
   const onLogin = async () => {
     if (ENABLE_MOCK_LOGIN) {
       navigation.replace('Home');
@@ -45,14 +52,21 @@ export const LoginScreen = ({ navigation }: Props) => {
     try {
       const response = await authApi.login({ usernameOrEmail, password });
 
-      if (response.accessToken) {
-        await saveAccessToken(response.accessToken);
+      if (!response.accessToken) {
+        throw new Error(response.message || 'Đăng nhập thất bại.');
+      }
+
+      await saveAccessToken(response.accessToken);
+
+      if (Platform.OS === 'web') {
+        navigateToHome();
+        return;
       }
 
       Alert.alert('Đăng nhập', response.message || 'Đăng nhập thành công.', [
         {
           text: 'Vào Home',
-          onPress: () => navigation.replace('Home'),
+          onPress: navigateToHome,
         },
       ]);
     } catch (error) {

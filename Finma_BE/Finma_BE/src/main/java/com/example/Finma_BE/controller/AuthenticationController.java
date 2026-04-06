@@ -5,6 +5,7 @@ import com.example.Finma_BE.dto.response.AuthenticationResponse;
 import com.example.Finma_BE.dto.response.IntrospectResponse;
 import com.example.Finma_BE.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
@@ -25,7 +26,7 @@ public class AuthenticationController {
     AuthenticationService authenticationService;
 
     @PostMapping("/login")
-    ApiResponse<AuthenticationResponse> authentication(@RequestBody AuthenticationRequest request) {
+    ApiResponse<AuthenticationResponse> authentication(@Valid @RequestBody AuthenticationRequest request) {
         var result= authenticationService.authenticated(request);
 
         return ApiResponse.<AuthenticationResponse>builder()

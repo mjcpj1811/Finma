@@ -22,7 +22,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -52,10 +51,27 @@ public class AuthenticationService {
     @Value("${jwt.refresh-Token-Duration}")
     protected long refreshTokenDuration;
     public AuthenticationResponse authenticated(AuthenticationRequest request) {
-        var user = userRepository.findByUsername(request.getUsername())
-                .or(() -> userRepository.findByEmail(request.getUsername()))
+        String loginId = request.getUsername() != null ? request.getUsername().trim() : null;
+        if (loginId == null || loginId.isBlank() || request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
+        }
+
+        var user = userRepository.findByUsername(loginId)
+                .or(() -> userRepository.findByEmail(loginId))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
-        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+
+        String rawPassword = request.getPassword();
+        String storedPassword = user.getPassword();
+
+        boolean authenticated = storedPassword != null && passwordEncoder.matches(rawPassword, storedPassword);
+        if (!authenticated && storedPassword != null && !storedPassword.startsWith("$2")) {
+            authenticated = rawPassword.equals(storedPassword);
+            if (authenticated) {
+                user.setPassword(passwordEncoder.encode(rawPassword));
+                userRepository.save(user);
+            }
+        }
+
         if(!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
         return createAuthenticationResponse(user);
@@ -140,6 +156,7 @@ public class AuthenticationService {
         JWTClaimsSet jwsClaimSet = new JWTClaimsSet.Builder()
                 .subject(user.getUsername())
                 .issuer("example.com")
+            .claim("uid", user.getId())
                 .issueTime(new Date())
                 .expirationTime(new Date(
                         Instant.now().plus(validDuration, ChronoUnit.HOURS).toEpochMilli()

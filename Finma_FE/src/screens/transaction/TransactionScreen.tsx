@@ -152,6 +152,7 @@ export const TransactionScreen = ({ navigation }: Props) => {
 
               {items.map((item) => {
                 const iconMeta = iconByKey[item.iconKey];
+                const secondaryText = item.note.trim();
                 return (
                   <Pressable
                     key={item.id}
@@ -168,7 +169,7 @@ export const TransactionScreen = ({ navigation }: Props) => {
                     </View>
 
                     <View style={styles.itemRightWrap}>
-                      <Text style={styles.itemNote}>{item.note}</Text>
+                      {secondaryText ? <Text style={styles.itemNote}>{secondaryText}</Text> : null}
                       <Text style={[styles.itemAmount, item.kind === 'expense' ? styles.expenseAmountText : styles.incomeAmountText]}>
                         {item.kind === 'expense' ? '-' : ''}
                         {formatCurrency(Math.abs(item.amount))}
@@ -407,5 +408,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
+  },
+
 });

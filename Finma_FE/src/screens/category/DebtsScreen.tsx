@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { debtApi } from '../../api/debtApi';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -65,7 +66,7 @@ const defaultDebtTransactionForm: DebtTransactionFormState = {
   kind: 'borrow',
 };
 
-const formatCurrency = (value: number) => `${Math.round(value).toLocaleString('vi-VN')} đ`;
+const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
 
 const formatDateText = (value: string) => {
   const date = new Date(value);
@@ -87,7 +88,7 @@ const debtIconMeta: Record<DebtItem['iconKey'], { name: keyof typeof MaterialIco
 };
 
 const transactionKindMeta: Record<DebtTransactionsResponse['items'][number]['kind'], { color: string; icon: keyof typeof MaterialIcons.glyphMap; label: string }> = {
-  borrow: { color: '#0B8D72', icon: 'north-east', label: 'Vay' },
+  borrow: { color: '#0B8D72', icon: 'north-east', label: 'Thu' },
   repay: { color: '#EF4444', icon: 'south-west', label: 'Trả' },
 };
 
@@ -160,8 +161,19 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
   };
 
   useEffect(() => {
+    if (route.params?.debtId) {
+      setSelectedDebtId(route.params.debtId);
+      setViewMode('detail');
+    }
+
     void loadDashboard(route.params?.debtId ?? null);
   }, [route.params?.debtId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDashboard(selectedDebtId);
+    }, [selectedDebtId]),
+  );
 
   useEffect(() => {
     if (viewMode !== 'detail' || !selectedDebtId) {
@@ -180,7 +192,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
     navigation.goBack();
   };
 
-  const openDetail = async (debtId: string) => {
+  const openDetail = (debtId: string) => {
     setSelectedDebtId(debtId);
     setViewMode('detail');
   };
@@ -205,10 +217,13 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
 
   const onSaveDebt = async () => {
     const principalAmount = Number(debtForm.principalAmount.replace(/[^\d]/g, ''));
-    const remainingAmount = Number(debtForm.remainingAmount.replace(/[^\d]/g, ''));
+    const remainingAmountInput = Number(debtForm.remainingAmount.replace(/[^\d]/g, ''));
+    const remainingAmount = Number.isFinite(remainingAmountInput) && remainingAmountInput >= 0
+      ? remainingAmountInput
+      : principalAmount;
 
-    if (!debtForm.name.trim() || !principalAmount || remainingAmount < 0) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên và số tiền hợp lệ.');
+    if (!debtForm.name.trim() || principalAmount <= 0) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên và số tiền gốc hợp lệ.');
       return;
     }
 
@@ -233,6 +248,8 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       setDebtModalVisible(false);
       setEditingDebt(null);
       setDebtForm(defaultDebtForm);
+    } catch (error) {
+      Alert.alert('Không thể lưu khoản nợ', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
     } finally {
       setSaving(false);
     }
@@ -245,10 +262,14 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
         text: 'Xóa',
         style: 'destructive',
         onPress: async () => {
-          await debtApi.deleteDebt(item.id);
-          await loadDashboard();
-          if (selectedDebtId === item.id) {
-            setViewMode('overview');
+          try {
+            await debtApi.deleteDebt(item.id);
+            await loadDashboard();
+            if (selectedDebtId === item.id) {
+              setViewMode('overview');
+            }
+          } catch (error) {
+            Alert.alert('Không thể xóa khoản nợ', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
           }
         },
       },
@@ -264,7 +285,8 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
     setTransactionForm({
       ...defaultDebtTransactionForm,
       title: selectedDebt.name,
-      counterparty: selectedDebt.direction === 'lend' ? 'Cho vay' : 'Đi vay',
+      counterparty: selectedDebt.direction === 'lend' ? 'Thu nợ' : 'Trả nợ',
+      kind: selectedDebt.direction === 'lend' ? 'borrow' : 'repay',
     });
     setTransactionModalVisible(true);
   };
@@ -295,7 +317,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
     const payload: UpsertDebtTransactionPayload = {
       dateIso: transactionForm.dateIso,
       title: transactionForm.title.trim(),
-      counterparty: transactionForm.counterparty.trim() || (transactionForm.kind === 'borrow' ? 'Vay' : 'Trả'),
+      counterparty: transactionForm.counterparty.trim() || (transactionForm.kind === 'borrow' ? 'Thu nợ' : 'Trả nợ'),
       amount,
       kind: transactionForm.kind,
     };
@@ -313,6 +335,8 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       setTransactionModalVisible(false);
       setEditingTransaction(null);
       setTransactionForm(defaultDebtTransactionForm);
+    } catch (error) {
+      Alert.alert('Không thể lưu giao dịch', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
     } finally {
       setSaving(false);
     }
@@ -329,9 +353,13 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
         text: 'Xóa',
         style: 'destructive',
         onPress: async () => {
-          await debtApi.deleteDebtTransaction(selectedDebtId, item.id);
-          await loadDashboard(selectedDebtId);
-          await loadDetail(selectedDebtId);
+          try {
+            await debtApi.deleteDebtTransaction(selectedDebtId, item.id);
+            await loadDashboard(selectedDebtId);
+            await loadDetail(selectedDebtId);
+          } catch (error) {
+            Alert.alert('Không thể xóa giao dịch', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
+          }
         },
       },
     ]);
@@ -362,15 +390,15 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Cho vay / Đi vay</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(dashboard.overview.totalPrincipal)}</Text>
+          <Text style={styles.summaryLabel}>Cho vay</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(dashboard.overview.totalLend)}</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={[styles.summaryCol, styles.summaryColRight]}>
           <Text style={styles.summaryLabel}>Đang vay</Text>
-          <Text style={[styles.summaryValue, styles.remainingValue]}>{formatCurrency(dashboard.overview.totalRemaining)}</Text>
+          <Text style={[styles.summaryValue, styles.remainingValue]}>{formatCurrency(dashboard.overview.totalBorrow)}</Text>
         </View>
       </View>
 
@@ -435,9 +463,9 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
               <>
                 <View style={styles.selectedCard}>
                   <View style={styles.selectedLeft}>
-                    <Text style={styles.selectedLabel}>Cho vay / Đi vay</Text>
+                    <Text style={styles.selectedLabel}>{selectedDebt.direction === 'lend' ? 'Cho vay' : 'Đi vay'}</Text>
                     <Text style={styles.selectedPrimary}>{formatCurrency(detail.overview.totalBorrowed)}</Text>
-                    <Text style={styles.selectedLabel}>Đang vay</Text>
+                    <Text style={styles.selectedLabel}>{selectedDebt.direction === 'lend' ? 'Còn phải thu' : 'Còn phải trả'}</Text>
                     <Text style={styles.selectedSecondary}>{formatCurrency(detail.overview.remainingAmount)}</Text>
                   </View>
 
@@ -492,7 +520,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
                 ))}
 
                 <Pressable style={styles.addButton} onPress={openCreateTransactionModal}>
-                  <Text style={styles.addButtonText}>Thêm trả/vay</Text>
+                  <Text style={styles.addButtonText}>Thêm thanh toán</Text>
                 </Pressable>
               </>
             )}
@@ -588,7 +616,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{editingTransaction ? 'Sửa giao dịch' : 'Thêm giao dịch trả/vay'}</Text>
+            <Text style={styles.modalTitle}>{editingTransaction ? 'Sửa giao dịch' : 'Thêm giao dịch thanh toán'}</Text>
 
             <Text style={styles.modalLabel}>Ngày</Text>
             <View style={styles.readonlyInput}>
@@ -611,7 +639,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
                 style={[styles.typeChip, transactionForm.kind === 'borrow' && styles.typeChipActive]}
                 onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'borrow' }))}
               >
-                <Text style={[styles.typeChipText, transactionForm.kind === 'borrow' && styles.typeChipTextActive]}>Vay</Text>
+                <Text style={[styles.typeChipText, transactionForm.kind === 'borrow' && styles.typeChipTextActive]}>Thu</Text>
               </Pressable>
 
               <Pressable
@@ -935,7 +963,8 @@ const styles = StyleSheet.create({
     color: '#0C6657',
     fontFamily: typography.poppins.semibold,
     fontSize: 14,
-  },
+  },
+
   loaderWrap: {
     flex: 1,
     alignItems: 'center',
@@ -965,7 +994,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalCard: {
-    backgroundColor: colors.white,
+    backgroundColor: '#F1FFF3',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingTop: 14,
@@ -986,6 +1015,7 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 42,
+    backgroundColor: '#DFF7E2',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D4EFE8',
@@ -997,7 +1027,7 @@ const styles = StyleSheet.create({
   readonlyInput: {
     minHeight: 42,
     borderRadius: 10,
-    backgroundColor: '#E6F5EC',
+    backgroundColor: '#DFF7E2',
     borderWidth: 1,
     borderColor: '#D4EFE8',
     paddingHorizontal: 12,
