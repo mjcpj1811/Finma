@@ -2,16 +2,20 @@ package com.example.Finma_BE.repository;
 
 import com.example.Finma_BE.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
-<<<<<<< HEAD
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+@Repository
+public interface TransactionRepository extends JpaRepository<Transaction, Long>,
+        JpaSpecificationExecutor<Transaction>{
 
     // Tính tổng số tiền chi tiêu (EXPENSE) của user theo category trong khoảng thời gian budget
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
@@ -39,19 +43,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findSavingsByGoalId(@Param("goalId") Long goalId);
 
     Optional<Transaction> findByIdAndUserId(Long id, Long userId);
-=======
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
-
-import java.util.List;
-
-public interface TransactionRepository extends JpaRepository<Transaction,Long> {
     List<Transaction> findAllByAccountIdOrderByCreatedAtDesc(Long accountId);
     List<Transaction> findAllByAccountIdAndUserIdOrderByTransactionDateDesc(Long accountId, Long userId);
     List<Transaction> findAllByUserIdOrderByCreatedAtDesc(Long userId);
     long countByAccountId(Long accountId);
     void deleteAllByAccountId(Long accountId);
->>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
+
 }
 

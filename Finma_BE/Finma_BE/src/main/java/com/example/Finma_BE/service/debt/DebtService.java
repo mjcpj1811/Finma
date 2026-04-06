@@ -87,6 +87,10 @@ public class DebtService {
         return  debtMapper.toDebtResponse(debtRepository.save(debt));
     }
 
+    public List<Debt> getActiveDebtsByUserId(Long userId) {
+        return debtRepository.findAllByUserIdAndStatus(userId, DebtStatus.ONGOING);
+    }
+
     @Transactional
     public DebtResponse updateDebt(Long userId, Long id, DebtUpdateRequest request){
         Debt debt = debtCommonService.findDebtOfUser(id, userId);

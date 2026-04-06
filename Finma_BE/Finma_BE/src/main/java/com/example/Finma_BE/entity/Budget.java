@@ -28,7 +28,6 @@ public class Budget extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
-<<<<<<< HEAD
     /**
      * true  → budget sẽ được tự động sinh lại vào ngày 1 hàng tháng
      * false → budget 1 lần, không tự lặp
@@ -45,10 +44,8 @@ public class Budget extends BaseEntity {
     @Column(name = "parent_budget_id")
     private Long parentBudgetId;
 
-    @ManyToOne
-=======
     @ManyToOne(fetch = FetchType.LAZY)
->>>>>>> deae13cc60cb03378d8e33da1fe49c684f8f51d5
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
