@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -72,9 +73,11 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
     }
   };
 
-  useEffect(() => {
-    void loadDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void loadDashboard();
+    }, []),
+  );
 
   const title = useMemo(() => (editingSource ? 'Sửa tài khoản' : 'Thêm tài khoản'), [editingSource]);
 
@@ -474,7 +477,8 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.semibold,
     fontSize: 15,
-  },
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
