@@ -14,6 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { savingsApi } from '../../api/savingsApi';
+import { AppDatePickerField } from '../../components/AppDatePickerField';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { NotificationBellButton } from '../../components/NotificationBellButton';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -78,18 +79,6 @@ const transactionIcon: Record<
 };
 
 const stripSavingPrefix = (name: string) => name.replace(/^Tiết\s*Kiệm\s*/i, '').trim() || name;
-
-const formatDateText = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: '2-digit',
-    year: 'numeric',
-  });
-};
 
 export const SavingsScreen = ({ navigation, route }: Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>(route.params?.savingId ? 'detail' : 'overview');
@@ -508,10 +497,29 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.formContent}>
             <View style={styles.formFieldBlock}>
               <Text style={styles.formLabel}>Ngày</Text>
-              <View style={styles.readonlyInput}>
-                <Text style={styles.readonlyText}>{formatDateText(transactionForm.dateIso)}</Text>
-                <MaterialIcons name="event" size={18} color={colors.primary} />
-              </View>
+              <AppDatePickerField
+                valueIso={transactionForm.dateIso}
+                onChangeIso={(nextIso) => setTransactionForm((prev) => ({ ...prev, dateIso: nextIso }))}
+                formatDisplayValue={(valueIso) => {
+                  const date = new Date(valueIso);
+                  if (Number.isNaN(date.getTime())) {
+                    return valueIso;
+                  }
+                  return date.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: '2-digit',
+                    year: 'numeric',
+                  });
+                }}
+                fieldStyle={styles.readonlyInput}
+                textStyle={styles.readonlyText}
+                pickerWrapStyle={styles.datePickerWrap}
+                pickerActionsStyle={styles.datePickerActions}
+                cancelButtonStyle={styles.cancelBtn}
+                cancelTextStyle={styles.cancelText}
+                confirmButtonStyle={styles.saveBtn}
+                confirmTextStyle={styles.saveText}
+              />
             </View>
 
             <View style={styles.formFieldBlock}>
@@ -1042,7 +1050,8 @@ const styles = StyleSheet.create({
     color: '#0C6657',
     fontFamily: typography.poppins.semibold,
     fontSize: 15,
-  },
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
@@ -1108,6 +1117,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 13,
+  },
+  datePickerWrap: {
+    marginTop: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D4EFE8',
+    backgroundColor: '#DFF7E2',
+    overflow: 'hidden',
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   formKindRow: {
     marginTop: 4,
