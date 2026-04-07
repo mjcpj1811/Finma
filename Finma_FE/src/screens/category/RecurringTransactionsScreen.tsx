@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { recurringApi } from '../../api/recurringApi';
 import { transactionApi } from '../../api/transactionApi';
+import { AppDatePickerField } from '../../components/AppDatePickerField';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -524,6 +525,38 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
               </View>
             ) : null}
 
+            <Text style={styles.modalLabel}>Ngày bắt đầu</Text>
+            <AppDatePickerField
+              valueIso={form.startDate}
+              onOpen={() => {
+                setShowCycleList(false);
+                setShowWeekdayList(false);
+                setShowYearMonthList(false);
+                setShowCategoryList(false);
+                setShowSourceList(false);
+              }}
+              onChangeIso={(nextIso) => {
+                const nextDate = new Date(nextIso);
+                setForm((prev) => ({
+                  ...prev,
+                  startDate: nextIso,
+                  dayOfMonth:
+                    prev.cycle === 'monthly' || prev.cycle === 'yearly'
+                      ? String(nextDate.getDate())
+                      : prev.dayOfMonth,
+                  dayOfWeek: prev.cycle === 'weekly' ? String(nextDate.getDay()) : prev.dayOfWeek,
+                }));
+              }}
+              fieldStyle={styles.selectField}
+              textStyle={styles.fieldText}
+              pickerWrapStyle={styles.datePickerWrap}
+              pickerActionsStyle={styles.datePickerActions}
+              cancelButtonStyle={styles.cancelBtn}
+              cancelTextStyle={styles.cancelText}
+              confirmButtonStyle={styles.saveBtn}
+              confirmTextStyle={styles.saveText}
+            />
+
             {form.cycle === 'weekly' ? (
               <>
                 <Text style={styles.modalLabel}>Thứ thực hiện</Text>
@@ -1010,6 +1043,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 13,
+  },
+  datePickerWrap: {
+    marginTop: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D4EFE8',
+    backgroundColor: '#DFF7E2',
+    overflow: 'hidden',
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   noteInput: {
     minHeight: 88,

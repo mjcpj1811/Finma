@@ -15,6 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { debtApi } from '../../api/debtApi';
+import { AppDatePickerField } from '../../components/AppDatePickerField';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -67,19 +68,6 @@ const defaultDebtTransactionForm: DebtTransactionFormState = {
 };
 
 const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
-
-const formatDateText = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-  });
-};
 
 const debtIconMeta: Record<DebtItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
   payments: { name: 'payments', bg: '#6AA8FF' },
@@ -619,10 +607,30 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
             <Text style={styles.modalTitle}>{editingTransaction ? 'Sửa giao dịch' : 'Thêm giao dịch thanh toán'}</Text>
 
             <Text style={styles.modalLabel}>Ngày</Text>
-            <View style={styles.readonlyInput}>
-              <Text style={styles.readonlyText}>{formatDateText(transactionForm.dateIso)}</Text>
-              <MaterialIcons name="event" size={18} color={colors.primary} />
-            </View>
+            <AppDatePickerField
+              valueIso={transactionForm.dateIso}
+              onChangeIso={(nextIso) => setTransactionForm((prev) => ({ ...prev, dateIso: nextIso }))}
+              iconName="calendar-month"
+              formatDisplayValue={(valueIso) => {
+                const date = new Date(valueIso);
+                if (Number.isNaN(date.getTime())) {
+                  return valueIso;
+                }
+                return date.toLocaleDateString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  year: 'numeric',
+                });
+              }}
+              fieldStyle={styles.readonlyInput}
+              textStyle={styles.readonlyText}
+              pickerWrapStyle={styles.datePickerWrap}
+              pickerActionsStyle={styles.datePickerActions}
+              cancelButtonStyle={styles.cancelBtn}
+              cancelTextStyle={styles.cancelText}
+              confirmButtonStyle={styles.saveBtn}
+              confirmTextStyle={styles.saveText}
+            />
 
             <Text style={styles.modalLabel}>Tiêu đề</Text>
             <TextInput
@@ -670,7 +678,12 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
             />
 
             <View style={styles.modalActionRow}>
-              <Pressable style={styles.cancelBtn} onPress={() => setTransactionModalVisible(false)}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setTransactionModalVisible(false);
+                }}
+              >
                 <Text style={styles.cancelText}>Hủy</Text>
               </Pressable>
 
@@ -1039,6 +1052,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 13,
+  },
+  datePickerWrap: {
+    marginTop: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D4EFE8',
+    backgroundColor: '#DFF7E2',
+    overflow: 'hidden',
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   typeRow: {
     flexDirection: 'row',
