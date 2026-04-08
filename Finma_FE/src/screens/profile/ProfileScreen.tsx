@@ -134,6 +134,13 @@ export const ProfileScreen = ({ navigation }: Props) => {
                 <Text style={styles.menuText}>{item.label}</Text>
               </Pressable>
             ))}
+
+            <Pressable style={styles.menuItem} onPress={() => navigation.navigate('Budget')}>
+              <View style={[styles.menuIconWrap, styles.budgetIconWrap]}>
+                <MaterialIcons name="account-balance-wallet" size={24} color={colors.white} />
+              </View>
+              <Text style={styles.menuText}>Quản Lý Ngân Sách</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </View>
@@ -287,7 +294,8 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontFamily: typography.poppins.medium,
     fontSize: 16,
-  },
+  },
+
   logoutOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',

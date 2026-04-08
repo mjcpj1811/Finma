@@ -23,12 +23,14 @@ public class Notification extends BaseEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private NotificationType type;
 
     /** ID của đối tượng liên quan (budgetId hoặc goalId) */
     private Long referenceId;
 
     /** Loại đối tượng: "BUDGET" hoặc "GOAL" */
+    @Column(length = 50)
     private String referenceType;
 
     @Builder.Default

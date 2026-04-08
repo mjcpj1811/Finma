@@ -74,8 +74,8 @@ const formatDateText = (value: string) => {
     return value;
   }
 
-  return date.toLocaleDateString('en-US', {
-    month: '2-digit',
+  return date.toLocaleDateString('vi-VN', {
+    month: 'long',
     day: '2-digit',
     year: 'numeric',
   });

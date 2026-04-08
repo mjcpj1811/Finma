@@ -30,6 +30,9 @@ import { SearchScreen } from '../screens/report/SearchScreen';
 import { ReportCalendarScreen } from '../screens/report/ReportCalendarScreen';
 import { TransactionScreen } from '../screens/transaction/TransactionScreen';
 import { AddTransactionScreen } from '../screens/transaction/AddTransactionScreen';
+import { BudgetScreen } from '../screens/budget/BudgetScreen';
+import { BudgetCreateScreen } from '../screens/budget/BudgetCreateScreen';
+import { BudgetDetailScreen } from '../screens/budget/BudgetDetailScreen';
 
 const TransactionDetailScreen =
   require('../screens/transaction/TransactionDetailScreen').TransactionDetailScreen;
@@ -82,6 +85,18 @@ export type RootStackParamList = {
       }
     | undefined;
   TransactionDetail: { transactionId: string };
+  Budget: undefined;
+  BudgetCreate: { budgetId?: string } | undefined;
+  BudgetDetail: {
+    budgetId: string;
+    categoryId: string;
+    categoryName: string;
+    categoryGroup?: 'financial' | 'expense' | 'income';
+    amountLimit: number;
+    spentAmount: number;
+    categoryIcon: string;
+    categoryColor?: string;
+  };
   Notifications: undefined;
 };
 
@@ -128,6 +143,9 @@ export const RootNavigator = () => {
         <Stack.Screen name="Transactions" component={TransactionScreen} />
         <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
         <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+        <Stack.Screen name="Budget" component={BudgetScreen} />
+        <Stack.Screen name="BudgetCreate" component={BudgetCreateScreen} />
+        <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
       </Stack.Navigator>
     </NavigationContainer>

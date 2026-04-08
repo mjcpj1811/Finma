@@ -14,6 +14,7 @@ import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { homeApi } from '../../api/homeApi';
+import * as budgetApi from '../../api/budgetApi';
 import { type HomeDashboard, type PeriodFilter } from '../../types/home';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
@@ -38,13 +39,20 @@ export const HomeScreen = ({ navigation }: Props) => {
   const [period, setPeriod] = useState<PeriodFilter>('month');
   const [dashboard, setDashboard] = useState<HomeDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [realBudgetLimit, setRealBudgetLimit] = useState(0);
+  const [realSpentAmount, setRealSpentAmount] = useState(0);
 
   useEffect(() => {
     const loadHome = async () => {
       setLoading(true);
       try {
-        const response = await homeApi.getDashboard(period);
+        const [response, activeBudgets] = await Promise.all([
+          homeApi.getDashboard(period),
+          budgetApi.getActiveBudgets().catch(() => []),
+        ]);
         setDashboard(response);
+        setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
+        setRealSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
       } catch {
         setDashboard(null);
       } finally {
@@ -84,21 +92,22 @@ export const HomeScreen = ({ navigation }: Props) => {
 
         <BalanceSummaryCard
           totalBalance={activeDashboard.overview.totalBalance}
-          totalExpense={activeDashboard.overview.totalExpense}
+          totalExpense={realSpentAmount > 0 ? realSpentAmount : activeDashboard.overview.totalExpense}
           budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
-          budgetLimit={activeDashboard.overview.budgetLimit}
+          budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : activeDashboard.overview.budgetLimit}
+          onPressBudget={() => navigation.navigate('Budget')}
         />
       </View>
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
           <View style={styles.snapshotCard}>
-            <View style={styles.goalBlock}>
+            <Pressable style={styles.goalBlock} onPress={() => navigation.navigate('Savings')}>
               <View style={styles.goalIconWrap}>
                 <Image source={ICON_GOAL} style={styles.goalIcon} resizeMode="contain" />
               </View>
               <Text style={styles.goalText}>{activeDashboard.weeklySnapshot.savingGoalLabel}</Text>
-            </View>
+            </Pressable>
 
             <View style={styles.snapshotContent}>
               <View style={styles.snapshotItem}>
@@ -384,5 +393,6 @@ const styles = StyleSheet.create({
   },
   expenseText: {
     color: colors.blueDark,
-  },
+  },
+
 });
