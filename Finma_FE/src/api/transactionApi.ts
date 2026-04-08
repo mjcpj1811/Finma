@@ -317,22 +317,21 @@ export const transactionApi = {
       } satisfies TransactionDashboard;
     }
 
-    const typeQuery = filter === 'all' ? '' : `?type=${toBackendType(filter)}`;
     const [transactionResponse, accountResponse, categoryIconMapById] = await Promise.all([
-      request<ApiResponse<BackendTransactionItem[]>>(`${TRANSACTION_ENDPOINTS.list}${typeQuery}`, { token }),
+      request<ApiResponse<BackendTransactionItem[]>>(TRANSACTION_ENDPOINTS.list, { token }),
       request<ApiResponse<BackendAccount[]>>(TRANSACTION_ENDPOINTS.accounts, { token }),
       buildCategoryIconMap(token),
     ]);
 
-    const items = (transactionResponse.result ?? []).map((item) =>
+    const allItems = (transactionResponse.result ?? []).map((item) =>
       mapBackendTransactionItem(item, categoryIconMapById),
     );
 
-    const totalIncome = items
+    const totalIncome = allItems
       .filter((item) => item.kind === 'income')
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
-    const totalExpense = items
+    const totalExpense = allItems
       .filter((item) => item.kind === 'expense')
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
@@ -348,7 +347,7 @@ export const transactionApi = {
         totalExpense,
         unreadNotifications: 0,
       },
-      items,
+      items: filterItems(allItems, filter),
     } satisfies TransactionDashboard;
   },
 

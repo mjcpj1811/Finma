@@ -14,10 +14,9 @@ export type HomeOverview = {
   budgetLimit: number;
 };
 
-export type WeeklySnapshot = {
-  savingGoalLabel: string;
-  lastWeekIncome: number;
-  lastWeekFoodExpense: number;
+export type HomeHeaderSummary = {
+  totalIncome: number;
+  totalExpense: number;
 };
 
 export type TransactionKind = 'income' | 'expense';
@@ -29,12 +28,14 @@ export type TransactionItem = {
   categoryLabel: string;
   amount: number;
   kind: TransactionKind;
-  iconKey: 'salary' | 'food' | 'rent';
+  iconKey: 'salary' | 'food' | 'rent' | 'transport' | 'other';
 };
 
 export type HomeDashboard = {
   user: HomeUser;
   overview: HomeOverview;
-  weeklySnapshot: WeeklySnapshot;
+  goalSummaryText: string;
+  headerSummary: HomeHeaderSummary;
   transactions: TransactionItem[];
+  unreadNotifications: number;
 };

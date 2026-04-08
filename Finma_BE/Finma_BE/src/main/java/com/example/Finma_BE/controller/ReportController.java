@@ -147,6 +147,11 @@ public class ReportController {
                 String view = period == null ? "day" : period.trim().toLowerCase(Locale.ROOT);
 
                 return switch (view) {
+                        case "day" -> {
+                                LocalDate start = today.with(DayOfWeek.MONDAY);
+                                LocalDate end = start.plusDays(6);
+                                yield new DateRange(start.toString(), end.toString());
+                        }
                         case "week" -> {
                                 LocalDate start = today.with(DayOfWeek.MONDAY);
                                 LocalDate end = start.plusDays(6);
@@ -162,7 +167,11 @@ public class ReportController {
                                 LocalDate end = today.withDayOfYear(today.lengthOfYear());
                                 yield new DateRange(start.toString(), end.toString());
                         }
-                        default -> new DateRange(today.toString(), today.toString());
+                        default -> {
+                                LocalDate start = today.with(DayOfWeek.MONDAY);
+                                LocalDate end = start.plusDays(6);
+                                yield new DateRange(start.toString(), end.toString());
+                        }
                 };
         }
 
