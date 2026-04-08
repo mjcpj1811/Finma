@@ -16,7 +16,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { categoryApi } from '../../api/categoryApi';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
-import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type CategoryDashboard, type CategoryGroup, type CategoryItem } from '../../types/category';
@@ -199,13 +198,6 @@ export const CategoriesScreen = ({ navigation }: Props) => {
           title="Danh Mục"
           onPressNotification={() => navigation.navigate('Notifications')}
           showNotificationBadge={data.overview.unreadNotifications > 0}
-        />
-
-        <BalanceSummaryCard
-          totalBalance={data.overview.totalBalance}
-          totalExpense={data.overview.totalExpense}
-          budgetUsedPercent={data.overview.budgetUsedPercent}
-          budgetLimit={data.overview.budgetLimit}
         />
       </View>
 

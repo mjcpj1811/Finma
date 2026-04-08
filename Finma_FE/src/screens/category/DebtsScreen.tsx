@@ -392,14 +392,14 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       <View style={styles.summaryRow}>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Cho vay</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(dashboard.overview.totalLend)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(dashboard.overview.totalLendRemaining)}</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={[styles.summaryCol, styles.summaryColRight]}>
           <Text style={styles.summaryLabel}>Đang vay</Text>
-          <Text style={[styles.summaryValue, styles.remainingValue]}>{formatCurrency(dashboard.overview.totalBorrow)}</Text>
+          <Text style={[styles.summaryValue, styles.remainingValue]}>{formatCurrency(dashboard.overview.totalBorrowRemaining)}</Text>
         </View>
       </View>
 
