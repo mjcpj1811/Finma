@@ -6,394 +6,218 @@ import {
   type SavingTransactionItem,
   type SavingTransactionsResponse,
   type SavingsDashboard,
-  type UpdateSavingTransactionPayload,
   type UpsertSavingPayload,
 } from '../types/savings';
 
-const SAVINGS_API_USE_MOCK = true;
-
 const SAVINGS_ENDPOINTS = {
-  dashboard: '/savings/dashboard',
-  create: '/savings',
-  update: (id: string) => `/savings/${id}`,
-  remove: (id: string) => `/savings/${id}`,
-  transactions: (id: string) => `/savings/${id}/transactions`,
-  updateTransaction: (savingId: string, transactionId: string) => `/savings/${savingId}/transactions/${transactionId}`,
-  removeTransaction: (savingId: string, transactionId: string) => `/savings/${savingId}/transactions/${transactionId}`,
+  dashboard: '/goals',
+  create: '/goals',
+  update: (id: string) => `/goals/${id}`,
+  remove: (id: string) => `/goals/${id}`,
+  transactions: (id: string) => `/goals/${id}/deposits`,
+  deposits: '/goals/deposits',
+  removeTransaction: (depositId: string) => `/goals/deposits/${depositId}`,
 };
-
-let mockSavings: SavingItem[] = [
-  {
-    id: 'sav-1',
-    name: 'Tiết Kiệm Du Lịch',
-    targetAmount: 1962930,
-    currentAmount: 655310,
-    iconKey: 'flight',
-  },
-  {
-    id: 'sav-2',
-    name: 'Mua Nhà',
-    targetAmount: 2500000,
-    currentAmount: 200000,
-    iconKey: 'home-work',
-  },
-  {
-    id: 'sav-3',
-    name: 'Mua Xe',
-    targetAmount: 2000000,
-    currentAmount: 180000,
-    iconKey: 'directions-car',
-  },
-  {
-    id: 'sav-4',
-    name: 'Đám Cưới',
-    targetAmount: 1320070,
-    currentAmount: 152090,
-    iconKey: 'savings',
-  },
-];
-
-let mockSavingTransactions: SavingTransactionItem[] = [
-  {
-    id: 'sav-txn-1',
-    savingId: 'sav-1',
-    dateIso: '2026-04-30T16:56:00.000Z',
-    monthLabel: 'April',
-    title: 'Tiết Kiệm Du Lịch',
-    timeLabel: '16:56 - April 30',
-    note: 'Nạp quỹ',
-    amount: 201770,
-    kind: 'deposit',
-  },
-  {
-    id: 'sav-txn-2',
-    savingId: 'sav-1',
-    dateIso: '2026-04-14T17:42:00.000Z',
-    monthLabel: 'April',
-    title: 'Tiết Kiệm Du Lịch',
-    timeLabel: '17:42 - April 14',
-    note: 'Nạp quỹ',
-    amount: 201770,
-    kind: 'deposit',
-  },
-  {
-    id: 'sav-txn-3',
-    savingId: 'sav-1',
-    dateIso: '2026-04-02T13:29:00.000Z',
-    monthLabel: 'April',
-    title: 'Tiết Kiệm Du Lịch',
-    timeLabel: '13:29 - April 02',
-    note: 'Nạp quỹ',
-    amount: 201770,
-    kind: 'deposit',
-  },
-  {
-    id: 'sav-txn-4',
-    savingId: 'sav-2',
-    dateIso: '2026-04-21T09:10:00.000Z',
-    monthLabel: 'April',
-    title: 'Tiết Kiệm Mua Nhà',
-    timeLabel: '09:10 - April 21',
-    note: 'Nạp quỹ',
-    amount: 1000000,
-    kind: 'deposit',
-  },
-  {
-    id: 'sav-txn-5',
-    savingId: 'sav-3',
-    dateIso: '2026-04-10T11:05:00.000Z',
-    monthLabel: 'April',
-    title: 'Tiết Kiệm Mua Xe',
-    timeLabel: '11:05 - April 10',
-    note: 'Rút quỹ',
-    amount: -200000,
-    kind: 'withdraw',
-  },
-];
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const toMonthLabel = (dateIso: string) => {
   const date = new Date(dateIso);
-  return date.toLocaleString('en-US', { month: 'long' });
+  return date.toLocaleString('vi-VN', { month: 'long' });
 };
 
 const toTimeLabel = (dateIso: string) => {
   const date = new Date(dateIso);
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = date.toLocaleString('vi-VN', { month: 'long' });
   const day = String(date.getDate()).padStart(2, '0');
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')} - ${month} ${day}`;
 };
 
-const formatProgress = (current: number, target: number) => {
-  if (!target || target <= 0) {
-    return 0;
-  }
-  return Math.max(0, Math.min(100, Math.round((current / target) * 100)));
-};
-
-const buildDashboard = (): SavingsDashboard => {
-  const totalSaved = mockSavings.reduce((sum, item) => sum + item.currentAmount, 0);
-  const totalTarget = mockSavings.reduce((sum, item) => sum + item.targetAmount, 0);
-
-  return {
-    overview: {
-      totalSaved,
-      totalTarget,
-      unreadNotifications: 1,
-    },
-    items: mockSavings,
-  };
-};
-
-const buildSavingTransactions = (savingId: string): SavingTransactionsResponse => {
-  const saving = mockSavings.find((item) => item.id === savingId);
-  if (!saving) {
-    throw new Error('Saving item not found');
-  }
-
-  const items = mockSavingTransactions.filter((item) => item.savingId === savingId);
-  const totalInflow = items
-    .filter((item) => item.kind === 'deposit')
-    .reduce((sum, item) => sum + Math.abs(item.amount), 0);
-  const totalOutflow = items
-    .filter((item) => item.kind === 'withdraw')
-    .reduce((sum, item) => sum + Math.abs(item.amount), 0);
-
-  return {
-    saving,
-    overview: {
-      saved: saving.currentAmount,
-      target: saving.targetAmount,
-      remaining: Math.max(saving.targetAmount - saving.currentAmount, 0),
-      progressPercent: formatProgress(saving.currentAmount, saving.targetAmount),
-      totalInflow,
-      totalOutflow,
-      unreadNotifications: 1,
-    },
-    items,
-  };
-};
-
 export const savingsApi = {
   getDashboard: async (token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(150);
-      return buildDashboard();
-    }
+    const response = await request<{ result: any[] }>(SAVINGS_ENDPOINTS.dashboard, { token });
+    const goals = Array.isArray(response.result)
+      ? response.result
+      : Array.isArray(response)
+      ? response
+      : [];
 
-    return request<SavingsDashboard>(SAVINGS_ENDPOINTS.dashboard, { token });
+    const totalSaved = goals.reduce((sum: number, goal: any) => sum + parseFloat(goal.currentAmount || 0), 0);
+    const totalTarget = goals.reduce((sum: number, goal: any) => sum + parseFloat(goal.targetAmount || 0), 0);
+
+    const items: SavingItem[] = goals.map((goal: any) => ({
+      id: goal.id.toString(),
+      name: goal.name,
+      targetAmount: parseFloat(goal.targetAmount || 0),
+      currentAmount: parseFloat(goal.currentAmount || 0),
+      iconKey: goal.icon || 'savings',
+      description: goal.description,
+      color: goal.color,
+      status: goal.status,
+      progressPercentage: goal.progressPercentage,
+      remainingAmount: parseFloat(goal.remainingAmount || 0),
+      startDate: goal.startDate,
+      endDate: goal.endDate,
+      daysRemaining: goal.daysRemaining,
+      dailySavingNeeded: parseFloat(goal.dailySavingNeeded || 0),
+      monthlySavingNeeded: parseFloat(goal.monthlySavingNeeded || 0),
+    }));
+
+    return {
+      overview: {
+        totalSaved,
+        totalTarget,
+        unreadNotifications: 1, // TODO: get from BE
+      },
+      items,
+    };
   },
 
   getSavingTransactions: async (savingId: string, token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(150);
-      return buildSavingTransactions(savingId);
+    // Get goal details
+    const goalResponse = await request<{ result: any }>(SAVINGS_ENDPOINTS.update(savingId), { token });
+    const goal = goalResponse.result ?? goalResponse;
+    if (!goal) {
+      throw new Error('Goal not found');
     }
 
-    return request<SavingTransactionsResponse>(SAVINGS_ENDPOINTS.transactions(savingId), { token });
+    // Get deposits
+    const depositsResponse = await request<{ result: any[] }>(SAVINGS_ENDPOINTS.transactions(savingId), { token });
+    const deposits = Array.isArray(depositsResponse.result)
+      ? depositsResponse.result
+      : Array.isArray(depositsResponse)
+      ? depositsResponse
+      : [];
+
+    const saving: SavingItem = {
+      id: goal.id.toString(),
+      name: goal.name,
+      targetAmount: parseFloat(goal.targetAmount || 0),
+      currentAmount: parseFloat(goal.currentAmount || 0),
+      iconKey: goal.icon || 'savings',
+      description: goal.description,
+      color: goal.color,
+      status: goal.status,
+      progressPercentage: goal.progressPercentage,
+      remainingAmount: parseFloat(goal.remainingAmount || 0),
+      startDate: goal.startDate,
+      endDate: goal.endDate,
+      daysRemaining: goal.daysRemaining,
+      dailySavingNeeded: parseFloat(goal.dailySavingNeeded || 0),
+      monthlySavingNeeded: parseFloat(goal.monthlySavingNeeded || 0),
+    };
+
+    const items: SavingTransactionItem[] = deposits.map((deposit: any) => ({
+      id: deposit.id.toString(),
+      savingId: deposit.goalId?.toString() ?? saving.id.toString(),
+      dateIso: deposit.depositDate || deposit.createdAt,
+      monthLabel: toMonthLabel(deposit.depositDate || deposit.createdAt),
+      title: deposit.goalName || saving.name,
+      timeLabel: toTimeLabel(deposit.depositDate || deposit.createdAt),
+      note: deposit.note || '',
+      amount: parseFloat(deposit.amount ?? '0'),
+      kind: 'deposit',
+      goalName: deposit.goalName,
+      depositDate: deposit.depositDate,
+      goalCurrentAmount: parseFloat(deposit.goalCurrentAmount || 0),
+      goalTargetAmount: parseFloat(deposit.goalTargetAmount || 0),
+      progressPercentage: deposit.progressPercentage,
+    }));
+
+    const totalInflow = items.reduce((sum, item) => sum + Math.abs(item.amount), 0);
+    const totalOutflow = 0; // BE only has deposits
+
+    const progressPercent = saving.targetAmount && saving.targetAmount > 0
+      ? Math.max(0, Math.min(100, Math.round((saving.currentAmount / saving.targetAmount) * 100)))
+      : 0;
+
+    return {
+      saving,
+      overview: {
+        saved: saving.currentAmount,
+        target: saving.targetAmount,
+        remaining: Math.max(saving.targetAmount - saving.currentAmount, 0),
+        progressPercent,
+        totalInflow,
+        totalOutflow,
+        unreadNotifications: 1,
+      },
+      items,
+    };
   },
 
   createSaving: async (payload: UpsertSavingPayload, token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(120);
-      const savingId = `sav-${Date.now()}`;
-      mockSavings = [
-        ...mockSavings,
-        {
-          id: savingId,
-          name: payload.name.trim(),
-          targetAmount: payload.targetAmount,
-          currentAmount: payload.currentAmount,
-          iconKey: payload.iconKey,
-        },
-      ];
+    const body = {
+      name: payload.name,
+      targetAmount: payload.targetAmount,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      description: payload.description,
+      icon: payload.iconKey,
+      color: payload.color,
+    };
 
-      return { success: true, savingId } satisfies SavingActionResponse;
-    }
-
-    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.create, {
+    const response = await request<{ result: any }>(SAVINGS_ENDPOINTS.create, {
       method: 'POST',
-      body: payload,
+      body,
       token,
     });
+
+    return { success: true, savingId: response.result.id.toString() } satisfies SavingActionResponse;
   },
 
   updateSaving: async (savingId: string, payload: UpsertSavingPayload, token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(120);
-      mockSavings = mockSavings.map((item) => {
-        if (item.id !== savingId) {
-          return item;
-        }
+    const body = {
+      name: payload.name,
+      targetAmount: payload.targetAmount,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      description: payload.description,
+      icon: payload.iconKey,
+      color: payload.color,
+    };
 
-        return {
-          ...item,
-          name: payload.name.trim(),
-          targetAmount: payload.targetAmount,
-          currentAmount: payload.currentAmount,
-          iconKey: payload.iconKey,
-        };
-      });
-
-      return { success: true, savingId } satisfies SavingActionResponse;
-    }
-
-    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.update(savingId), {
+    await request(SAVINGS_ENDPOINTS.update(savingId), {
       method: 'PUT',
-      body: payload,
+      body,
       token,
     });
+
+    return { success: true, savingId } satisfies SavingActionResponse;
   },
 
   deleteSaving: async (savingId: string, token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(120);
-      mockSavings = mockSavings.filter((item) => item.id !== savingId);
-      mockSavingTransactions = mockSavingTransactions.filter((item) => item.savingId !== savingId);
-      return { success: true, savingId } satisfies SavingActionResponse;
-    }
-
-    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.remove(savingId), {
+    await request(SAVINGS_ENDPOINTS.remove(savingId), {
       method: 'DELETE',
       token,
     });
+
+    return { success: true, savingId } satisfies SavingActionResponse;
   },
 
   createSavingTransaction: async (savingId: string, payload: CreateSavingTransactionPayload, token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(120);
-      const saving = mockSavings.find((item) => item.id === savingId);
-      if (!saving) {
-        return { success: false, message: 'Không tìm thấy khoản tiết kiệm.' } satisfies SavingActionResponse;
-      }
+    const body = {
+      goalId: parseInt(savingId),
+      amount: payload.amount,
+      accountId: payload.accountId,
+      depositDate: payload.depositDate || (payload.dateIso ? payload.dateIso.split('T')[0] : undefined),
+      note: payload.title ? `${payload.title} - ${payload.note}` : payload.note,
+    };
 
-      const transactionId = `sav-txn-${Date.now()}`;
-      const signedAmount = payload.kind === 'deposit' ? Math.abs(payload.amount) : -Math.abs(payload.amount);
-
-      mockSavingTransactions = [
-        {
-          id: transactionId,
-          savingId,
-          dateIso: payload.dateIso,
-          monthLabel: toMonthLabel(payload.dateIso),
-          title: payload.title.trim(),
-          timeLabel: toTimeLabel(payload.dateIso),
-          note: payload.note.trim() || (payload.kind === 'deposit' ? 'Nạp quỹ' : 'Rút quỹ'),
-          amount: signedAmount,
-          kind: payload.kind,
-        },
-        ...mockSavingTransactions,
-      ];
-
-      mockSavings = mockSavings.map((item) => {
-        if (item.id !== savingId) {
-          return item;
-        }
-
-        const nextAmount = payload.kind === 'deposit'
-          ? item.currentAmount + Math.abs(payload.amount)
-          : Math.max(item.currentAmount - Math.abs(payload.amount), 0);
-
-        return {
-          ...item,
-          currentAmount: nextAmount,
-        };
-      });
-
-      return { success: true, transactionId } satisfies SavingActionResponse;
-    }
-
-    return request<SavingActionResponse>(`${SAVINGS_ENDPOINTS.transactions(savingId)}`, {
+    const response = await request<{ result: any }>(SAVINGS_ENDPOINTS.deposits, {
       method: 'POST',
-      body: payload,
+      body,
       token,
     });
-  },
 
-  updateSavingTransaction: async (
-    savingId: string,
-    transactionId: string,
-    payload: UpdateSavingTransactionPayload,
-    token?: string,
-  ) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(120);
-
-      const existing = mockSavingTransactions.find((item) => item.id === transactionId && item.savingId === savingId);
-      if (!existing) {
-        return { success: false, message: 'Không tìm thấy giao dịch tiết kiệm.' } satisfies SavingActionResponse;
-      }
-
-      const signedAmount = payload.kind === 'deposit' ? Math.abs(payload.amount) : -Math.abs(payload.amount);
-      const amountDelta = signedAmount - existing.amount;
-
-      mockSavingTransactions = mockSavingTransactions.map((item) => {
-        if (item.id !== transactionId || item.savingId !== savingId) {
-          return item;
-        }
-
-        return {
-          ...item,
-          dateIso: payload.dateIso,
-          monthLabel: toMonthLabel(payload.dateIso),
-          title: payload.title.trim(),
-          timeLabel: toTimeLabel(payload.dateIso),
-          note: payload.note.trim() || (payload.kind === 'deposit' ? 'Nạp quỹ' : 'Rút quỹ'),
-          amount: signedAmount,
-          kind: payload.kind,
-        };
-      });
-
-      mockSavings = mockSavings.map((item) => {
-        if (item.id !== savingId) {
-          return item;
-        }
-
-        return {
-          ...item,
-          currentAmount: Math.max(item.currentAmount + amountDelta, 0),
-        };
-      });
-
-      return { success: true, transactionId } satisfies SavingActionResponse;
-    }
-
-    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.updateTransaction(savingId, transactionId), {
-      method: 'PUT',
-      body: payload,
-      token,
-    });
+    const deposit = response.result ?? response;
+    return { success: true, transactionId: deposit.id.toString() } satisfies SavingActionResponse;
   },
 
   deleteSavingTransaction: async (savingId: string, transactionId: string, token?: string) => {
-    if (SAVINGS_API_USE_MOCK) {
-      await sleep(120);
-
-      const existing = mockSavingTransactions.find((item) => item.id === transactionId && item.savingId === savingId);
-      if (!existing) {
-        return { success: false, message: 'Không tìm thấy giao dịch tiết kiệm.' } satisfies SavingActionResponse;
-      }
-
-      mockSavingTransactions = mockSavingTransactions.filter((item) => !(item.id === transactionId && item.savingId === savingId));
-
-      mockSavings = mockSavings.map((item) => {
-        if (item.id !== savingId) {
-          return item;
-        }
-
-        return {
-          ...item,
-          currentAmount: Math.max(item.currentAmount - existing.amount, 0),
-        };
-      });
-
-      return { success: true, transactionId } satisfies SavingActionResponse;
-    }
-
-    return request<SavingActionResponse>(SAVINGS_ENDPOINTS.removeTransaction(savingId, transactionId), {
+    await request(SAVINGS_ENDPOINTS.removeTransaction(transactionId), {
       method: 'DELETE',
       token,
     });
+
+    return { success: true, transactionId } satisfies SavingActionResponse;
   },
 };

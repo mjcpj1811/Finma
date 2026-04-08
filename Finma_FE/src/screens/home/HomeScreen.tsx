@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -12,6 +13,8 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
+import { homeApi } from '../../api/homeApi';
+import * as budgetApi from '../../api/budgetApi';
 import CategoryIcon from '../../../assets/icons/Category.svg';
 import HomeIcon from '../../../assets/icons/Home.svg';
 import TransactionsIcon from '../../../assets/icons/Transactions.svg';
@@ -24,11 +27,18 @@ import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+const ICON_GOAL = require('../../../assets/icons/category.png');
+const ICON_INCOME = require('../../../assets/icons/home.png');
+const ICON_FOOD = require('../../../assets/icons/transaction.png');
+const ICON_MANAGE = require('../../../assets/icons/account.png');
+
 const periodOptions: Array<{ key: PeriodFilter; label: string }> = [
   { key: 'day', label: 'Ngày' },
   { key: 'week', label: 'Tuần' },
   { key: 'month', label: 'Tháng' },
 ];
+
+const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
 const periodHeaderLabel: Record<PeriodFilter, string> = {
   day: 'hôm qua',
@@ -100,11 +110,20 @@ export const HomeScreen = ({ navigation }: Props) => {
   const [period, setPeriod] = useState<PeriodFilter>('month');
   const [dashboard, setDashboard] = useState<HomeDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [realBudgetLimit, setRealBudgetLimit] = useState(0);
+  const [realSpentAmount, setRealSpentAmount] = useState(0);
 
   useEffect(() => {
     const loadHome = async () => {
       setLoading(true);
       try {
+        const [response, activeBudgets] = await Promise.all([
+          homeApi.getDashboard(period),
+          budgetApi.getActiveBudgets().catch(() => []),
+        ]);
+        setDashboard(response);
+        setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
+        setRealSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
         const response = await homeApi.getDashboard(period);
         setDashboard(response);
       } catch {
@@ -122,6 +141,9 @@ export const HomeScreen = ({ navigation }: Props) => {
   if (loading || !activeDashboard) {
     return (
       <SafeAreaView style={styles.screen}>
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={colors.white} />
+          <Text style={styles.loaderText}>Đang tải dữ liệu trang chủ...</Text>
         <View style={styles.topSection}>
           <AppScreenHeader
             title="Trang Chủ"
@@ -150,6 +172,10 @@ export const HomeScreen = ({ navigation }: Props) => {
 
         <BalanceSummaryCard
           totalBalance={activeDashboard.overview.totalBalance}
+          totalExpense={realSpentAmount > 0 ? realSpentAmount : activeDashboard.overview.totalExpense}
+          budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
+          budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : activeDashboard.overview.budgetLimit}
+          onPressBudget={() => navigation.navigate('Budget')}
           totalExpense={activeDashboard.overview.totalExpense}
           budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
           budgetLimit={activeDashboard.overview.budgetLimit}
@@ -159,6 +185,19 @@ export const HomeScreen = ({ navigation }: Props) => {
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
           <View style={styles.snapshotCard}>
+            <Pressable style={styles.goalBlock} onPress={() => navigation.navigate('Savings')}>
+              <View style={styles.goalIconWrap}>
+                <Image source={ICON_GOAL} style={styles.goalIcon} resizeMode="contain" />
+              </View>
+              <Text style={styles.goalText}>{activeDashboard.weeklySnapshot.savingGoalLabel}</Text>
+            </Pressable>
+
+            <View style={styles.snapshotContent}>
+              <View style={styles.snapshotItem}>
+                <Image source={ICON_INCOME} style={styles.snapshotIcon} resizeMode="contain" />
+                <View>
+                  <Text style={styles.snapshotLabel}>Tổng thu tuần trước</Text>
+                  <Text style={styles.snapshotValue}>{formatCurrency(activeDashboard.weeklySnapshot.lastWeekIncome)}</Text>
             <View style={styles.goalBlock}>
               <View style={styles.goalIconWrap}>
                 <CategoryIcon width={28} height={28} color={colors.white} />
@@ -178,6 +217,10 @@ export const HomeScreen = ({ navigation }: Props) => {
               <View style={styles.snapshotDivider} />
 
               <View style={styles.snapshotItem}>
+                <Image source={ICON_FOOD} style={styles.snapshotIcon} resizeMode="contain" />
+                <View>
+                  <Text style={styles.snapshotLabel}>Ăn uống tuần trước</Text>
+                  <Text style={[styles.snapshotValue, styles.expenseText]}>-{formatCurrency(activeDashboard.weeklySnapshot.lastWeekFoodExpense)}</Text>
                 <TransactionsIcon width={20} height={20} color={colors.white} />
                 <View>
                   <Text style={styles.snapshotLabel}>Tổng chi {periodHeaderLabel[period]}</Text>
@@ -188,6 +231,7 @@ export const HomeScreen = ({ navigation }: Props) => {
           </View>
 
           <Pressable style={styles.manageButton} onPress={() => navigation.navigate('ManageSources')}>
+            <Image source={ICON_MANAGE} style={styles.manageIcon} resizeMode="contain" />
             <AccountIcon width={22} height={22} />
             <Text style={styles.manageText}>Quản lý nguồn tiền</Text>
           </Pressable>
@@ -208,6 +252,25 @@ export const HomeScreen = ({ navigation }: Props) => {
           </View>
 
           <View style={styles.transactionList}>
+            {activeDashboard.transactions.map((item) => (
+              <View key={item.id} style={styles.transactionItem}>
+                <View style={styles.transactionIconWrap}>
+                  <Image source={ICON_INCOME} style={styles.transactionIcon} resizeMode="contain" />
+                </View>
+
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionTitle}>{item.title}</Text>
+                  <Text style={styles.transactionTime}>{item.timeLabel}</Text>
+                </View>
+
+                <Text style={styles.transactionCategory}>{item.categoryLabel || '-'}</Text>
+
+                <Text style={[styles.transactionAmount, item.kind === 'expense' && styles.expenseText]}>
+                  {item.kind === 'expense' ? '-' : ''}
+                  {formatCurrency(item.amount)}
+                </Text>
+              </View>
+            ))}
             {activeDashboard.transactions.length === 0 ? (
               <EmptyTransactions />
             ) : (
@@ -418,6 +481,7 @@ const styles = StyleSheet.create({
   goalIcon: {
     width: 28,
     height: 28,
+    tintColor: colors.white,
   },
   goalText: {
     textAlign: 'center',
@@ -439,6 +503,7 @@ const styles = StyleSheet.create({
   snapshotIcon: {
     width: 20,
     height: 20,
+    tintColor: colors.white,
   },
   snapshotLabel: {
     color: colors.text,
@@ -524,6 +589,7 @@ const styles = StyleSheet.create({
   transactionIcon: {
     width: 24,
     height: 24,
+    tintColor: colors.white,
   },
   transactionInfo: {
     flex: 1,

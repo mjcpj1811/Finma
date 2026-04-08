@@ -63,12 +63,12 @@ type BackendDebtStats = {
 
 const toMonthLabel = (dateIso: string) => {
   const date = new Date(dateIso);
-  return date.toLocaleString('en-US', { month: 'long' });
+  return date.toLocaleString('vi-VN', { month: 'long' });
 };
 
 const toTimeLabel = (dateIso: string) => {
   const date = new Date(dateIso);
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = date.toLocaleString('vi-VN', { month: 'long' });
   const day = String(date.getDate()).padStart(2, '0');
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} - ${month} ${day}`;
 };

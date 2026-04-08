@@ -140,12 +140,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const monthLabelFromDate = (dateIso: string) => {
   const date = new Date(dateIso);
-  return date.toLocaleString('en-US', { month: 'long' });
+  return date.toLocaleString('vi-VN', { month: 'long' });
 };
 
 const timeLabelFromDate = (dateIso: string) => {
   const date = new Date(dateIso);
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = date.toLocaleString('vi-VN', { month: 'long' });
   const day = String(date.getDate()).padStart(2, '0');
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} - ${month} ${day}`;
 };
@@ -292,9 +292,9 @@ const mapBackendTransactionItem = (
   return {
     id: String(item.id),
     categoryId: String(item.categoryId),
-    monthLabel: date.toLocaleString('en-US', { month: 'long' }),
+    monthLabel: date.toLocaleString('vi-VN', { month: 'long' }),
     title: parsed.title || item.category || 'Giao dịch',
-    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
     note: parsed.detail,
     amount: toFrontendType(item.type) === 'expense' ? -Math.abs(Number(item.amount) || 0) : Math.abs(Number(item.amount) || 0),
     kind: toFrontendType(item.type),
@@ -500,7 +500,7 @@ export const transactionApi = {
       sourceLabel: result.accountName,
       detail: parsedNote.detail,
       note: result.note ?? '',
-      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
       iconKey: categoryIconMapById[String(result.categoryId)] ?? 'other',
     } satisfies TransactionDetail;
   },

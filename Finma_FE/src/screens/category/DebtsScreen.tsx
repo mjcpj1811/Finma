@@ -69,6 +69,19 @@ const defaultDebtTransactionForm: DebtTransactionFormState = {
 
 const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
 
+const formatDateText = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('vi-VN', {
+    month: 'long',
+    day: '2-digit',
+    year: 'numeric',
+  });
+};
+
 const debtIconMeta: Record<DebtItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
   payments: { name: 'payments', bg: '#6AA8FF' },
   'account-balance-wallet': { name: 'account-balance-wallet', bg: '#6AA8FF' },
