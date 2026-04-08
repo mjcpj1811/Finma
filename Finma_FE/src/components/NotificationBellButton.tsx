@@ -1,7 +1,6 @@
-import { Image, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import IconNotificationSvg from '../../assets/icons/Icon-Notification.svg';
 import { colors } from '../theme/colors';
-
-const ICON_BELL = require('../../assets/icons/Icon-Notification.png');
 
 type Props = {
   onPress?: () => void;
@@ -28,7 +27,7 @@ export const NotificationBellButton = ({
 
   const content = (
     <>
-      <Image source={ICON_BELL} style={{ width: resolvedIconSize, height: resolvedIconSize }} resizeMode="contain" />
+      <IconNotificationSvg width={resolvedIconSize} height={resolvedIconSize} />
       {showBadge ? <View style={styles.badgeDot} /> : null}
     </>
   );

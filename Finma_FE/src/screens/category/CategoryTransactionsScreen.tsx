@@ -429,7 +429,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
     paddingTop: 8,
   },
   headerRow: {
@@ -464,7 +463,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     marginBottom: 14,
   },
   summaryCol: {
@@ -534,9 +533,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1FFF3',
     borderTopLeftRadius: 45,
     borderTopRightRadius: 45,
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    marginTop: 6,
+    paddingHorizontal: 14,
+    paddingTop: 12,
   },
   panelContent: {
     paddingBottom: 120,

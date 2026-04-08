@@ -20,14 +20,16 @@ const targetRouteByTab: Record<TabKey, 'Home' | 'Report' | 'Transactions' | 'Cat
 export const ScreenBottomNavigation = ({ activeTab }: Props) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom + 6, 10) : 10;
+  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 2) : Math.max(insets.bottom, 6);
   const sideInset = Platform.OS === 'android' ? insets.left + insets.right : 0;
+  const bottomOffset = Platform.OS === 'ios' ? -insets.bottom : 0;
 
   return (
     <View
       style={[
         styles.fixedBottomNav,
         {
+          bottom: bottomOffset,
           paddingBottom: bottomPadding,
           paddingLeft: 18 + (sideInset > 0 ? insets.left : 0),
           paddingRight: 18 + (sideInset > 0 ? insets.right : 0),
@@ -49,12 +51,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
     borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
     backgroundColor: '#DFF7E2',
     borderTopWidth: 1,
     borderColor: '#E1EDE6',
-    paddingTop: 8,
+    paddingTop: 6,
   },
 });
