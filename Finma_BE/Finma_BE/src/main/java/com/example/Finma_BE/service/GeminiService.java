@@ -54,7 +54,7 @@ public class GeminiService {
         Map<String, Object> body = Map.of(
                 "contents", contents,
                 "generationConfig", Map.of(
-                        "maxOutputTokens", 600,
+                        "maxOutputTokens", 2048,
                         "temperature", 0.6
                 )
         );
