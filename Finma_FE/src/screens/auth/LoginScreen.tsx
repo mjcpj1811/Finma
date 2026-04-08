@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { authApi } from '../../api/authApi';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -141,8 +141,8 @@ export const LoginScreen = ({ navigation }: Props) => {
       <View style={styles.bottomSection}>
         <DividerText text="hoặc đăng nhập với" />
         <SocialButtons
-          facebookIcon={ICON_FACEBOOK}
-          googleIcon={ICON_GOOGLE}
+          facebookIcon={FacebookIcon}
+          googleIcon={GoogleIcon}
           onPressFacebook={() => handleOAuthLogin('facebook')}
           onPressGoogle={() => handleOAuthLogin('google')}
         />
