@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -32,7 +31,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ManageSources'>;
 
 type FormState = {
   name: string;
-  subtitle: string;
+  icon: string;
+  color: string;
   balance: string;
   type: MoneySourceType;
 };
@@ -41,15 +41,19 @@ const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
 
 const defaultFormState: FormState = {
   name: '',
-  subtitle: '',
+  icon: 'account-balance-wallet',
+  color: '#00D09E',
   balance: '',
-  type: 'cash',
+  type: 'CASH',
 };
 
-const iconMetaByType: Record<MoneySourceType, { name: keyof typeof MaterialIcons.glyphMap; bg: string; color: string }> = {
-  cash: { name: 'account-balance-wallet', bg: '#E8F5F1', color: '#00D09E' },
-  bank: { name: 'account-balance', bg: '#EEF2FF', color: '#6366F1' },
-  card: { name: 'credit-card', bg: '#FEF3C7', color: '#F59E0B' },
+const iconMetaByType: Record<string, { name: keyof typeof MaterialIcons.glyphMap; bg: string; color: string }> = {
+  CASH: { name: 'account-balance-wallet', bg: '#E8F5F1', color: '#00D09E' },
+  BANK: { name: 'account-balance', bg: '#EEF2FF', color: '#6366F1' },
+  CREDIT: { name: 'credit-card', bg: '#FEF3C7', color: '#F59E0B' },
+  E_WALLET: { name: 'account-balance-wallet', bg: '#FEF3C7', color: '#00D09E' },
+  SAVING: { name: 'savings', bg: '#DFF7E2', color: '#4CAF50' },
+  INVESTMENT: { name: 'trending-up', bg: '#EEF2FF', color: '#6366F1' },
 };
 
 export const ManageSourcesScreen = ({ navigation }: Props) => {
@@ -73,11 +77,9 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      void loadDashboard();
-    }, []),
-  );
+  useEffect(() => {
+    void loadDashboard();
+  }, []);
 
   const title = useMemo(() => (editingSource ? 'Sửa tài khoản' : 'Thêm tài khoản'), [editingSource]);
 
@@ -91,7 +93,8 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
     setEditingSource(item);
     setForm({
       name: item.name,
-      subtitle: item.subtitle,
+      icon: item.icon || 'account-balance-wallet',
+      color: item.color || '#00D09E',
       balance: String(item.balance),
       type: item.type,
     });
@@ -100,13 +103,14 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
 
   const onSave = async () => {
     const parsedBalance = Number(form.balance.replace(/[^\d]/g, ''));
-    if (!form.name.trim() || !form.subtitle.trim() || !parsedBalance) {
+    if (!form.name.trim() || !form.icon.trim() || !form.color.trim() || !parsedBalance) {
       return;
     }
 
     const payload: UpsertMoneySourcePayload = {
       name: form.name.trim(),
-      subtitle: form.subtitle.trim(),
+      icon: form.icon.trim(),
+      color: form.color.trim(),
       balance: parsedBalance,
       type: form.type,
     };
@@ -128,14 +132,22 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
   };
 
   const onDelete = (item: MoneySourceItem) => {
+    console.log('Nút xóa đã được bấm cho:', item.name); // Thêm dòng này để debug
     Alert.alert('Xóa tài khoản', `Bạn có chắc muốn xóa ${item.name}?`, [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Xóa',
         style: 'destructive',
         onPress: async () => {
-          await sourceApi.deleteSource(item.id);
-          await loadDashboard();
+          setSaving(true);
+          try {
+            await sourceApi.deleteSource(item.id);
+            await loadDashboard();
+          } catch {
+            Alert.alert('Xóa thất bại', 'Không thể xóa tài khoản. Vui lòng thử lại.');
+          } finally {
+            setSaving(false);
+          }
         },
       },
     ]);
@@ -179,33 +191,31 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
           {dashboard.items.map((item) => {
             const iconMeta = iconMetaByType[item.type];
             return (
-              <Pressable
+              <View
                 key={item.id}
                 style={styles.itemCard}
-                onPress={() => navigation.navigate('SourceTransactions', { sourceId: item.id })}
               >
-                <View style={styles.itemTopRow}>
-                  <View style={styles.itemLeftGroup}>
-                    <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={24} color={iconMeta.color} />
+                <Pressable onPress={() => navigation.navigate('SourceTransactions', { sourceId: item.id })}>
+                  <View style={styles.itemTopRow}>
+                    <View style={styles.itemLeftGroup}>
+                      <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
+                        <MaterialIcons name={iconMeta.name} size={24} color={iconMeta.color} />
+                      </View>
+
+                      <View>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemSub}>{item.type}</Text>
+                      </View>
                     </View>
 
-                    <View>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemSub}>{item.subtitle}</Text>
-                    </View>
+                    <Text style={styles.itemAmount}>{formatCurrency(item.balance)}</Text>
                   </View>
-
-                  <Text style={styles.itemAmount}>{formatCurrency(item.balance)}</Text>
-                </View>
+                </Pressable>
 
                 <View style={styles.itemActionRow}>
                   <Pressable
                     style={styles.editButton}
-                    onPress={(event) => {
-                      stopCardPress(event);
-                      openEditModal(item);
-                    }}
+                    onPress={() => openEditModal(item)}
                   >
                     <MaterialIcons name="edit" size={15} color={colors.text} />
                     <Text style={styles.editText}>Sửa</Text>
@@ -213,16 +223,13 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
 
                   <Pressable
                     style={styles.deleteButton}
-                    onPress={(event) => {
-                      stopCardPress(event);
-                      onDelete(item);
-                    }}
+                    onPress={() => onDelete(item)}
                   >
                     <MaterialIcons name="delete-outline" size={16} color="#EF4444" />
                     <Text style={styles.deleteText}>Xóa</Text>
                   </Pressable>
                 </View>
-              </Pressable>
+              </View>
             );
           })}
 
@@ -252,11 +259,22 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Mô tả ngắn</Text>
+              <Text style={styles.fieldLabel}>Icon (Tên MaterialIcon)</Text>
               <TextInput
-                value={form.subtitle}
-                onChangeText={(value) => setForm((prev) => ({ ...prev, subtitle: value }))}
-                placeholder="Ví dụ: Ngân hàng"
+                value={form.icon}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, icon: value }))}
+                placeholder="Ví dụ: account-balance"
+                style={styles.input}
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Màu sắc (Mã Hex)</Text>
+              <TextInput
+                value={form.color}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, color: value }))}
+                placeholder="Ví dụ: #4CAF50"
                 style={styles.input}
                 placeholderTextColor={colors.textMuted}
               />
@@ -275,9 +293,9 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
             </View>
 
             <View style={styles.typeRow}>
-              {(['cash', 'bank', 'card'] as MoneySourceType[]).map((itemType) => {
+              {(['CASH', 'BANK', 'CREDIT'] as MoneySourceType[]).map((itemType) => {
                 const selected = form.type === itemType;
-                const label = itemType === 'cash' ? 'Tiền mặt' : itemType === 'bank' ? 'Ngân hàng' : 'Thẻ';
+                const label = itemType === 'CASH' ? 'Tiền mặt' : itemType === 'BANK' ? 'Ngân hàng' : 'Thẻ';
                 return (
                   <Pressable
                     key={itemType}
@@ -314,7 +332,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   headerRow: {
-     paddingHorizontal: 16,
+    paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 16,
     flexDirection: 'row',

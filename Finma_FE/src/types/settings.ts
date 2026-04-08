@@ -35,5 +35,6 @@ export type ActionResponse = {
 };
 
 export type DeleteAccountPayload = {
+  userId: number;
   password: string;
 };

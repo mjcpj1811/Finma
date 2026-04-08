@@ -30,9 +30,7 @@ import { SearchScreen } from '../screens/report/SearchScreen';
 import { ReportCalendarScreen } from '../screens/report/ReportCalendarScreen';
 import { TransactionScreen } from '../screens/transaction/TransactionScreen';
 import { AddTransactionScreen } from '../screens/transaction/AddTransactionScreen';
-import { BudgetScreen } from '../screens/budget/BudgetScreen';
-import { BudgetCreateScreen } from '../screens/budget/BudgetCreateScreen';
-import { BudgetDetailScreen } from '../screens/budget/BudgetDetailScreen';
+import { OAuthCallbackScreen } from '../screens/auth/OAuthCallbackScreen';
 
 const TransactionDetailScreen =
   require('../screens/transaction/TransactionDetailScreen').TransactionDetailScreen;
@@ -98,13 +96,23 @@ export type RootStackParamList = {
     categoryColor?: string;
   };
   Notifications: undefined;
+  OAuthCallback: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator = () => {
+  const linking = {
+    prefixes: ['http://localhost:8081', 'http://192.168.1.2:8081'],
+    config: {
+      screens: {
+        OAuthCallback: 'oauth-callback',
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator
         initialRouteName="Launch"
         screenOptions={{
@@ -147,6 +155,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="BudgetCreate" component={BudgetCreateScreen} />
         <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
+        <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

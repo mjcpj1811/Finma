@@ -2,6 +2,7 @@ package com.example.Finma_BE.controller;
 
 import com.example.Finma_BE.dto.request.ApiResponse;
 import com.example.Finma_BE.dto.request.ChangePasswordRequest;
+import com.example.Finma_BE.dto.request.DeleteAccountRequest;
 import com.example.Finma_BE.dto.request.ForgotPasswordRequest;
 import com.example.Finma_BE.dto.request.ResetPasswordRequest;
 import com.example.Finma_BE.dto.request.UserCreationRequest;
@@ -87,9 +88,9 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
-    ApiResponse<Boolean> deleteUser(@PathVariable String userId){
+    ApiResponse<Boolean> deleteUser(@PathVariable String userId, @RequestBody @Valid DeleteAccountRequest request){
         ApiResponse<Boolean> apiResponse = new ApiResponse<>();
-        apiResponse.setResult(userService.deleteUser(userId));
+        apiResponse.setResult(userService.deleteUser(userId, request));
         apiResponse.setMessage("User deleted successfully");
         return apiResponse;
     }
