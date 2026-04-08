@@ -57,3 +57,10 @@ export const request = async <T>(path: string, options: RequestOptions = {}): Pr
     }
   }
 };
+
+
+export type ApiResponse<T> = { code: number; message?: string; result: T; };
+export const requestApi = async <T>(path: string, options?: RequestOptions): Promise<T> => {
+  const res = await request<ApiResponse<T>>(path, options);
+  return res.result;
+};

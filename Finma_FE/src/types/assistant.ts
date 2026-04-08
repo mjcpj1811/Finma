@@ -14,7 +14,8 @@ export type AssistantConversation = {
 };
 
 export type AskAssistantPayload = {
-  message: string;
+  question: string;
+  sessionId: number;
 };
 
 export type AskAssistantResponse = {

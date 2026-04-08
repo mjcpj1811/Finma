@@ -1,4 +1,4 @@
-import { request } from './httpClient';
+import { requestApi } from './httpClient';
 import {
   type MoneySourceActionResponse,
   type MoneySourceDashboard,
@@ -9,216 +9,190 @@ import {
   type UpsertMoneySourceResponse,
 } from '../types/source';
 
-const SOURCE_API_USE_MOCK = true;
-
 const SOURCE_ENDPOINTS = {
-  dashboard: '/money-sources/dashboard',
-  create: '/money-sources',
-  update: (id: string) => `/money-sources/${id}`,
-  remove: (id: string) => `/money-sources/${id}`,
-  transactions: (id: string) => `/money-sources/${id}/transactions`,
+  dashboard: '/accounts/summary',
+  create: '/accounts',
+  update: (id: string) => `/accounts/${id}`,
+  remove: (id: string) => `/accounts/${id}`,
+  transactions: (id: string) => `/accounts/${id}/transactions`,
+  getAccounts: '/accounts',
 };
 
-let mockSources: MoneySourceItem[] = [
-  { id: 'acc-1', name: 'Tiền mặt', subtitle: 'Tiền mặt', balance: 5000000, type: 'cash' },
-  { id: 'acc-2', name: 'Ngân hàng', subtitle: 'Ngân hàng', balance: 45000000, type: 'bank' },
-  { id: 'acc-3', name: 'Thẻ tín dụng', subtitle: 'Thẻ tín dụng', balance: 15000000, type: 'card' },
-];
+// ====================
+// 🔥 Helper mapping
+// ====================
 
-let mockTransactions: SourceTransactionItem[] = [
-  {
-    id: 'src-txn-1',
-    sourceId: 'acc-1',
-    monthLabel: 'April',
-    title: 'Ăn Tối',
-    timeLabel: '18:27 - April 30',
-    note: 'Bữa tối',
-    amount: -26000,
-    kind: 'expense',
-    iconKey: 'food',
-  },
-  {
-    id: 'src-txn-2',
-    sourceId: 'acc-1',
-    monthLabel: 'April',
-    title: 'Mì Cay',
-    timeLabel: '15:00 - April 24',
-    note: 'Ăn trưa',
-    amount: -18350,
-    kind: 'expense',
-    iconKey: 'food',
-  },
-  {
-    id: 'src-txn-3',
-    sourceId: 'acc-1',
-    monthLabel: 'April',
-    title: 'Bữa Trưa',
-    timeLabel: '12:30 - April 15',
-    note: 'Cơm văn phòng',
-    amount: -15400,
-    kind: 'expense',
-    iconKey: 'food',
-  },
-  {
-    id: 'src-txn-4',
-    sourceId: 'acc-1',
-    monthLabel: 'April',
-    title: 'Ăn Sáng',
-    timeLabel: '09:30 - April 08',
-    note: 'Bánh mì + cafe',
-    amount: -12130,
-    kind: 'expense',
-    iconKey: 'food',
-  },
-  {
-    id: 'src-txn-5',
-    sourceId: 'acc-1',
-    monthLabel: 'March',
-    title: 'Ăn Tối',
-    timeLabel: '20:50 - March 31',
-    note: 'Lẩu',
-    amount: -27200,
-    kind: 'expense',
-    iconKey: 'food',
-  },
-  {
-    id: 'src-txn-6',
-    sourceId: 'acc-2',
-    monthLabel: 'April',
-    title: 'Lương',
-    timeLabel: '08:30 - April 01',
-    note: 'Lương tháng',
-    amount: 12000000,
-    kind: 'income',
-    iconKey: 'salary',
-  },
-  {
-    id: 'src-txn-7',
-    sourceId: 'acc-3',
-    monthLabel: 'April',
-    title: 'Mua Sắm',
-    timeLabel: '19:00 - April 12',
-    note: 'Đồ gia dụng',
-    amount: -550000,
-    kind: 'expense',
-    iconKey: 'other',
-  },
-];
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const buildDashboard = (): MoneySourceDashboard => {
-  const totalBalance = mockSources.reduce((sum, item) => sum + item.balance, 0);
-
-  return {
-    summary: {
-      totalBalance,
-      totalAccounts: mockSources.length,
-      unreadNotifications: 1,
-    },
-    items: mockSources,
-  };
-};
-
-const buildSourceTransactions = (sourceId: string): MoneySourceTransactionsResponse => {
-  const source = mockSources.find((item) => item.id === sourceId);
-  if (!source) {
-    throw new Error('Money source not found');
+const getIconByType = (type: string) => {
+  switch (type) {
+    case 'CASH':
+      return 'account-balance-wallet';
+    case 'BANK':
+      return 'account-balance';
+    case 'E_WALLET':
+      return 'phone-iphone';
+    case 'CREDIT':
+      return 'credit-card';
+    case 'SAVING':
+      return 'savings';
+    default:
+      return 'account-balance';
   }
-
-  const items = mockTransactions.filter((item) => item.sourceId === sourceId);
-  const totalExpense = items
-    .filter((item) => item.kind === 'expense')
-    .reduce((sum, item) => sum + Math.abs(item.amount), 0);
-  const totalIncome = items
-    .filter((item) => item.kind === 'income')
-    .reduce((sum, item) => sum + Math.abs(item.amount), 0);
-
-  return {
-    source,
-    overview: {
-      balance: source.balance,
-      totalExpense,
-      totalIncome,
-      unreadNotifications: 1,
-    },
-    items,
-  };
 };
+
+const getColorByType = (type: string) => {
+  switch (type) {
+    case 'CASH':
+      return '#00D09E';
+    case 'BANK':
+      return '#6366F1';
+    case 'E_WALLET':
+      return '#F59E0B';
+    case 'CREDIT':
+      return '#EF4444';
+    case 'SAVING':
+      return '#10B981';
+    default:
+      return '#6366F1';
+  }
+};
+
+// ====================
+// 🚀 API
+// ====================
 
 export const sourceApi = {
-  getDashboard: async (token?: string) => {
-    if (SOURCE_API_USE_MOCK) {
-      await sleep(180);
-      return buildDashboard();
-    }
+  // ===== Dashboard =====
+  getDashboard: async (token?: string): Promise<MoneySourceDashboard> => {
+    const res: any = await requestApi(SOURCE_ENDPOINTS.dashboard, { token });
 
-    return request<MoneySourceDashboard>(SOURCE_ENDPOINTS.dashboard, { token });
+    // BE: { code, result }
+    const accounts = Array.isArray(res)
+      ? res
+      : res?.result || [];
+
+    const items: MoneySourceItem[] = accounts.map((acc: any) => ({
+      id: String(acc.accountId),
+      name: acc.name,
+      icon: getIconByType(acc.type),
+      color: getColorByType(acc.type),
+      balance: Number(acc.balance) || 0,
+      type: acc.type,
+    }));
+
+    const totalBalance = items.reduce((sum, item) => sum + item.balance, 0);
+
+    return {
+      summary: {
+        totalBalance,
+        totalAccounts: items.length,
+        unreadNotifications: 0,
+      },
+      items,
+    };
   },
 
-  createSource: async (payload: UpsertMoneySourcePayload, token?: string) => {
-    if (SOURCE_API_USE_MOCK) {
-      await sleep(140);
-      const sourceId = `acc-${Date.now()}`;
-      mockSources = [{ id: sourceId, ...payload }, ...mockSources];
-
-      return {
-        success: true,
-        sourceId,
-      } satisfies UpsertMoneySourceResponse;
-    }
-
-    return request<UpsertMoneySourceResponse>(SOURCE_ENDPOINTS.create, {
+  // ===== Create =====
+  createSource: async (
+    payload: UpsertMoneySourcePayload,
+    token?: string
+  ): Promise<UpsertMoneySourceResponse> => {
+    const res: any = await requestApi(SOURCE_ENDPOINTS.create, {
       method: 'POST',
       body: payload,
       token,
     });
+
+    return {
+      success: true,
+      sourceId: String(res?.result?.accountId || ''),
+    };
   },
 
-  updateSource: async (sourceId: string, payload: UpsertMoneySourcePayload, token?: string) => {
-    if (SOURCE_API_USE_MOCK) {
-      await sleep(120);
-      mockSources = mockSources.map((item) => {
-        if (item.id !== sourceId) {
-          return item;
-        }
-
-        return { ...item, ...payload };
-      });
-
-      return {
-        success: true,
-        sourceId,
-      } satisfies UpsertMoneySourceResponse;
-    }
-
-    return request<UpsertMoneySourceResponse>(SOURCE_ENDPOINTS.update(sourceId), {
+  // ===== Update =====
+  updateSource: async (
+    sourceId: string,
+    payload: UpsertMoneySourcePayload,
+    token?: string
+  ): Promise<UpsertMoneySourceResponse> => {
+    await requestApi(SOURCE_ENDPOINTS.update(sourceId), {
       method: 'PUT',
       body: payload,
       token,
     });
+
+    return {
+      success: true,
+      sourceId,
+    };
   },
 
-  deleteSource: async (sourceId: string, token?: string) => {
-    if (SOURCE_API_USE_MOCK) {
-      await sleep(120);
-      mockSources = mockSources.filter((item) => item.id !== sourceId);
-      mockTransactions = mockTransactions.filter((item) => item.sourceId !== sourceId);
-      return { success: true } satisfies MoneySourceActionResponse;
-    }
-
-    return request<MoneySourceActionResponse>(SOURCE_ENDPOINTS.remove(sourceId), {
+  // ===== Delete =====
+  deleteSource: async (
+    sourceId: string,
+    token?: string
+  ): Promise<MoneySourceActionResponse> => {
+    await requestApi(SOURCE_ENDPOINTS.remove(sourceId), {
       method: 'DELETE',
       token,
     });
+
+    return { success: true };
   },
 
-  getSourceTransactions: async (sourceId: string, token?: string) => {
-    if (SOURCE_API_USE_MOCK) {
-      await sleep(180);
-      return buildSourceTransactions(sourceId);
-    }
+  // ===== Transactions =====
+  getSourceTransactions: async (
+    sourceId: string,
+    token?: string
+  ): Promise<MoneySourceTransactionsResponse> => {
+    const res: any = await requestApi(
+      SOURCE_ENDPOINTS.transactions(sourceId),
+      { token }
+    );
 
-    return request<MoneySourceTransactionsResponse>(SOURCE_ENDPOINTS.transactions(sourceId), { token });
+    const data = res?.result || {};
+
+    const sourceRaw = data.account || {};
+
+    const items: SourceTransactionItem[] = (data.transactions || []).map(
+      (tx: any) => ({
+        id: String(tx.id),
+        sourceId: String(sourceId),
+        monthLabel: new Date(tx.date).toLocaleString('en-US', {
+          month: 'long',
+        }),
+        title: tx.title || tx.categoryName || 'Transaction',
+        timeLabel: new Date(tx.date).toLocaleString(),
+        note: tx.note || '',
+        amount: Number(tx.amount) || 0,
+        kind: tx.amount > 0 ? 'income' : 'expense',
+        iconKey: tx.categoryIcon || 'other',
+      })
+    );
+
+    const totalExpense = items
+      .filter((i) => i.kind === 'expense')
+      .reduce((s, i) => s + Math.abs(i.amount), 0);
+
+    const totalIncome = items
+      .filter((i) => i.kind === 'income')
+      .reduce((s, i) => s + i.amount, 0);
+
+    return {
+      source: {
+        id: String(sourceRaw.accountId || sourceId),
+        name: sourceRaw.name || '',
+        icon: getIconByType(sourceRaw.type),
+        color: getColorByType(sourceRaw.type),
+        balance: Number(sourceRaw.balance) || 0,
+        type: sourceRaw.type,
+      },
+      overview: {
+        balance: Number(sourceRaw.balance) || 0,
+        totalExpense,
+        totalIncome,
+        unreadNotifications: 0,
+      },
+      items,
+    };
   },
 };

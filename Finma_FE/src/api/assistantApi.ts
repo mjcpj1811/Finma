@@ -1,4 +1,4 @@
-import { request } from './httpClient';
+import { request, requestApi } from './httpClient';
 import {
   type AskAssistantPayload,
   type AskAssistantResponse,
@@ -6,11 +6,11 @@ import {
   type AssistantMessage,
 } from '../types/assistant';
 
-const ASSISTANT_API_USE_MOCK = true;
+const ASSISTANT_API_USE_MOCK = false;
 
 const ASSISTANT_ENDPOINTS = {
-  conversation: '/assistant/conversation',
-  ask: '/assistant/ask',
+  conversation: '/chat-sessions',
+  ask: '/chatbot/ask',
 };
 
 const nowLabel = () => {
@@ -81,21 +81,40 @@ export const assistantApi = {
       } satisfies AssistantConversation;
     }
 
-    return request<AssistantConversation>(ASSISTANT_ENDPOINTS.conversation, { token });
+    return requestApi<AssistantConversation>(ASSISTANT_ENDPOINTS.conversation, { token });
+  },
+
+  createConversation: async (token?: string) => {
+    if (ASSISTANT_API_USE_MOCK) {
+      await sleep(150);
+      return Date.now();
+    }
+
+    return request<number>(ASSISTANT_ENDPOINTS.conversation, {
+      method: 'POST',
+      token,
+    });
   },
 
   askAssistant: async (payload: AskAssistantPayload, token?: string) => {
     if (ASSISTANT_API_USE_MOCK) {
       await sleep(220);
       return {
-        reply: buildMockReply(payload.message),
+        reply: buildMockReply(payload.question),
       } satisfies AskAssistantResponse;
     }
 
-    return request<AskAssistantResponse>(ASSISTANT_ENDPOINTS.ask, {
+    return request<{ answer: string }>(ASSISTANT_ENDPOINTS.ask, {
       method: 'POST',
       body: payload,
       token,
-    });
+    }).then((res) => ({
+      reply: {
+        id: `r-${Date.now()}`,
+        role: 'assistant' as const,
+        text: res.answer,
+        timeLabel: nowLabel(),
+      },
+    }));
   },
 };

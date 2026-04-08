@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { authApi } from '../../api/authApi';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { saveAccessToken } from '../../utils/authTokenStorage';
+import { API_CONFIG } from '../../api/config';
 import {
   AuthButton,
   AuthInput,
@@ -77,6 +78,36 @@ export const LoginScreen = ({ navigation }: Props) => {
     }
   };
 
+  const handleOAuthLogin = async (provider: 'google' | 'facebook') => {
+    try {
+      const authUrl = `${API_CONFIG.baseUrl}/auth/oauth2/authorize/${provider}`;
+
+      if (Platform.OS === 'web') {
+        window.location.href = authUrl;
+        return;
+      }
+
+      // Mobile: dùng expo-web-browser
+      const WebBrowser = require('expo-web-browser');
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        'http://localhost:8081/oauth-callback'
+      );
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const token = url.searchParams.get('token');
+        if (token) {
+          await saveAccessToken(token);
+          navigateToHome();
+        }
+      }
+    } catch (error) {
+      const name = provider === 'google' ? 'Google' : 'Facebook';
+      Alert.alert('Lỗi', `Đăng nhập ${name} thất bại.`);
+    }
+  };
+
   return (
     <AuthLayout title="Chào bạn, hãy đăng nhập để tiếp tục">
       <View style={styles.topSection}>
@@ -110,7 +141,12 @@ export const LoginScreen = ({ navigation }: Props) => {
 
       <View style={styles.bottomSection}>
         <DividerText text="hoặc đăng nhập với" />
-        <SocialButtons facebookIcon={ICON_FACEBOOK} googleIcon={ICON_GOOGLE} />
+        <SocialButtons
+          facebookIcon={ICON_FACEBOOK}
+          googleIcon={ICON_GOOGLE}
+          onPressFacebook={() => handleOAuthLogin('facebook')}
+          onPressGoogle={() => handleOAuthLogin('google')}
+        />
         <FooterInlineLink prefix="Chưa có tài khoản?" linkText="Đăng ký" onPress={() => navigation.navigate('Register')} />
       </View>
     </AuthLayout>

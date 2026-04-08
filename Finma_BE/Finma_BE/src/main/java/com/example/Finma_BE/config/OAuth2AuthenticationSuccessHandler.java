@@ -42,13 +42,11 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         User user = userService.processOAuth2User(userInfo.email(), userInfo.name(), userInfo.imageUrl());
         AuthenticationResponse authResponse = authenticationService.createAuthenticationResponse(user);
-        ApiResponse<AuthenticationResponse> apiResponse = ApiResponse.<AuthenticationResponse>builder()
-                .result(authResponse)
-                .build();
-
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
-        new ObjectMapper().writeValue(response.getWriter(), apiResponse);
+        
+        // Chuyển hướng user về FE
+        String targetUrl = "http://localhost:8081/oauth-callback?token=" + authResponse.getToken();
+        
+        response.sendRedirect(targetUrl);
     }
 
     private OAuth2UserInfo extractUserInfo(String registrationId, Map<String, Object> attributes) {

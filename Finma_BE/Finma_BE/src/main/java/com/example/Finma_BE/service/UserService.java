@@ -1,6 +1,7 @@
 package com.example.Finma_BE.service;
 
 import com.example.Finma_BE.dto.request.ChangePasswordRequest;
+import com.example.Finma_BE.dto.request.DeleteAccountRequest;
 import com.example.Finma_BE.dto.request.ForgotPasswordRequest;
 import com.example.Finma_BE.dto.request.ResetPasswordRequest;
 import com.example.Finma_BE.dto.request.UserCreationRequest;
@@ -121,6 +122,9 @@ public class UserService {
         if (request.getPhone() != null) {
             user.setPhone(request.getPhone());
         }
+        if  (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
@@ -177,9 +181,22 @@ public class UserService {
 //        return userMapper.toUserResponse(userRepository.save(user));
 //    }
 
-    public boolean deleteUser(String username) {
+    public boolean deleteUser(String userId, DeleteAccountRequest request) {
+        var context = SecurityContextHolder.getContext();
+        String currentUsername = context.getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
+
+        if (!passwordEncoder.matches(request.getPassword(), currentUser.getPassword())) {
+            throw new AppException(ErrorCode.INCORRECT_PASSWORD);
+        }
+
+        if (!currentUser.getId().toString().equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
+        }
+
         try {
-            userRepository.deleteByUsername(username);
+            userRepository.delete(currentUser);
             return true;
         } catch (Exception e) {
             return false;

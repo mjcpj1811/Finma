@@ -1,9 +1,10 @@
-export type MoneySourceType = 'cash' | 'bank' | 'card';
+export type MoneySourceType = 'CASH' | 'BANK' | 'E_WALLET' | 'CREDIT' | 'SAVING' | 'INVESTMENT';
 
 export type MoneySourceItem = {
   id: string;
   name: string;
-  subtitle: string;
+  icon: string;
+  color: string;
   balance: number;
   type: MoneySourceType;
 };
@@ -21,7 +22,8 @@ export type MoneySourceDashboard = {
 
 export type UpsertMoneySourcePayload = {
   name: string;
-  subtitle: string;
+  icon: string;
+  color: string;
   balance: number;
   type: MoneySourceType;
 };

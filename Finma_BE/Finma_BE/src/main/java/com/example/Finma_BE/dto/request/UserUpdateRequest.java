@@ -17,6 +17,7 @@ public class UserUpdateRequest {
     String avatar;
     @JsonFormat(pattern = "dd/MM/yyyy")
     LocalDate dob;
+    String email;
     String job;
     String phone;
 }

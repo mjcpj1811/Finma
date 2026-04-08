@@ -1,4 +1,4 @@
-import { request } from './httpClient';
+import { requestApi } from './httpClient';
 import {
   type ProfileData,
   type UpdateProfilePayload,
@@ -14,166 +14,163 @@ import {
   type UpdateNotificationSettingsPayload,
 } from '../types/settings';
 
-const PROFILE_API_USE_MOCK = true;
-
 const PROFILE_ENDPOINTS = {
-  profile: '/profile',
-  updateProfile: '/profile',
+  profile: '/users/my-info',
+  updateProfile: '/users/me',
   settingsMenu: '/settings/menu',
   notificationSettings: '/settings/notifications',
-  changePassword: '/settings/password',
-  deleteAccount: '/settings/delete-account',
+  changePassword: '/users/me/password',
+  deleteAccount: (userId: number) => `/users/${userId}`,
   logout: '/auth/logout',
 };
 
-let mockProfile: ProfileData = {
-  id: '36636336',
-  fullName: 'Bánh Khúc',
-  avatarUrl: 'https://i.pravatar.cc/240?img=11',
-  username: 'Bánh Khúc',
-  phone: '+44 555 5555 55',
-  email: 'example@example.com',
-  notificationsEnabled: true,
-  darkModeEnabled: false,
-  unreadNotifications: 1,
-  menuItems: [
-    { key: 'edit', label: 'Chỉnh Sửa Thông Tin' },
-    { key: 'settings', label: 'Cài Đặt' },
-    { key: 'help', label: 'Trợ Lý AI' },
-    { key: 'logout', label: 'Đăng Xuất' },
-  ],
-};
+// ====================
+// 🔥 Helper unwrap
+// ====================
+const unwrap = (res: any) => res?.result ?? res;
 
-const mockSettingsMenu: SettingsMenuData = {
-  unreadNotifications: 1,
-  items: [
-    { key: 'notifications', label: 'Thông Báo' },
-    { key: 'password', label: 'Mật Khẩu' },
-    { key: 'deleteAccount', label: 'Xóa Tài Khoản' },
-  ],
-};
-
-let mockNotificationSettings: NotificationSettingItem[] = [
-  { key: 'general', label: 'Thông Báo Chung', enabled: true },
-  { key: 'sound', label: 'Âm Thanh', enabled: true },
-  { key: 'soundType', label: 'Cuộc Gọi Âm Thanh', enabled: true },
-  { key: 'vibrate', label: 'Rung', enabled: true },
-  { key: 'transactionUpdate', label: 'Cập Nhật Giao Dịch', enabled: false },
-  { key: 'expenseReminder', label: 'Nhắc Nhở Chi Tiêu', enabled: false },
-  { key: 'budgetNotice', label: 'Thông Báo Ngân Sách', enabled: false },
-  { key: 'lowBalance', label: 'Cảnh Báo Số Dư Thấp', enabled: false },
-];
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// ====================
+// 🚀 API
+// ====================
 
 export const profileApi = {
-  getProfile: async (token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(180);
-      return mockProfile;
-    }
+  // ===== Get Profile =====
+  getProfile: async (token?: string): Promise<ProfileData> => {
+    const res: any = await requestApi(PROFILE_ENDPOINTS.profile, { token });
 
-    return request<ProfileData>(PROFILE_ENDPOINTS.profile, { token });
+    const data = unwrap(res);
+
+    return {
+      id: String(data.id),
+      fullName: data.fullName ?? '',
+      username: data.username ?? '',
+      phone: data.phone ?? '',
+      email: data.email ?? '',
+      avatarUrl: data.avatar || 'https://i.pravatar.cc/240', // tránh null crash
+      notificationsEnabled: true,
+      darkModeEnabled: false,
+      unreadNotifications: 0,
+      menuItems: [
+        { key: 'edit', label: 'Chỉnh Sửa Thông Tin' },
+        { key: 'settings', label: 'Cài Đặt' },
+        { key: 'help', label: 'Trợ Lý AI' },
+        { key: 'logout', label: 'Đăng Xuất' },
+      ],
+    };
   },
 
-  logout: async (token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(120);
-      return { success: true };
-    }
+  // ===== Logout =====
+  logout: async (token?: string): Promise<{ success: boolean }> => {
+    const { getAccessToken } = require('../utils/authTokenStorage');
+    const finalToken = token ?? await getAccessToken();
 
-    return request<{ success: boolean }>(PROFILE_ENDPOINTS.logout, {
+    await requestApi(PROFILE_ENDPOINTS.logout, {
       method: 'POST',
-      token,
+      token: finalToken,
+      body: { token: finalToken }
     });
+
+    return { success: true };
   },
 
-  updateProfile: async (payload: UpdateProfilePayload, token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(180);
-      mockProfile = {
-        ...mockProfile,
-        fullName: payload.fullName,
-        username: payload.username,
-        phone: payload.phone,
-        email: payload.email,
-        notificationsEnabled: payload.notificationsEnabled,
-        darkModeEnabled: payload.darkModeEnabled,
-      };
-      return { success: true } satisfies UpdateProfileResponse;
-    }
-
-    return request<UpdateProfileResponse>(PROFILE_ENDPOINTS.updateProfile, {
+  // ===== Update Profile =====
+  updateProfile: async (
+    payload: UpdateProfilePayload,
+    token?: string
+  ): Promise<UpdateProfileResponse> => {
+    await requestApi(PROFILE_ENDPOINTS.updateProfile, {
       method: 'PUT',
       body: payload,
       token,
     });
+
+    return { success: true };
   },
 
-  getSettingsMenu: async (token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(120);
-      return mockSettingsMenu;
-    }
+  // ===== Settings Menu =====
+  getSettingsMenu: async (token?: string): Promise<SettingsMenuData> => {
+    const res: any = await requestApi(PROFILE_ENDPOINTS.settingsMenu, { token });
 
-    return request<SettingsMenuData>(PROFILE_ENDPOINTS.settingsMenu, { token });
+    const data = unwrap(res);
+
+    return {
+      unreadNotifications: data.unreadNotifications ?? 0,
+      items:
+        data.items ?? [
+          { key: 'notifications', label: 'Thông Báo' },
+          { key: 'password', label: 'Mật Khẩu' },
+          { key: 'deleteAccount', label: 'Xóa Tài Khoản' },
+        ],
+    };
   },
 
-  getNotificationSettings: async (token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(120);
-      return {
-        unreadNotifications: mockProfile.unreadNotifications,
-        items: mockNotificationSettings,
-      } satisfies NotificationSettingsData;
-    }
+  // ===== Notification Settings =====
+  getNotificationSettings: async (
+    token?: string
+  ): Promise<NotificationSettingsData> => {
+    const res: any = await requestApi(PROFILE_ENDPOINTS.notificationSettings, {
+      token,
+    });
 
-    return request<NotificationSettingsData>(PROFILE_ENDPOINTS.notificationSettings, { token });
+    const data = unwrap(res);
+
+    return {
+      unreadNotifications: data.unreadNotifications ?? 0,
+      items: data.items ?? [],
+    };
   },
 
-  updateNotificationSettings: async (payload: UpdateNotificationSettingsPayload, token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(120);
-      mockNotificationSettings = payload.items;
-      return { success: true } satisfies ActionResponse;
-    }
-
-    return request<ActionResponse>(PROFILE_ENDPOINTS.notificationSettings, {
+  updateNotificationSettings: async (
+    payload: UpdateNotificationSettingsPayload,
+    token?: string
+  ): Promise<ActionResponse> => {
+    await requestApi(PROFILE_ENDPOINTS.notificationSettings, {
       method: 'PUT',
       body: payload,
       token,
     });
+
+    return { success: true };
   },
 
-  changePassword: async (payload: PasswordChangePayload, token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(140);
-      if (payload.newPassword !== payload.confirmPassword) {
-        return { success: false, message: 'Mật khẩu xác nhận không khớp.' } satisfies ActionResponse;
-      }
-      return { success: true } satisfies ActionResponse;
-    }
-
-    return request<ActionResponse>(PROFILE_ENDPOINTS.changePassword, {
-      method: 'POST',
+  // ===== Change Password =====
+  changePassword: async (
+    payload: PasswordChangePayload,
+    token?: string
+  ): Promise<ActionResponse> => {
+    const res: any = await requestApi(PROFILE_ENDPOINTS.changePassword, {
+      method: 'PUT',
       body: payload,
       token,
     });
+
+    const data = unwrap(res);
+
+    return {
+      success: data?.success ?? true,
+      message: data?.message,
+    };
   },
 
-  deleteAccount: async (payload: DeleteAccountPayload, token?: string) => {
-    if (PROFILE_API_USE_MOCK) {
-      await sleep(140);
-      if (!payload.password.trim()) {
-        return { success: false, message: 'Vui lòng nhập mật khẩu.' } satisfies ActionResponse;
+  // ===== Delete Account =====
+  deleteAccount: async (
+    payload: DeleteAccountPayload,
+    token?: string
+  ): Promise<ActionResponse> => {
+    const res: any = await requestApi(
+      PROFILE_ENDPOINTS.deleteAccount(payload.userId),
+      {
+        method: 'DELETE',
+        body: payload,
+        token,
       }
-      return { success: true } satisfies ActionResponse;
-    }
+    );
 
-    return request<ActionResponse>(PROFILE_ENDPOINTS.deleteAccount, {
-      method: 'POST',
-      body: payload,
-      token,
-    });
+    const data = unwrap(res);
+
+    return {
+      success: data?.success ?? true,
+      message: data?.message,
+    };
   },
 };

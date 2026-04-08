@@ -49,6 +49,8 @@ type AuthButtonProps = {
 type SocialButtonsProps = {
   facebookIcon: ImageSourcePropType;
   googleIcon: ImageSourcePropType;
+  onPressFacebook?: () => void;
+  onPressGoogle?: () => void;
 };
 
 export const AuthLayout = ({ title, children, contentMode = 'top' }: AuthLayoutProps) => {
@@ -151,13 +153,13 @@ export const AuthButton = ({ title, onPress, disabled = false, variant = 'primar
 
 export const DividerText = ({ text }: { text: string }) => <Text style={styles.dividerText}>{text}</Text>;
 
-export const SocialButtons = ({ facebookIcon, googleIcon }: SocialButtonsProps) => {
+export const SocialButtons = ({ facebookIcon, googleIcon, onPressFacebook, onPressGoogle }: SocialButtonsProps) => {
   return (
     <View style={styles.socialRow}>
-      <Pressable style={styles.socialButton}>
+      <Pressable style={styles.socialButton} onPress={onPressFacebook}>
         <Image source={facebookIcon} style={styles.socialIcon} resizeMode="contain" />
       </Pressable>
-      <Pressable style={styles.socialButton}>
+      <Pressable style={styles.socialButton} onPress={onPressGoogle}>
         <Image source={googleIcon} style={styles.socialIcon} resizeMode="contain" />
       </Pressable>
     </View>

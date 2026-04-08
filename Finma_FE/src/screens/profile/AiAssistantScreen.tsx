@@ -25,18 +25,28 @@ export const AiAssistantScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [conversation, setConversation] = useState<AssistantConversation | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
-  const canSend = !sending && input.trim().length > 0;
+  const canSend = !sending && input.trim().length > 0 && sessionId !== null;
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const data = await assistantApi.getConversation();
-        setConversation(data);
+        const res: any = await assistantApi.createConversation();
+        // BE trả về raw number (không bọc ApiResponse)
+        const sId = typeof res === 'number' ? res : res?.result ?? res;
+        setSessionId(sId);
+        // Khởi tạo conversation rỗng (BE chỉ trả List<ChatSession>, không có messages)
+        setConversation({
+          unreadNotifications: 0,
+          title: 'Trợ Lý Tài Chính',
+          messages: [],
+        });
       } catch {
         setConversation(null);
+        setSessionId(null);
       } finally {
         setLoading(false);
       }
@@ -65,7 +75,10 @@ export const AiAssistantScreen = ({ navigation }: Props) => {
     setSending(true);
 
     try {
-      const response = await assistantApi.askAssistant({ message: userMessage.text });
+      const response = await assistantApi.askAssistant({ 
+        question: userMessage.text,
+        sessionId: sessionId as number
+      });
       setConversation((prev) => {
         if (!prev) return prev;
         return {

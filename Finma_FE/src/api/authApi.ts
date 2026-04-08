@@ -49,11 +49,11 @@ export type AuthResponse = {
 };
 
 const AUTH_ENDPOINTS = {
-  login: '/auth/login',
-  register: '/auth/register',
-  forgotPassword: '/auth/forgot-password',
-  verifyResetCode: '/auth/verify-reset-code',
-  resetPassword: '/auth/reset-password',
+  verifyResetCode: '/auth/verify-reset-code',//chưa test
+  login: '/auth/login',                      // Trỏ đến AuthenticationController
+  register: '/users',                        // Trỏ đến UserController (@PostMapping)
+  forgotPassword: '/users/forgot-password',  // Trỏ đến UserController
+  resetPassword: '/users/reset-password',    // Trỏ đến UserController
 };
 
 export const authApi = {
