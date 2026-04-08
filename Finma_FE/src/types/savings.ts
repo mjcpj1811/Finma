@@ -3,7 +3,17 @@ export type SavingItem = {
   name: string;
   targetAmount: number;
   currentAmount: number;
-  iconKey: 'savings' | 'flight' | 'directions-car' | 'home-work';
+  iconKey: string; // BE trả icon name, chấp nhận bất kỳ string
+  description?: string;
+  color?: string;
+  status?: string;
+  progressPercentage?: number;
+  remainingAmount?: number;
+  startDate?: string;
+  endDate?: string;
+  daysRemaining?: number;
+  dailySavingNeeded?: number;
+  monthlySavingNeeded?: number;
 };
 
 export type SavingTransactionItem = {
@@ -16,6 +26,11 @@ export type SavingTransactionItem = {
   note: string;
   amount: number;
   kind: 'deposit' | 'withdraw';
+  goalName?: string;
+  depositDate?: string;
+  goalCurrentAmount?: number;
+  goalTargetAmount?: number;
+  progressPercentage?: number;
 };
 
 export type SavingsDashboard = {
@@ -44,15 +59,22 @@ export type SavingTransactionsResponse = {
 export type UpsertSavingPayload = {
   name: string;
   targetAmount: number;
-  currentAmount: number;
-  iconKey: SavingItem['iconKey'];
+  currentAmount?: number; // Not in GoalRequest, but FE uses it
+  iconKey?: SavingItem['iconKey'];
+  description?: string;
+  startDate: string; // Required in GoalRequest
+  endDate: string; // Required in GoalRequest
+  color?: string;
 };
 
 export type CreateSavingTransactionPayload = {
+  goalId?: number; // Long in BE
+  amount: number;
+  accountId?: number;
+  depositDate?: string;
+  note?: string;
   dateIso: string;
   title: string;
-  note: string;
-  amount: number;
   kind: 'deposit' | 'withdraw';
 };
 

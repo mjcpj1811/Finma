@@ -25,20 +25,20 @@ import { typography } from '../../theme/typography';
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportCalendar'>;
 type TabMode = 'transactions' | 'categories';
 
-const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const weekdayHeaders = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const monthOptions = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+  'Tháng 1',
+  'Tháng 2',
+  'Tháng 3',
+  'Tháng 4',
+  'Tháng 5',
+  'Tháng 6',
+  'Tháng 7',
+  'Tháng 8',
+  'Tháng 9',
+  'Tháng 10',
+  'Tháng 11',
+  'Tháng 12',
 ];
 
 const formatAmount = (value: number) => value.toLocaleString('vi-VN');
@@ -166,7 +166,7 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
   }, [activeTab, month, selectedDay, year]);
 
   const monthText = useMemo(() => {
-    return new Date(year, month, 1).toLocaleString('en-US', { month: 'long' });
+    return new Date(year, month, 1).toLocaleString('vi-VN', { month: 'long' });
   }, [year, month]);
 
   const dayCells = useMemo(() => buildCalendarDays(year, month), [year, month]);
@@ -506,6 +506,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     fontFamily: typography.poppins.regular,
     fontSize: 12,
+    textTransform: 'capitalize',
   },
   txRight: {
     alignItems: 'flex-end',

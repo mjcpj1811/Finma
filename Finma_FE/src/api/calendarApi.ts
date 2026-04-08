@@ -20,7 +20,7 @@ const mockTransactions: CalendarTransactionsResponse = {
     {
       id: 'txn-cal-1',
       title: 'Thực phẩm',
-      timeLabel: '17:00 - April 24',
+      timeLabel: '17:00 - Tháng 4 24',
       subLabel: 'Đồ hộp',
       amount: -100000,
       kind: 'expense',
@@ -28,7 +28,7 @@ const mockTransactions: CalendarTransactionsResponse = {
     {
       id: 'txn-cal-2',
       title: 'Khác',
-      timeLabel: '17:00 - April 24',
+      timeLabel: '17:00 - Tháng 4 24',
       subLabel: 'Payments',
       amount: 120000,
       kind: 'income',

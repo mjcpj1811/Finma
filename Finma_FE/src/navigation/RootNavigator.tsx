@@ -83,6 +83,18 @@ export type RootStackParamList = {
       }
     | undefined;
   TransactionDetail: { transactionId: string };
+  Budget: undefined;
+  BudgetCreate: { budgetId?: string } | undefined;
+  BudgetDetail: {
+    budgetId: string;
+    categoryId: string;
+    categoryName: string;
+    categoryGroup?: 'financial' | 'expense' | 'income';
+    amountLimit: number;
+    spentAmount: number;
+    categoryIcon: string;
+    categoryColor?: string;
+  };
   Notifications: undefined;
   OAuthCallback: undefined;
 };
@@ -139,6 +151,9 @@ export const RootNavigator = () => {
         <Stack.Screen name="Transactions" component={TransactionScreen} />
         <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
         <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+        <Stack.Screen name="Budget" component={BudgetScreen} />
+        <Stack.Screen name="BudgetCreate" component={BudgetCreateScreen} />
+        <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
       </Stack.Navigator>

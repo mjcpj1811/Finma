@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -28,6 +29,28 @@ import { typography } from '../../theme/typography';
 type Props = NativeStackScreenProps<RootStackParamList, 'AddTransaction'>;
 
 const formatDate = (value: Date) => value.toLocaleDateString('vi-VN');
+const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const buildCalendarDays = (year: number, monthIndex: number) => {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const firstDayNative = new Date(year, monthIndex, 1).getDay();
+  const firstDayMondayIndex = (firstDayNative + 6) % 7;
+
+  const cells: Array<number | null> = [];
+  for (let i = 0; i < firstDayMondayIndex; i += 1) {
+    cells.push(null);
+  }
+
+  for (let d = 1; d <= daysInMonth; d += 1) {
+    cells.push(d);
+  }
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  return cells;
+};
 
 export const AddTransactionScreen = ({ navigation, route }: Props) => {
   const editingTransactionId = route.params?.transactionId;
@@ -40,6 +63,9 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
   const [saving, setSaving] = useState(false);
   const [amountError, setAmountError] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showWebCalendar, setShowWebCalendar] = useState(false);
+  const [webCalendarYear, setWebCalendarYear] = useState(new Date().getFullYear());
+  const [webCalendarMonth, setWebCalendarMonth] = useState(new Date().getMonth());
   const [showTypeList, setShowTypeList] = useState(false);
   const [showCategoryList, setShowCategoryList] = useState(false);
   const [showSourceList, setShowSourceList] = useState(false);
@@ -59,6 +85,13 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
     setShowCategoryList(false);
     setShowSourceList(false);
 
+    if (Platform.OS === 'web') {
+      setWebCalendarYear(date.getFullYear());
+      setWebCalendarMonth(date.getMonth());
+      setShowWebCalendar(true);
+      return;
+    }
+
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
         value: date,
@@ -75,6 +108,34 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
     setDraftDate(date);
     setShowDatePicker(true);
+  };
+
+  const webCalendarCells = useMemo(
+    () => buildCalendarDays(webCalendarYear, webCalendarMonth),
+    [webCalendarYear, webCalendarMonth],
+  );
+
+  const webCalendarTitle = useMemo(
+    () => `${new Date(webCalendarYear, webCalendarMonth, 1).toLocaleString('vi-VN', { month: 'long' })} ${webCalendarYear}`,
+    [webCalendarYear, webCalendarMonth],
+  );
+
+  const onPrevMonth = () => {
+    if (webCalendarMonth === 0) {
+      setWebCalendarMonth(11);
+      setWebCalendarYear((prev) => prev - 1);
+      return;
+    }
+    setWebCalendarMonth((prev) => prev - 1);
+  };
+
+  const onNextMonth = () => {
+    if (webCalendarMonth === 11) {
+      setWebCalendarMonth(0);
+      setWebCalendarYear((prev) => prev + 1);
+      return;
+    }
+    setWebCalendarMonth((prev) => prev + 1);
   };
 
   useEffect(() => {
@@ -227,10 +288,14 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentWrap}>
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Ngày</Text>
-              <Pressable style={styles.selectField} onPress={openDatePicker}>
-                <Text style={styles.fieldText}>{formatDate(date)}</Text>
-                <MaterialIcons name="calendar-month" size={18} color={colors.primary} />
-              </Pressable>
+              <View style={styles.selectField}>
+                <Pressable style={styles.dateValueHitArea} onPress={openDatePicker}>
+                  <Text style={styles.fieldText}>{formatDate(date)}</Text>
+                </Pressable>
+                <Pressable style={styles.calendarButton} onPress={openDatePicker} hitSlop={8}>
+                  <MaterialIcons name="calendar-month" size={16} color={colors.white} />
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.fieldWrap}>
@@ -385,6 +450,58 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
         </View>
       ) : null}
 
+      {showWebCalendar ? (
+        <Modal transparent animationType="fade" visible={showWebCalendar} onRequestClose={() => setShowWebCalendar(false)}>
+          <View style={styles.dateModalOverlay}>
+            <View style={styles.dateModalCard}>
+              <View style={styles.webCalendarHeader}>
+                <Pressable style={styles.monthNavButton} onPress={onPrevMonth}>
+                  <MaterialIcons name="chevron-left" size={20} color={colors.primary} />
+                </Pressable>
+                <Text style={styles.webCalendarTitle}>{webCalendarTitle}</Text>
+                <Pressable style={styles.monthNavButton} onPress={onNextMonth}>
+                  <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
+                </Pressable>
+              </View>
+
+              <View style={styles.webCalendarGrid}>
+                {weekdayHeaders.map((day) => (
+                  <Text key={day} style={styles.weekdayText}>{day}</Text>
+                ))}
+
+                {webCalendarCells.map((day, index) => {
+                  if (day == null) {
+                    return <View key={`empty-${index}`} style={styles.dayCell} />;
+                  }
+
+                  const isSelected =
+                    date.getFullYear() === webCalendarYear &&
+                    date.getMonth() === webCalendarMonth &&
+                    date.getDate() === day;
+
+                  return (
+                    <Pressable
+                      key={`day-${index}`}
+                      style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                      onPress={() => {
+                        setDate(new Date(webCalendarYear, webCalendarMonth, day));
+                        setShowWebCalendar(false);
+                      }}
+                    >
+                      <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>{day}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Pressable style={styles.webCalendarCloseButton} onPress={() => setShowWebCalendar(false)}>
+                <Text style={styles.webCalendarCloseText}>Đóng</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
+
       <ScreenBottomNavigation activeTab="layers" />
     </SafeAreaView>
   );
@@ -465,6 +582,19 @@ const styles = StyleSheet.create({
     fontFamily: typography.poppins.regular,
     fontSize: 15,
   },
+  dateValueHitArea: {
+    flex: 1,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  calendarButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dropdownList: {
     backgroundColor: '#DFF7E2',
     borderRadius: 12,
@@ -534,11 +664,10 @@ const styles = StyleSheet.create({
   },
   dateModalCard: {
     width: '100%',
+    maxWidth: 360,
     backgroundColor: '#F1FFF3',
     borderRadius: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
+    padding: 14,
   },
   dateModalActions: {
     flexDirection: 'row',
@@ -568,6 +697,70 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.semibold,
     fontSize: 13,
+  },
+  webCalendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  monthNavButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#DFF7E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webCalendarTitle: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 15,
+    textTransform: 'capitalize',
+  },
+  webCalendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  weekdayText: {
+    width: '14.285%',
+    textAlign: 'center',
+    color: colors.primary,
+    fontFamily: typography.poppins.medium,
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  dayCell: {
+    width: '14.285%',
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCellSelected: {
+    backgroundColor: colors.primary,
+  },
+  dayText: {
+    color: '#2D3748',
+    fontFamily: typography.poppins.regular,
+    fontSize: 13,
+  },
+  dayTextSelected: {
+    color: colors.white,
+    fontFamily: typography.poppins.semibold,
+  },
+  webCalendarCloseButton: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webCalendarCloseText: {
+    color: colors.white,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 14,
   },
 
 });

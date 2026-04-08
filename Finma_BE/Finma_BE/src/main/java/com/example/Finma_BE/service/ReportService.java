@@ -43,13 +43,14 @@ public class ReportService {
 
     public ReportChartResponse chart(User user, String view, String from, String to, Long categoryId, Long accountId) {
         String v = normalizeView(view);
-        var txns = queryUserTransactions(user, from, to, null, categoryId, accountId);
+        ChartWindow chartWindow = resolveChartWindow(v, from, to);
+        var txns = queryUserTransactions(user, chartWindow.from(), chartWindow.to(), null, categoryId, accountId);
 
         List<String> labels = switch (v) {
             case "day" -> List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
             case "week" -> List.of("1st Week", "2nd Week", "3rd Week", "4th Week");
-            case "month" -> monthLabels(from, to);
-            case "year" -> yearLabels(from, to);
+            case "month" -> chartWindow.labels();
+            case "year" -> chartWindow.labels();
             default -> throw new ApiException(HttpStatus.BAD_REQUEST, "view must be day|week|month|year");
         };
 
@@ -224,6 +225,53 @@ public class ReportService {
         return IntStream.rangeClosed(start, end).mapToObj(String::valueOf).toList();
     }
 
+    private ChartWindow resolveChartWindow(String view, String from, String to) {
+        LocalDateTime fromDt = parseDateBound(from, true);
+        LocalDate referenceDate = (fromDt != null ? fromDt.toLocalDate() : LocalDate.now());
+
+        if ("month".equals(view)) {
+            int refMonth = referenceDate.getMonthValue();
+
+            // Requested behavior:
+            // - month 1..5 => 1..5
+            // - month >= 6 => (month-5)..month
+            int startMonth = Math.max(1, refMonth - 5);
+            int endMonth = Math.max(5, refMonth);
+
+            LocalDate windowStart = LocalDate.of(referenceDate.getYear(), startMonth, 1);
+            LocalDate endMonthDate = LocalDate.of(referenceDate.getYear(), endMonth, 1);
+            LocalDate windowEnd = endMonthDate.withDayOfMonth(endMonthDate.lengthOfMonth());
+
+            List<String> labels = IntStream.rangeClosed(startMonth, endMonth)
+                    .mapToObj(i -> monthLabel(Month.of(i)))
+                    .toList();
+
+            return new ChartWindow(windowStart.toString(), windowEnd.toString(), labels);
+        }
+
+        if ("year".equals(view)) {
+            int refYear = referenceDate.getYear();
+            int startYear = refYear - 2;
+            int endYear = refYear + 2;
+
+            List<String> labels = IntStream.rangeClosed(startYear, endYear)
+                    .mapToObj(String::valueOf)
+                    .toList();
+
+            return new ChartWindow(
+                    LocalDate.of(startYear, 1, 1).toString(),
+                    LocalDate.of(endYear, 12, 31).toString(),
+                    labels
+            );
+        }
+
+        // day/week keep current filtered window from ReportController
+        List<String> labels = "week".equals(view)
+                ? List.of("1st Week", "2nd Week", "3rd Week", "4th Week")
+                : List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
+        return new ChartWindow(from, to, labels);
+    }
+
     public BigDecimal sumSavingByGoal(Long goalId) {
         return transactionRepository.sumSavingByGoalId(goalId);
     }
@@ -278,6 +326,8 @@ public class ReportService {
         }
         return result;
     }
+
+    private record ChartWindow(String from, String to, List<String> labels) {}
 
     public record CalendarSlice(String id, String label, int percent, String color) {}
 }

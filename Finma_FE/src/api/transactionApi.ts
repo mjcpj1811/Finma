@@ -140,12 +140,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const monthLabelFromDate = (dateIso: string) => {
   const date = new Date(dateIso);
-  return date.toLocaleString('en-US', { month: 'long' });
+  return date.toLocaleString('vi-VN', { month: 'long' });
 };
 
 const timeLabelFromDate = (dateIso: string) => {
   const date = new Date(dateIso);
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = date.toLocaleString('vi-VN', { month: 'long' });
   const day = String(date.getDate()).padStart(2, '0');
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} - ${month} ${day}`;
 };
@@ -292,9 +292,9 @@ const mapBackendTransactionItem = (
   return {
     id: String(item.id),
     categoryId: String(item.categoryId),
-    monthLabel: date.toLocaleString('en-US', { month: 'long' }),
+    monthLabel: date.toLocaleString('vi-VN', { month: 'long' }),
     title: parsed.title || item.category || 'Giao dịch',
-    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
     note: parsed.detail,
     amount: toFrontendType(item.type) === 'expense' ? -Math.abs(Number(item.amount) || 0) : Math.abs(Number(item.amount) || 0),
     kind: toFrontendType(item.type),
@@ -317,22 +317,21 @@ export const transactionApi = {
       } satisfies TransactionDashboard;
     }
 
-    const typeQuery = filter === 'all' ? '' : `?type=${toBackendType(filter)}`;
     const [transactionResponse, accountResponse, categoryIconMapById] = await Promise.all([
-      request<ApiResponse<BackendTransactionItem[]>>(`${TRANSACTION_ENDPOINTS.list}${typeQuery}`, { token }),
+      request<ApiResponse<BackendTransactionItem[]>>(TRANSACTION_ENDPOINTS.list, { token }),
       request<ApiResponse<BackendAccount[]>>(TRANSACTION_ENDPOINTS.accounts, { token }),
       buildCategoryIconMap(token),
     ]);
 
-    const items = (transactionResponse.result ?? []).map((item) =>
+    const allItems = (transactionResponse.result ?? []).map((item) =>
       mapBackendTransactionItem(item, categoryIconMapById),
     );
 
-    const totalIncome = items
+    const totalIncome = allItems
       .filter((item) => item.kind === 'income')
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
-    const totalExpense = items
+    const totalExpense = allItems
       .filter((item) => item.kind === 'expense')
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
@@ -348,7 +347,7 @@ export const transactionApi = {
         totalExpense,
         unreadNotifications: 0,
       },
-      items,
+      items: filterItems(allItems, filter),
     } satisfies TransactionDashboard;
   },
 
@@ -501,7 +500,7 @@ export const transactionApi = {
       sourceLabel: result.accountName,
       detail: parsedNote.detail,
       note: result.note ?? '',
-      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
       iconKey: categoryIconMapById[String(result.categoryId)] ?? 'other',
     } satisfies TransactionDetail;
   },

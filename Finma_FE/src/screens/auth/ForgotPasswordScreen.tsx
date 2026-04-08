@@ -11,11 +11,10 @@ import {
   FooterInlineLink,
   SocialButtons,
 } from './AuthShared';
+import FacebookIcon from '../../../assets/icons/Facebook.svg';
+import GoogleIcon from '../../../assets/icons/Google.svg';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ForgotPassword'>;
-
-const ICON_FACEBOOK = require('../../../assets/icons/Facebook.png');
-const ICON_GOOGLE = require('../../../assets/icons/Google.png');
 
 export const ForgotPasswordScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
@@ -63,7 +62,7 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
       <View style={styles.bottomWrap}>
         <AuthButton title="Đăng Ký" variant="secondary" onPress={() => navigation.navigate('Register')} />
         <DividerText text="hoặc đăng nhập với" />
-        <SocialButtons facebookIcon={ICON_FACEBOOK} googleIcon={ICON_GOOGLE} />
+        <SocialButtons facebookIcon={FacebookIcon} googleIcon={GoogleIcon} />
         <FooterInlineLink prefix="Đã có tài khoản?" linkText="Đăng nhập" onPress={() => navigation.replace('Login')} />
       </View>
     </AuthLayout>
