@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import EyeOnIcon from '../../../assets/icons/Property 1=Eye-On.svg';
+import EyeOffIcon from '../../../assets/icons/Property 1=Eye-Off.svg';
 import { authApi } from '../../api/authApi';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { AuthButton, AuthLayout, PasswordInput } from './AuthShared';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResetPassword'>;
-
-const ICON_EYE = require('../../../assets/icons/Eye.png');
-const ICON_EYE_OFF = require('../../../assets/icons/Eye-Pass.png');
 
 export const ResetPasswordScreen = ({ navigation, route }: Props) => {
   const [newPassword, setNewPassword] = useState('');
@@ -57,16 +56,16 @@ export const ResetPasswordScreen = ({ navigation, route }: Props) => {
         value={newPassword}
         onChangeText={setNewPassword}
         placeholder="••••••••"
-        eyeIcon={ICON_EYE}
-        eyeOffIcon={ICON_EYE_OFF}
+        eyeIcon={EyeOnIcon}
+        eyeOffIcon={EyeOffIcon}
       />
       <PasswordInput
         label="Xác Nhận"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         placeholder="••••••••"
-        eyeIcon={ICON_EYE}
-        eyeOffIcon={ICON_EYE_OFF}
+        eyeIcon={EyeOnIcon}
+        eyeOffIcon={EyeOffIcon}
       />
 
       <View style={styles.submitWrap}>

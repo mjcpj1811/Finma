@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -22,8 +21,6 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transactions'>;
-
-const ICON_BACK = require('../../../assets/icons/back.png');
 
 const filterOptions: Array<{ key: TransactionFilter; label: string }> = [
   { key: 'all', label: 'Tất cả' },

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -13,6 +12,10 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
+import CategoryIcon from '../../../assets/icons/Category.svg';
+import HomeIcon from '../../../assets/icons/Home.svg';
+import TransactionsIcon from '../../../assets/icons/Transactions.svg';
+import AccountIcon from '../../../assets/icons/account.svg';
 import { homeApi } from '../../api/homeApi';
 import { type HomeDashboard, type PeriodFilter } from '../../types/home';
 import { RootStackParamList } from '../../navigation/RootNavigator';
@@ -20,11 +23,6 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-const ICON_GOAL = require('../../../assets/icons/category.png');
-const ICON_INCOME = require('../../../assets/icons/home.png');
-const ICON_FOOD = require('../../../assets/icons/transaction.png');
-const ICON_MANAGE = require('../../../assets/icons/account.png');
 
 const periodOptions: Array<{ key: PeriodFilter; label: string }> = [
   { key: 'day', label: 'Ngày' },
@@ -95,14 +93,14 @@ export const HomeScreen = ({ navigation }: Props) => {
           <View style={styles.snapshotCard}>
             <View style={styles.goalBlock}>
               <View style={styles.goalIconWrap}>
-                <Image source={ICON_GOAL} style={styles.goalIcon} resizeMode="contain" />
+                <CategoryIcon width={28} height={28} color={colors.white} />
               </View>
               <Text style={styles.goalText}>{activeDashboard.weeklySnapshot.savingGoalLabel}</Text>
             </View>
 
             <View style={styles.snapshotContent}>
               <View style={styles.snapshotItem}>
-                <Image source={ICON_INCOME} style={styles.snapshotIcon} resizeMode="contain" />
+                <HomeIcon width={20} height={20} color={colors.white} />
                 <View>
                   <Text style={styles.snapshotLabel}>Tổng thu tuần trước</Text>
                   <Text style={styles.snapshotValue}>{formatCurrency(activeDashboard.weeklySnapshot.lastWeekIncome)}</Text>
@@ -112,7 +110,7 @@ export const HomeScreen = ({ navigation }: Props) => {
               <View style={styles.snapshotDivider} />
 
               <View style={styles.snapshotItem}>
-                <Image source={ICON_FOOD} style={styles.snapshotIcon} resizeMode="contain" />
+                <TransactionsIcon width={20} height={20} color={colors.white} />
                 <View>
                   <Text style={styles.snapshotLabel}>Ăn uống tuần trước</Text>
                   <Text style={[styles.snapshotValue, styles.expenseText]}>-{formatCurrency(activeDashboard.weeklySnapshot.lastWeekFoodExpense)}</Text>
@@ -122,7 +120,7 @@ export const HomeScreen = ({ navigation }: Props) => {
           </View>
 
           <Pressable style={styles.manageButton} onPress={() => navigation.navigate('ManageSources')}>
-            <Image source={ICON_MANAGE} style={styles.manageIcon} resizeMode="contain" />
+            <AccountIcon width={22} height={22} />
             <Text style={styles.manageText}>Quản lý nguồn tiền</Text>
           </Pressable>
 
@@ -145,7 +143,7 @@ export const HomeScreen = ({ navigation }: Props) => {
             {activeDashboard.transactions.map((item) => (
               <View key={item.id} style={styles.transactionItem}>
                 <View style={styles.transactionIconWrap}>
-                  <Image source={ICON_INCOME} style={styles.transactionIcon} resizeMode="contain" />
+                  <HomeIcon width={24} height={24} color={colors.white} />
                 </View>
 
                 <View style={styles.transactionInfo}>
@@ -247,7 +245,6 @@ const styles = StyleSheet.create({
   goalIcon: {
     width: 28,
     height: 28,
-    tintColor: colors.white,
   },
   goalText: {
     textAlign: 'center',
@@ -269,7 +266,6 @@ const styles = StyleSheet.create({
   snapshotIcon: {
     width: 20,
     height: 20,
-    tintColor: colors.white,
   },
   snapshotLabel: {
     color: colors.text,
@@ -355,7 +351,6 @@ const styles = StyleSheet.create({
   transactionIcon: {
     width: 24,
     height: 24,
-    tintColor: colors.white,
   },
   transactionInfo: {
     flex: 1,
@@ -384,5 +379,6 @@ const styles = StyleSheet.create({
   },
   expenseText: {
     color: colors.blueDark,
-  },
+  },
+
 });

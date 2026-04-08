@@ -1,19 +1,18 @@
-import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import SuccessIcon from '../../../assets/icons/Check Progress.svg';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResetPasswordSuccess'>;
 
-const SUCCESS_ICON = require('../../../assets/icons/Check Progress.png');
-
 export const ResetPasswordSuccessScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.content}>
         <View style={styles.iconWrap}>
-          <Image source={SUCCESS_ICON} style={styles.successIcon} resizeMode="contain" />
+          <SuccessIcon width={48} height={48} color={colors.white} />
         </View>
         <Text style={styles.title}>Đổi Mật Khẩu Thành Công</Text>
 
@@ -49,7 +48,6 @@ const styles = StyleSheet.create({
   successIcon: {
     width: 48,
     height: 48,
-    tintColor: colors.white,
   },
   title: {
     color: colors.white,

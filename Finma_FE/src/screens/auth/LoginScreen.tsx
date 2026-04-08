@@ -13,15 +13,14 @@ import {
   PasswordInput,
   SocialButtons,
 } from './AuthShared';
+import EyeOnIcon from '../../../assets/icons/Property 1=Eye-On.svg';
+import EyeOffIcon from '../../../assets/icons/Property 1=Eye-Off.svg';
+import FacebookIcon from '../../../assets/icons/Facebook.svg';
+import GoogleIcon from '../../../assets/icons/Google.svg';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
-
-const ICON_EYE = require('../../../assets/icons/Eye.png');
-const ICON_EYE_OFF = require('../../../assets/icons/Eye-Pass.png');
-const ICON_FACEBOOK = require('../../../assets/icons/Facebook.png');
-const ICON_GOOGLE = require('../../../assets/icons/Google.png');
 
 const ENABLE_MOCK_LOGIN = false;
 
@@ -93,8 +92,8 @@ export const LoginScreen = ({ navigation }: Props) => {
           value={password}
           onChangeText={setPassword}
           placeholder="••••••••"
-          eyeIcon={ICON_EYE}
-          eyeOffIcon={ICON_EYE_OFF}
+          eyeIcon={EyeOnIcon}
+          eyeOffIcon={EyeOffIcon}
         />
 
         <View style={styles.actionGroup}>
@@ -110,7 +109,7 @@ export const LoginScreen = ({ navigation }: Props) => {
 
       <View style={styles.bottomSection}>
         <DividerText text="hoặc đăng nhập với" />
-        <SocialButtons facebookIcon={ICON_FACEBOOK} googleIcon={ICON_GOOGLE} />
+        <SocialButtons facebookIcon={FacebookIcon} googleIcon={GoogleIcon} />
         <FooterInlineLink prefix="Chưa có tài khoản?" linkText="Đăng ký" onPress={() => navigation.navigate('Register')} />
       </View>
     </AuthLayout>

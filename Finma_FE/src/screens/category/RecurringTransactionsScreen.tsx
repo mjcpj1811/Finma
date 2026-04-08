@@ -130,7 +130,7 @@ const ToggleSwitch = ({
       {loading ? (
         <ActivityIndicator size="small" color={colors.white} />
       ) : (
-        <View style={[styles.toggleThumb, value && styles.toggleThumbActive]} />
+        <View style={[styles.toggleThumb, !value && styles.toggleThumbInactive, value && styles.toggleThumbActive]} />
       )}
     </Pressable>
   );
@@ -939,12 +939,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#2D2D2D',
+    backgroundColor: '#79DCCB',
     paddingHorizontal: 3,
     justifyContent: 'center',
   },
   toggleTrackActive: {
-    backgroundColor: '#47E0C7',
+    backgroundColor: '#16C7A3',
   },
   toggleTrackDisabled: {
     opacity: 0.6,
@@ -953,7 +953,10 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
+  },
+  toggleThumbInactive: {
+    backgroundColor: '#E9EEEC',
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
