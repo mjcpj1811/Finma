@@ -48,8 +48,8 @@ type AuthButtonProps = {
 };
 
 type SocialButtonsProps = {
-  facebookIcon: ImageSourcePropType;
-  googleIcon: ImageSourcePropType;
+  facebookIcon: SvgIconComponent;
+  googleIcon: SvgIconComponent;
   onPressFacebook?: () => void;
   onPressGoogle?: () => void;
 };
@@ -151,13 +151,16 @@ export const AuthButton = ({ title, onPress, disabled = false, variant = 'primar
 export const DividerText = ({ text }: { text: string }) => <Text style={styles.dividerText}>{text}</Text>;
 
 export const SocialButtons = ({ facebookIcon, googleIcon, onPressFacebook, onPressGoogle }: SocialButtonsProps) => {
+  const FacebookIcon = facebookIcon;
+  const GoogleIcon = googleIcon;
+
   return (
     <View style={styles.socialRow}>
       <Pressable style={styles.socialButton} onPress={onPressFacebook}>
-        <Image source={facebookIcon} style={styles.socialIcon} resizeMode="contain" />
+        <FacebookIcon width={22} height={22} />
       </Pressable>
       <Pressable style={styles.socialButton} onPress={onPressGoogle}>
-        <Image source={googleIcon} style={styles.socialIcon} resizeMode="contain" />
+        <GoogleIcon width={22} height={22} />
       </Pressable>
     </View>
   );

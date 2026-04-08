@@ -31,6 +31,9 @@ import { ReportCalendarScreen } from '../screens/report/ReportCalendarScreen';
 import { TransactionScreen } from '../screens/transaction/TransactionScreen';
 import { AddTransactionScreen } from '../screens/transaction/AddTransactionScreen';
 import { OAuthCallbackScreen } from '../screens/auth/OAuthCallbackScreen';
+import { BudgetScreen } from '../screens/budget/BudgetScreen';
+import { BudgetCreateScreen } from '../screens/budget/BudgetCreateScreen';
+import { BudgetDetailScreen } from '../screens/budget/BudgetDetailScreen';
 
 const TransactionDetailScreen =
   require('../screens/transaction/TransactionDetailScreen').TransactionDetailScreen;
