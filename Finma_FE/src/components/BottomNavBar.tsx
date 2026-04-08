@@ -1,4 +1,10 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import type { SvgProps } from 'react-native-svg';
+import HomeIcon from '../../assets/icons/Home.svg';
+import ReportIcon from '../../assets/icons/report.svg';
+import TransactionsIcon from '../../assets/icons/Transactions.svg';
+import CategoryIcon from '../../assets/icons/Category.svg';
+import ProfileIcon from '../../assets/icons/Profile.svg';
 import { colors } from '../theme/colors';
 
 export type TabKey = 'home' | 'report' | 'exchange' | 'layers' | 'profile';
@@ -8,12 +14,12 @@ type Props = {
   onPress?: (tab: TabKey) => void;
 };
 
-const ICONS: Record<TabKey, number> = {
-  home: require('../../assets/icons/home.png'),
-  report: require('../../assets/icons/report.png'),
-  exchange: require('../../assets/icons/transaction.png'),
-  layers: require('../../assets/icons/category.png'),
-  profile: require('../../assets/icons/profile.png'),
+const ICONS: Record<TabKey, React.ComponentType<SvgProps>> = {
+  home: HomeIcon,
+  report: ReportIcon,
+  exchange: TransactionsIcon,
+  layers: CategoryIcon,
+  profile: ProfileIcon,
 };
 
 const TABS: TabKey[] = ['home', 'report', 'exchange', 'layers', 'profile'];
@@ -23,9 +29,10 @@ export const BottomNavBar = ({ activeTab, onPress }: Props) => {
     <View style={styles.wrapper}>
       {TABS.map((tab) => {
         const isActive = tab === activeTab;
+        const Icon = ICONS[tab];
         return (
           <Pressable key={tab} onPress={() => onPress?.(tab)} style={[styles.iconButton, isActive && styles.activeButton]}>
-            <Image source={ICONS[tab]} style={[styles.icon, isActive && styles.activeIcon]} resizeMode="contain" />
+            <Icon width={24} height={24} color={isActive ? colors.white : colors.text} />
           </Pressable>
         );
       })}
@@ -39,7 +46,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 4,
-    paddingVertical: 2,
+    paddingVertical: 0,
     backgroundColor: 'transparent',
   },
   iconButton: {
@@ -55,9 +62,5 @@ const styles = StyleSheet.create({
   icon: {
     width: 24,
     height: 24,
-    tintColor: colors.text,
-  },
-  activeIcon: {
-    tintColor: colors.white,
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -38,21 +39,23 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<MoneySourceTransactionsResponse | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const response = await sourceApi.getSourceTransactions(sourceId);
-        setData(response);
-      } catch {
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        setLoading(true);
+        try {
+          const response = await sourceApi.getSourceTransactions(sourceId);
+          setData(response);
+        } catch {
+          setData(null);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    void load();
-  }, [sourceId]);
+      void load();
+    }, [sourceId]),
+  );
 
   const groupedItems = useMemo(() => {
     const groups: Record<string, MoneySourceTransactionsResponse['items']> = {};
@@ -300,7 +303,8 @@ const styles = StyleSheet.create({
     color: '#0B6E5F',
     fontFamily: typography.poppins.semibold,
     fontSize: 15,
-  },
+  },
+
   loaderWrap: {
     flex: 1,
     alignItems: 'center',

@@ -15,6 +15,11 @@ import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { homeApi } from '../../api/homeApi';
 import * as budgetApi from '../../api/budgetApi';
+import CategoryIcon from '../../../assets/icons/Category.svg';
+import HomeIcon from '../../../assets/icons/Home.svg';
+import TransactionsIcon from '../../../assets/icons/Transactions.svg';
+import AccountIcon from '../../../assets/icons/account.svg';
+import { homeApi } from '../../api/homeApi';
 import { type HomeDashboard, type PeriodFilter } from '../../types/home';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
@@ -35,6 +40,72 @@ const periodOptions: Array<{ key: PeriodFilter; label: string }> = [
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
+const periodHeaderLabel: Record<PeriodFilter, string> = {
+  day: 'hôm qua',
+  week: 'tuần trước',
+  month: 'tháng trước',
+};
+
+const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
+
+const HomeSkeleton = () => {
+  return (
+    <View style={styles.skeletonWrap}>
+      <View style={styles.skeletonLineLarge} />
+      <View style={styles.skeletonCard}>
+        <View style={styles.skeletonAvatar} />
+        <View style={styles.skeletonStack}>
+          <View style={styles.skeletonLineMedium} />
+          <View style={styles.skeletonLineSmall} />
+        </View>
+      </View>
+
+      <View style={styles.skeletonCard}>
+        <View style={styles.skeletonItem}>
+          <View style={styles.skeletonAvatarSmall} />
+          <View style={styles.skeletonStack}>
+            <View style={styles.skeletonLineMedium} />
+            <View style={styles.skeletonLineSmall} />
+          </View>
+        </View>
+        <View style={styles.skeletonDivider} />
+        <View style={styles.skeletonItem}>
+          <View style={styles.skeletonAvatarSmall} />
+          <View style={styles.skeletonStack}>
+            <View style={styles.skeletonLineMedium} />
+            <View style={styles.skeletonLineSmall} />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.skeletonList}>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <View key={index} style={styles.skeletonTransactionRow}>
+            <View style={styles.skeletonAvatarSmall} />
+            <View style={[styles.skeletonStack, styles.skeletonGrow]}>
+              <View style={styles.skeletonLineMedium} />
+              <View style={styles.skeletonLineSmall} />
+            </View>
+            <View style={styles.skeletonAmount} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const EmptyTransactions = () => {
+  return (
+    <View style={styles.emptyWrap}>
+      <View style={styles.emptyIconWrap}>
+        <TransactionsIcon width={24} height={24} color={colors.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>Chưa có giao dịch</Text>
+      <Text style={styles.emptyText}>Kỳ này chưa có dữ liệu để hiển thị. Hãy thêm giao dịch mới để bắt đầu.</Text>
+    </View>
+  );
+};
+
 export const HomeScreen = ({ navigation }: Props) => {
   const [period, setPeriod] = useState<PeriodFilter>('month');
   const [dashboard, setDashboard] = useState<HomeDashboard | null>(null);
@@ -53,6 +124,8 @@ export const HomeScreen = ({ navigation }: Props) => {
         setDashboard(response);
         setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
         setRealSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
+        const response = await homeApi.getDashboard(period);
+        setDashboard(response);
       } catch {
         setDashboard(null);
       } finally {
@@ -71,6 +144,13 @@ export const HomeScreen = ({ navigation }: Props) => {
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải dữ liệu trang chủ...</Text>
+        <View style={styles.topSection}>
+          <AppScreenHeader
+            title="Trang Chủ"
+            onPressNotification={() => navigation.navigate('Notifications')}
+            showNotificationBadge={false}
+          />
+          <HomeSkeleton />
         </View>
         <ScreenBottomNavigation activeTab="home" />
       </SafeAreaView>
@@ -96,6 +176,9 @@ export const HomeScreen = ({ navigation }: Props) => {
           budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
           budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : activeDashboard.overview.budgetLimit}
           onPressBudget={() => navigation.navigate('Budget')}
+          totalExpense={activeDashboard.overview.totalExpense}
+          budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
+          budgetLimit={activeDashboard.overview.budgetLimit}
         />
       </View>
 
@@ -115,6 +198,19 @@ export const HomeScreen = ({ navigation }: Props) => {
                 <View>
                   <Text style={styles.snapshotLabel}>Tổng thu tuần trước</Text>
                   <Text style={styles.snapshotValue}>{formatCurrency(activeDashboard.weeklySnapshot.lastWeekIncome)}</Text>
+            <View style={styles.goalBlock}>
+              <View style={styles.goalIconWrap}>
+                <CategoryIcon width={28} height={28} color={colors.white} />
+              </View>
+              <Text style={styles.goalText}>{activeDashboard.goalSummaryText}</Text>
+            </View>
+
+            <View style={styles.snapshotContent}>
+              <View style={styles.snapshotItem}>
+                <HomeIcon width={20} height={20} color={colors.white} />
+                <View>
+                  <Text style={styles.snapshotLabel}>Tổng thu {periodHeaderLabel[period]}</Text>
+                  <Text style={styles.snapshotValue}>{formatCurrency(activeDashboard.headerSummary.totalIncome)}</Text>
                 </View>
               </View>
 
@@ -125,6 +221,10 @@ export const HomeScreen = ({ navigation }: Props) => {
                 <View>
                   <Text style={styles.snapshotLabel}>Ăn uống tuần trước</Text>
                   <Text style={[styles.snapshotValue, styles.expenseText]}>-{formatCurrency(activeDashboard.weeklySnapshot.lastWeekFoodExpense)}</Text>
+                <TransactionsIcon width={20} height={20} color={colors.white} />
+                <View>
+                  <Text style={styles.snapshotLabel}>Tổng chi {periodHeaderLabel[period]}</Text>
+                  <Text style={[styles.snapshotValue, styles.expenseText]}>-{formatCurrency(activeDashboard.headerSummary.totalExpense)}</Text>
                 </View>
               </View>
             </View>
@@ -132,6 +232,7 @@ export const HomeScreen = ({ navigation }: Props) => {
 
           <Pressable style={styles.manageButton} onPress={() => navigation.navigate('ManageSources')}>
             <Image source={ICON_MANAGE} style={styles.manageIcon} resizeMode="contain" />
+            <AccountIcon width={22} height={22} />
             <Text style={styles.manageText}>Quản lý nguồn tiền</Text>
           </Pressable>
 
@@ -170,6 +271,29 @@ export const HomeScreen = ({ navigation }: Props) => {
                 </Text>
               </View>
             ))}
+            {activeDashboard.transactions.length === 0 ? (
+              <EmptyTransactions />
+            ) : (
+              activeDashboard.transactions.map((item) => (
+                <View key={item.id} style={styles.transactionItem}>
+                  <View style={styles.transactionIconWrap}>
+                    <HomeIcon width={24} height={24} color={colors.white} />
+                  </View>
+
+                  <View style={styles.transactionInfo}>
+                    <Text style={styles.transactionTitle}>{item.title}</Text>
+                    <Text style={styles.transactionTime}>{item.timeLabel}</Text>
+                  </View>
+
+                  <Text style={styles.transactionCategory}>{item.categoryLabel || '-'}</Text>
+
+                  <Text style={[styles.transactionAmount, item.kind === 'expense' && styles.expenseText]}>
+                    {item.kind === 'expense' ? '-' : ''}
+                    {formatCurrency(Math.abs(item.amount))}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
       </View>
@@ -195,6 +319,107 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 14,
+  },
+  skeletonWrap: {
+    gap: 14,
+  },
+  skeletonLineLarge: {
+    height: 92,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  skeletonCard: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 24,
+    padding: 16,
+    gap: 14,
+  },
+  skeletonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  skeletonAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.32)',
+  },
+  skeletonAvatarSmall: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.32)',
+  },
+  skeletonStack: {
+    flex: 1,
+    gap: 8,
+  },
+  skeletonGrow: {
+    flexGrow: 1,
+  },
+  skeletonLineMedium: {
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.32)',
+    width: '70%',
+  },
+  skeletonLineSmall: {
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    width: '48%',
+  },
+  skeletonDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  skeletonList: {
+    gap: 12,
+    paddingTop: 4,
+  },
+  skeletonTransactionRow: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 20,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  skeletonAmount: {
+    width: 72,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 22,
+    gap: 10,
+    backgroundColor: colors.bgCard,
+    borderRadius: 22,
+  },
+  emptyIconWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#DFF7E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 15,
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontFamily: typography.poppins.regular,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   loaderText: {
     color: colors.white,

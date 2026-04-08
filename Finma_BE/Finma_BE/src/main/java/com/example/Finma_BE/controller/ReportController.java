@@ -8,6 +8,7 @@ import com.example.Finma_BE.entity.Transaction;
 import com.example.Finma_BE.enums.GoalStatus;
 import com.example.Finma_BE.enums.TransactionType;
 import com.example.Finma_BE.repository.AccountRepository;
+import com.example.Finma_BE.repository.BudgetRepository;
 import com.example.Finma_BE.repository.GoalRepository;
 import com.example.Finma_BE.repository.NotificationRepository;
 import com.example.Finma_BE.service.AuthContext;
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +40,7 @@ public class ReportController {
     private final NotificationRepository notificationRepository;
     private final GoalRepository goalRepository;
     private final AccountRepository accountRepository;
+    private final BudgetRepository budgetRepository;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DAY_FMT = DateTimeFormatter.ofPattern("MMMM dd", Locale.ENGLISH);
 
@@ -88,13 +93,30 @@ public class ReportController {
     @GetMapping("/dashboard")
     public ReportDashboardVm dashboard(@RequestParam(required = false, defaultValue = "day") String period) {
         var user = authContext.requireCurrentUser();
-        var summary = reportService.summary(user, null, null, null, null);
-        var chart = reportService.chart(user, period, null, null, null, null);
+        var range = resolveRange(period);
+        var summary = reportService.summary(user, range.from(), range.to(), null, null);
+        var chart = reportService.chart(user, period, range.from(), range.to(), null, null);
         var unread = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
 
         BigDecimal totalBalance = accountRepository.findByUser_Id(user.getId()).stream()
                 .map(a -> a.getBalance() == null ? BigDecimal.ZERO : a.getBalance())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate budget percentage from active budgets
+        LocalDate today = LocalDate.now();
+        var activeBudgets = budgetRepository.findActiveBudgetsByUser(user.getId(), today);
+        BigDecimal totalBudgetLimit = activeBudgets.stream()
+                .map(b -> b.getAmountLimit() == null ? BigDecimal.ZERO : b.getAmountLimit())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        int budgetUsedPercent = 0;
+        if (totalBudgetLimit.compareTo(BigDecimal.ZERO) > 0) {
+            budgetUsedPercent = summary.getTotalExpense()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalBudgetLimit, 0, java.math.RoundingMode.HALF_UP)
+                    .intValue();
+            budgetUsedPercent = Math.min(budgetUsedPercent, 100);
+        }
 
         var chartPoints = buildChartPoints(chart);
         var goals = goalRepository.findAllByUserIdAndStatus(user.getId(), GoalStatus.IN_PROGRESS).stream()
@@ -110,7 +132,7 @@ public class ReportController {
                 }).toList();
 
         return new ReportDashboardVm(
-                new OverviewVm(totalBalance, summary.getTotalExpense(), 0, BigDecimal.ZERO),
+                new OverviewVm(totalBalance, summary.getTotalExpense(), budgetUsedPercent, totalBudgetLimit),
                 goals.isEmpty() ? "0% Muc tieu, 0 muc tieu sap den han" : goals.size() + " muc tieu dang theo doi",
                 summary.getTotalIncome(),
                 summary.getTotalExpense(),
@@ -119,6 +141,39 @@ public class ReportController {
                 unread
         );
     }
+
+        private DateRange resolveRange(String period) {
+                LocalDate today = LocalDate.now();
+                String view = period == null ? "day" : period.trim().toLowerCase(Locale.ROOT);
+
+                return switch (view) {
+                        case "day" -> {
+                                LocalDate start = today.with(DayOfWeek.MONDAY);
+                                LocalDate end = start.plusDays(6);
+                                yield new DateRange(start.toString(), end.toString());
+                        }
+                        case "week" -> {
+                                LocalDate start = today.with(DayOfWeek.MONDAY);
+                                LocalDate end = start.plusDays(6);
+                                yield new DateRange(start.toString(), end.toString());
+                        }
+                        case "month" -> {
+                                LocalDate start = today.withDayOfMonth(1);
+                                LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
+                                yield new DateRange(start.toString(), end.toString());
+                        }
+                        case "year" -> {
+                                LocalDate start = today.withDayOfYear(1);
+                                LocalDate end = today.withDayOfYear(today.lengthOfYear());
+                                yield new DateRange(start.toString(), end.toString());
+                        }
+                        default -> {
+                                LocalDate start = today.with(DayOfWeek.MONDAY);
+                                LocalDate end = start.plusDays(6);
+                                yield new DateRange(start.toString(), end.toString());
+                        }
+                };
+        }
 
     @GetMapping("/search/options")
     public ApiResponse<SearchOptionsVm> searchOptions() {
@@ -179,6 +234,43 @@ public class ReportController {
                 .map(s -> new CategorySliceVm(s.id(), s.label(), s.percent(), s.color()))
                 .toList();
         return new CalendarCategoriesVm(unread, slices);
+        }
+
+    @GetMapping("/weekly-snapshot")
+    public WeeklySnapshotVm weeklySnapshot() {
+        var user = authContext.requireCurrentUser();
+        LocalDate today = LocalDate.now();
+        LocalDate currentWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
+        LocalDate previousWeekStart = currentWeekStart.minusWeeks(1);
+        LocalDate previousWeekEnd = currentWeekStart.minusDays(1);
+        String fromStr = previousWeekStart.toString();
+        String toStr = previousWeekEnd.toString();
+
+        // Previous full calendar week (Sunday -> Saturday)
+        var transactions = transactionService.list(user, null, null, null, null, fromStr, toStr);
+
+        // Calculate total income
+        BigDecimal totalIncome = transactions.stream()
+                .filter(txn -> txn.getType() == TransactionType.INCOME)
+                .map(txn -> txn.getAmount() == null ? BigDecimal.ZERO : txn.getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate food/drink expenses
+        BigDecimal foodExpense = transactions.stream()
+                .filter(txn -> txn.getType() == TransactionType.EXPENSE)
+                .filter(txn -> {
+                    String catName = txn.getCategory() == null
+                            ? ""
+                            : txn.getCategory().toLowerCase();
+                    return catName.contains("ăn") || catName.contains("food") ||
+                           catName.contains("uống") || catName.contains("drink") ||
+                           catName.contains("thực") || catName.contains("phẩm") ||
+                           catName.contains("restaurant");
+                })
+                .map(txn -> txn.getAmount() == null ? BigDecimal.ZERO : txn.getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new WeeklySnapshotVm(totalIncome, foodExpense);
     }
 
     private List<ChartPointVm> buildChartPoints(ReportChartResponse chart) {
@@ -256,4 +348,6 @@ public class ReportController {
     public record CalendarTransactionsVm(long unreadNotifications, List<CalendarTransactionItemVm> items) {}
     public record CategorySliceVm(String id, String label, int percent, String color) {}
     public record CalendarCategoriesVm(long unreadNotifications, List<CategorySliceVm> slices) {}
+        public record DateRange(String from, String to) {}
+        public record WeeklySnapshotVm(BigDecimal totalIncome, BigDecimal foodExpense) {}
 }

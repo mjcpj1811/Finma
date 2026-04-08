@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalCard: {
-    backgroundColor: colors.white,
+    backgroundColor: '#F1FFF3',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingTop: 14,

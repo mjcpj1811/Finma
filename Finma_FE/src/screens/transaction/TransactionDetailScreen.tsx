@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
@@ -40,21 +41,23 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
   const [deleting, setDeleting] = useState(false);
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
 
-  useEffect(() => {
-    const loadDetail = async () => {
-      setLoading(true);
-      try {
-        const response = await transactionApi.getTransactionDetail(transactionId);
-        setTransaction(response);
-      } catch {
-        setTransaction(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadDetail();
+  const loadDetail = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await transactionApi.getTransactionDetail(transactionId);
+      setTransaction(response);
+    } catch {
+      setTransaction(null);
+    } finally {
+      setLoading(false);
+    }
   }, [transactionId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDetail();
+    }, [loadDetail]),
+  );
 
   const onDelete = () => {
     if (Platform.OS === 'web') {
