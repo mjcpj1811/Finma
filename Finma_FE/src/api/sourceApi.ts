@@ -18,6 +18,18 @@ const SOURCE_ENDPOINTS = {
   getAccounts: '/accounts',
 };
 
+const pad2 = (value: number) => String(value).padStart(2, '0');
+
+const parseDateOrNow = (value?: string) => {
+  const date = value ? new Date(value) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+};
+
+const formatMonthLabelVi = (date: Date) => `Tháng ${date.getMonth() + 1}`;
+
+const formatTimeLabelVi = (date: Date) =>
+  `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${formatMonthLabelVi(date)} ${pad2(date.getDate())}`;
+
 // ====================
 // 🔥 Helper mapping
 // ====================
@@ -165,21 +177,20 @@ export const sourceApi = {
 
     const sourceRaw = data.account || {};
 
-    const items: SourceTransactionItem[] = (data.transactions || []).map(
-      (tx: any) => ({
+    const items: SourceTransactionItem[] = (data.transactions || []).map((tx: any) => {
+      const parsedDate = parseDateOrNow(tx.date);
+      return {
         id: String(tx.id),
         sourceId: String(sourceId),
-        monthLabel: new Date(tx.date).toLocaleString('en-US', {
-          month: 'long',
-        }),
-        title: tx.title || tx.categoryName || 'Transaction',
-        timeLabel: new Date(tx.date).toLocaleString(),
+        monthLabel: formatMonthLabelVi(parsedDate),
+        title: tx.title || tx.categoryName || 'Giao dịch',
+        timeLabel: formatTimeLabelVi(parsedDate),
         note: tx.note || '',
         amount: Number(tx.amount) || 0,
         kind: tx.amount > 0 ? 'income' : 'expense',
         iconKey: tx.categoryIcon || (tx.amount > 0 ? 'attach_money' : 'shopping'),
-      })
-    );
+      };
+    });
 
     const totalExpense = items
       .filter((i) => i.kind === 'expense')

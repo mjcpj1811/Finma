@@ -22,7 +22,8 @@ import { resolveTransactionIconBg, resolveTransactionIconName } from '../../util
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SourceTransactions'>;
 
-const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
+const toRoundedMoney = (value: number) => Math.round(Number(value) || 0);
+const formatCurrency = (value: number) => toRoundedMoney(value).toLocaleString('vi-VN');
 
 export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
   const { sourceId } = route.params;
@@ -90,7 +91,9 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
 
         <View style={[styles.summaryCol, styles.summaryColRight]}>
           <Text style={styles.summaryLabel}>Chi tiêu</Text>
-          <Text style={[styles.summaryValue, styles.expenseValue]}>-{formatCurrency(data.overview.totalExpense)}</Text>
+          <Text style={[styles.summaryValue, styles.expenseValue]}>
+            {toRoundedMoney(Math.abs(data.overview.totalExpense)) > 0 ? '-' : ''}{formatCurrency(Math.abs(data.overview.totalExpense))}
+          </Text>
         </View>
       </View>
 
@@ -101,6 +104,9 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
               <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
+                const absoluteAmount = Math.abs(item.amount);
+                const roundedAbsoluteAmount = toRoundedMoney(absoluteAmount);
+                const amountSign = roundedAbsoluteAmount > 0 ? (item.kind === 'expense' ? '-' : '+') : '';
                 return (
                   <View key={item.id} style={styles.itemCard}>
                     <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
@@ -119,8 +125,8 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
                     <View style={styles.itemRightWrap}>
                       <Text style={styles.itemNote}>{item.note}</Text>
                       <Text style={[styles.itemAmount, item.kind === 'expense' ? styles.expenseAmountText : styles.incomeAmountText]}>
-                        {item.kind === 'expense' ? '-' : '+'}
-                        {formatCurrency(Math.abs(item.amount))}
+                        {amountSign}
+                        {formatCurrency(roundedAbsoluteAmount)}
                       </Text>
                     </View>
                   </View>

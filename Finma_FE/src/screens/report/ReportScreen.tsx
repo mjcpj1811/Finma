@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -17,6 +16,7 @@ import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { ReportIncomeExpenseChart } from '../../components/ReportIncomeExpenseChart';
 import { reportApi } from '../../api/reportApi';
+import * as budgetApi from '../../api/budgetApi';
 import { type ReportDashboard, type ReportFilter } from '../../types/report';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
@@ -69,15 +69,24 @@ export const ReportScreen = ({ navigation }: Props) => {
   const [period, setPeriod] = useState<ReportFilter>('day');
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<ReportDashboard | null>(null);
+  const [realBudgetLimit, setRealBudgetLimit] = useState(0);
+  const [realSpentAmount, setRealSpentAmount] = useState(0);
 
   useEffect(() => {
     const loadReport = async () => {
       setLoading(true);
       try {
-        const response = await reportApi.getDashboard(period);
+        const [response, activeBudgets] = await Promise.all([
+          reportApi.getDashboard(period),
+          budgetApi.getActiveBudgets().catch(() => []),
+        ]);
         setDashboard(response);
+        setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
+        setRealSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
       } catch {
         setDashboard(null);
+        setRealBudgetLimit(0);
+        setRealSpentAmount(0);
       } finally {
         setLoading(false);
       }
@@ -109,9 +118,9 @@ export const ReportScreen = ({ navigation }: Props) => {
 
         <BalanceSummaryCard
           totalBalance={dashboard.overview.totalBalance}
-          totalExpense={dashboard.overview.totalExpense}
+          totalExpense={realSpentAmount > 0 ? realSpentAmount : dashboard.overview.totalExpense}
           budgetUsedPercent={dashboard.overview.budgetUsedPercent}
-          budgetLimit={dashboard.overview.budgetLimit}
+          budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : dashboard.overview.budgetLimit}
         />
 
         <Text style={styles.goalSummary}>{dashboard.goalSummaryText}</Text>
@@ -373,5 +382,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: typography.poppins.medium,
     fontSize: 14,
-  },
+  },
+
 });

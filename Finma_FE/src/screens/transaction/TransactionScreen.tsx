@@ -25,7 +25,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Transactions'>;
 
 type SelectedTransactionType = Extract<TransactionFilter, 'income' | 'expense'>;
 
-const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
+const toRoundedMoney = (value: number) => Math.round(Number(value) || 0);
+const formatCurrency = (value: number) => toRoundedMoney(value).toLocaleString('vi-VN');
 
 const filterConfig: Record<
   SelectedTransactionType,
@@ -177,6 +178,9 @@ export const TransactionScreen = ({ navigation }: Props) => {
 
               {items.map((item) => {
                 const secondaryText = item.note.trim();
+                const absoluteAmount = Math.abs(item.amount);
+                const roundedAbsoluteAmount = toRoundedMoney(absoluteAmount);
+                const amountSign = roundedAbsoluteAmount > 0 && item.kind === 'expense' ? '-' : '';
                 return (
                   <Pressable
                     key={item.id}
@@ -199,8 +203,8 @@ export const TransactionScreen = ({ navigation }: Props) => {
                     <View style={styles.itemRightWrap}>
                       {secondaryText ? <Text style={styles.itemNote}>{secondaryText}</Text> : null}
                       <Text style={[styles.itemAmount, item.kind === 'expense' ? styles.expenseAmountText : styles.incomeAmountText]}>
-                        {item.kind === 'expense' ? '-' : ''}
-                        {formatCurrency(Math.abs(item.amount))}
+                        {amountSign}
+                        {formatCurrency(roundedAbsoluteAmount)}
                       </Text>
                     </View>
                   </Pressable>

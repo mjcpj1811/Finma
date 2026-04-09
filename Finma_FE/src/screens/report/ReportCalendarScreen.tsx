@@ -42,7 +42,8 @@ const monthOptions = [
   'Tháng 12',
 ];
 
-const formatAmount = (value: number) => value.toLocaleString('vi-VN');
+const toRoundedMoney = (value: number) => Math.round(Number(value) || 0);
+const formatAmount = (value: number) => toRoundedMoney(value).toLocaleString('vi-VN');
 
 const toPolar = (cx: number, cy: number, radius: number, angleDeg: number) => {
   const angle = (Math.PI / 180) * angleDeg;
@@ -297,30 +298,36 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
 
           {!loading && activeTab === 'transactions' ? (
             <View style={styles.listWrap}>
-              {transactions.map((item) => (
-                <View key={item.id} style={styles.transactionCard}>
-                  <View style={[styles.txIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
-                    <MaterialIcons
-                      name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
-                      size={22}
-                      color={colors.white}
-                    />
-                  </View>
+              {transactions.map((item) => {
+                const absoluteAmount = Math.abs(item.amount);
+                const roundedAbsoluteAmount = toRoundedMoney(absoluteAmount);
+                const amountSign = roundedAbsoluteAmount > 0 && item.kind === 'expense' ? '-' : '';
 
-                  <View style={styles.txInfo}>
-                    <Text style={styles.txTitle}>{item.title}</Text>
-                    <Text style={styles.txTime}>{item.timeLabel}</Text>
-                  </View>
+                return (
+                  <View key={item.id} style={styles.transactionCard}>
+                    <View style={[styles.txIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={22}
+                        color={colors.white}
+                      />
+                    </View>
 
-                  <View style={styles.txRight}>
-                    <Text style={styles.txSub}>{item.subLabel}</Text>
-                    <Text style={[styles.txAmount, item.kind === 'expense' ? styles.txExpense : styles.txIncome]}>
-                      {item.kind === 'expense' ? '-' : ''}
-                      {formatAmount(Math.abs(item.amount))}
-                    </Text>
+                    <View style={styles.txInfo}>
+                      <Text style={styles.txTitle}>{item.title}</Text>
+                      <Text style={styles.txTime}>{item.timeLabel}</Text>
+                    </View>
+
+                    <View style={styles.txRight}>
+                      <Text style={styles.txSub}>{item.subLabel}</Text>
+                      <Text style={[styles.txAmount, item.kind === 'expense' ? styles.txExpense : styles.txIncome]}>
+                        {amountSign}
+                        {formatAmount(roundedAbsoluteAmount)}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ) : null}
 

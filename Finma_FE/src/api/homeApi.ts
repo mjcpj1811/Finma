@@ -46,6 +46,7 @@ type BackendSummary = {
 type BackendReportDashboard = ReportDashboard;
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
+const toViMonthLabel = (date: Date) => `Tháng ${date.getMonth() + 1}`;
 
 const formatApiDate = (date: Date) => {
   const year = date.getFullYear();
@@ -157,7 +158,7 @@ const parseBackendDateTime = (value?: string | null) => {
 };
 
 const formatTimeLabel = (date: Date) => {
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = toViMonthLabel(date);
   return `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${month} ${pad2(date.getDate())}`;
 };
 
