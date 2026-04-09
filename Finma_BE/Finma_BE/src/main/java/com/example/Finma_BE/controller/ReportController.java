@@ -147,7 +147,11 @@ public class ReportController {
         String view = period == null ? "day" : period.trim().toLowerCase(Locale.ROOT);
 
         return switch (view) {
-            case "day" -> new DateRange(today.toString(), today.toString());
+                        case "day" -> {
+                                LocalDate start = today.with(DayOfWeek.MONDAY);
+                                LocalDate end = start.plusDays(6);
+                                yield new DateRange(start.toString(), end.toString());
+                        }
             case "week" -> {
                 LocalDate start = today.with(DayOfWeek.MONDAY);
                 LocalDate end = start.plusDays(6);
