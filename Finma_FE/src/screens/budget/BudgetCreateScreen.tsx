@@ -167,7 +167,11 @@ export const BudgetCreateScreen = ({ navigation, route }: Props) => {
       />
 
       <View style={styles.mainPanel}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+        >
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Tháng</Text>
             <View style={styles.inputRow}>

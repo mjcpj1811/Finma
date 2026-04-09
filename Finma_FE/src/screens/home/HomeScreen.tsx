@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
@@ -101,34 +102,40 @@ export const HomeScreen = ({ navigation }: Props) => {
   const [budgetSpentAmount, setBudgetSpentAmount] = useState(0);
   const [currentMonthExpense, setCurrentMonthExpense] = useState(0);
 
-  useEffect(() => {
-    const loadHome = async () => {
-      setLoading(true);
-      try {
-        const [response, monthlyDashboard, activeBudgets] = await Promise.all([
-          homeApi.getDashboard(period),
-          period === 'month'
-            ? Promise.resolve<HomeDashboard | null>(null)
-            : homeApi.getDashboard('month').catch(() => null),
-          budgetApi.getActiveBudgets().catch(() => []),
-        ]);
+  const loadHome = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [response, monthlyDashboard, activeBudgets] = await Promise.all([
+        homeApi.getDashboard(period),
+        period === 'month'
+          ? Promise.resolve<HomeDashboard | null>(null)
+          : homeApi.getDashboard('month').catch(() => null),
+        budgetApi.getActiveBudgets().catch(() => []),
+      ]);
 
-        setDashboard(response);
-        setCurrentMonthExpense(Number((monthlyDashboard ?? response).headerSummary.totalExpense ?? 0));
-        setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
-        setBudgetSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
-      } catch {
-        setDashboard(null);
-        setCurrentMonthExpense(0);
-        setRealBudgetLimit(0);
-        setBudgetSpentAmount(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadHome();
+      setDashboard(response);
+      setCurrentMonthExpense(Number((monthlyDashboard ?? response).headerSummary.totalExpense ?? 0));
+      setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
+      setBudgetSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
+    } catch {
+      setDashboard(null);
+      setCurrentMonthExpense(0);
+      setRealBudgetLimit(0);
+      setBudgetSpentAmount(0);
+    } finally {
+      setLoading(false);
+    }
   }, [period]);
+
+  useEffect(() => {
+    void loadHome();
+  }, [loadHome]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadHome();
+    }, [loadHome]),
+  );
 
   const activeDashboard = useMemo(() => dashboard, [dashboard]);
 

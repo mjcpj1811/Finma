@@ -239,58 +239,60 @@ export const CategoriesScreen = ({ navigation }: Props) => {
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Thêm Danh Mục</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>Thêm Danh Mục</Text>
 
-            <Text style={styles.modalLabel}>Tên danh mục</Text>
-            <TextInput
-              value={form.name}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
-              placeholder="Ví dụ: Mua sắm"
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-            />
+              <Text style={styles.modalLabel}>Tên danh mục</Text>
+              <TextInput
+                value={form.name}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                placeholder="Ví dụ: Mua sắm"
+                placeholderTextColor={colors.textMuted}
+                style={styles.input}
+              />
 
-            <Text style={styles.modalLabel}>Nhóm danh mục</Text>
-            <View style={styles.groupRow}>
-              {sectionMeta.map((section) => {
-                const selected = form.group === section.key;
-                return (
-                  <Pressable
-                    key={section.key}
-                    style={[styles.groupChip, selected && styles.groupChipActive]}
-                    onPress={() => setForm((prev) => ({ ...prev, group: section.key }))}
-                  >
-                    <Text style={[styles.groupChipText, selected && styles.groupChipTextActive]}>{section.title}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+              <Text style={styles.modalLabel}>Nhóm danh mục</Text>
+              <View style={styles.groupRow}>
+                {sectionMeta.map((section) => {
+                  const selected = form.group === section.key;
+                  return (
+                    <Pressable
+                      key={section.key}
+                      style={[styles.groupChip, selected && styles.groupChipActive]}
+                      onPress={() => setForm((prev) => ({ ...prev, group: section.key }))}
+                    >
+                      <Text style={[styles.groupChipText, selected && styles.groupChipTextActive]}>{section.title}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-            <Text style={styles.modalLabel}>Biểu tượng</Text>
-            <View style={styles.iconGrid}>
-              {allIcons.map((key) => {
-                const selected = form.iconKey === key;
-                return (
-                  <Pressable
-                    key={key}
-                    style={[styles.iconOption, selected && styles.iconOptionActive]}
-                    onPress={() => setForm((prev) => ({ ...prev, iconKey: key }))}
-                  >
-                    <MaterialIcons name={iconMeta[key].name} size={20} color={selected ? colors.white : colors.text} />
-                  </Pressable>
-                );
-              })}
-            </View>
+              <Text style={styles.modalLabel}>Biểu tượng</Text>
+              <View style={styles.iconGrid}>
+                {allIcons.map((key) => {
+                  const selected = form.iconKey === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      style={[styles.iconOption, selected && styles.iconOptionActive]}
+                      onPress={() => setForm((prev) => ({ ...prev, iconKey: key }))}
+                    >
+                      <MaterialIcons name={iconMeta[key].name} size={20} color={selected ? colors.white : colors.text} />
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-            <View style={styles.modalActions}>
-              <Pressable style={styles.cancelBtn} onPress={closeModal}>
-                <Text style={styles.cancelText}>Hủy</Text>
-              </Pressable>
+              <View style={styles.modalActions}>
+                <Pressable style={styles.cancelBtn} onPress={closeModal}>
+                  <Text style={styles.cancelText}>Hủy</Text>
+                </Pressable>
 
-              <Pressable style={styles.saveBtn} onPress={onSaveCategory} disabled={saving}>
-                <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
-              </Pressable>
-            </View>
+                <Pressable style={styles.saveBtn} onPress={onSaveCategory} disabled={saving}>
+                  <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -457,6 +459,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: '#F1FFF3',
     borderRadius: 16,
+    maxHeight: '85%',
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 12,

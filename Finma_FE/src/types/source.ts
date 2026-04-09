@@ -47,6 +47,7 @@ export type SourceTransactionItem = {
   amount: number;
   kind: 'income' | 'expense';
   iconKey: string;
+  isSaving?: boolean;
 };
 
 export type MoneySourceTransactionsResponse = {

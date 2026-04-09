@@ -42,17 +42,17 @@ type TransactionFormState = {
   kind: SavingTransactionsResponse['items'][number]['kind'];
 };
 
-const defaultForm: FormState = {
+const createDefaultForm = (): FormState => ({
   name: '',
   targetAmount: '',
   currentAmount: '',
   sourceId: '',
   iconKey: 'savings',
   endDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
-};
+});
 
 const defaultTransactionForm = (title = ''): TransactionFormState => ({
-  dateIso: new Date().toISOString(),
+  dateIso: new Date().toISOString().split('T')[0],
   sourceId: '',
   amount: '',
   title,
@@ -89,20 +89,8 @@ const savingIconMeta: Record<string, { name: keyof typeof MaterialIcons.glyphMap
   checkroom: { name: 'checkroom', label: 'Thời trang' },
 };
 
-const transactionIcon: Record<
-  SavingTransactionsResponse['items'][number]['kind'],
-  { name: keyof typeof MaterialIcons.glyphMap; bg: string; color: string }
-> = {
-  deposit: { name: 'south-west', bg: '#DBF7EA', color: '#0A8D6F' },
-  withdraw: { name: 'north-east', bg: '#FDECEC', color: '#DC2626' },
-};
-
 const getSavingIcon = (iconKey?: string) => {
   return savingIconMeta[iconKey ?? 'savings'] ?? savingIconMeta.savings;
-};
-
-const getTransactionIcon = (kind: SavingTransactionsResponse['items'][number]['kind']) => {
-  return transactionIcon[kind] ?? transactionIcon.deposit;
 };
 
 const stripSavingPrefix = (name: string) => name.replace(/^Tiết\s*Kiệm\s*/i, '').trim() || name;
@@ -144,7 +132,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   const [showModal, setShowModal] = useState(false);
   const [savingAction, setSavingAction] = useState(false);
   const [editingItem, setEditingItem] = useState<SavingItem | null>(null);
-  const [form, setForm] = useState<FormState>(defaultForm);
+  const [form, setForm] = useState<FormState>(() => createDefaultForm());
   const [showGoalSourceList, setShowGoalSourceList] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [draftEndDate, setDraftEndDate] = useState(new Date());
@@ -243,8 +231,11 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     }
   }, []);
 
-  const loadDashboard = async (preferredId?: string | null) => {
-    setLoading(true);
+  const loadDashboard = async (preferredId?: string | null, options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+    }
     setErrorMessage(null);
     try {
       const response = await savingsApi.getDashboard();
@@ -263,7 +254,9 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       const message = error instanceof Error ? error.message : 'Không thể tải mục tiêu tiết kiệm.';
       setErrorMessage(message);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -333,7 +326,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   const openCreateModal = () => {
     setEditingItem(null);
     setForm({
-      ...defaultForm,
+      ...createDefaultForm(),
       sourceId: sourceOptions[0]?.id ?? '',
     });
     setShowGoalSourceList(false);
@@ -348,7 +341,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       currentAmount: String(item.currentAmount),
       sourceId: '',
       iconKey: item.iconKey,
-      endDate: item.endDate ? new Date(item.endDate) : defaultForm.endDate,
+      endDate: item.endDate ? new Date(item.endDate) : createDefaultForm().endDate,
     });
     setShowGoalSourceList(false);
     setShowModal(true);
@@ -375,51 +368,40 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       name: form.name.trim(),
       targetAmount,
       currentAmount,
+      sourceId: form.sourceId,
       iconKey: form.iconKey,
       startDate: defaultStartDate,
       endDate: nextEndDate,
     };
 
+    const editingId = editingItem?.id ?? null;
     setSavingAction(true);
     try {
-      if (editingItem) {
-        await savingsApi.updateSaving(editingItem.id, payload);
-        await loadDashboard(editingItem.id);
-        if (selectedSavingId === editingItem.id) {
-          const detailRes = await savingsApi.getSavingTransactions(editingItem.id);
-          setDetail(detailRes);
-        }
+      let affectedSavingId: string | null = editingId;
+
+      if (editingId) {
+        await savingsApi.updateSaving(editingId, payload);
       } else {
         const response = await savingsApi.createSaving(payload);
-        if (currentAmount > 0 && response.savingId) {
-          try {
-            await savingsApi.createSavingTransaction(response.savingId, {
-              dateIso: new Date().toISOString(),
-              accountId: Number(form.sourceId),
-              amount: currentAmount,
-              title: form.name.trim(),
-              note: 'Số tiền tiết kiệm ban đầu',
-              kind: 'deposit',
-            });
-          } catch (error) {
-            await loadDashboard(response.savingId);
-            setShowModal(false);
-            setEditingItem(null);
-            setForm(defaultForm);
-            setShowGoalSourceList(false);
-
-            const message = error instanceof Error ? error.message : 'Không thể ghi nhận số tiền tiết kiệm ban đầu.';
-            Alert.alert('Đã tạo mục tiêu', `Mục tiêu đã được tạo nhưng chưa ghi nhận tiền ban đầu: ${message}`);
-            return;
-          }
-        }
-        await loadDashboard(response.savingId ?? null);
+        affectedSavingId = response.savingId ?? null;
       }
 
+      // Close the modal immediately after successful save to keep UI responsive on mobile.
       setShowModal(false);
+      setShowEndDatePicker(false);
       setEditingItem(null);
-      setForm(defaultForm);
+      setForm(createDefaultForm());
       setShowGoalSourceList(false);
+
+      if (!editingId) {
+        await loadSourceOptions();
+      }
+
+      await loadDashboard(affectedSavingId, { silent: true });
+      if (editingId && selectedSavingId === editingId) {
+        const detailRes = await savingsApi.getSavingTransactions(editingId);
+        setDetail(detailRes);
+      }
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể lưu mục tiêu tiết kiệm.');
     } finally {
@@ -549,6 +531,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       await loadDashboard(selectedSavingId);
       const response = await savingsApi.getSavingTransactions(selectedSavingId);
       setDetail(response);
+      await loadSourceOptions();
       setViewMode('detail');
     } catch (err: any) {
       Alert.alert('Lỗi', err.message || 'Không thể lưu khoản tiết kiệm.');
@@ -664,12 +647,12 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
             <View style={styles.savingActionsRow}>
               <Pressable style={styles.editSavingChip} onPress={() => openEditModal(detail.saving)}>
                 <MaterialIcons name="edit" size={15} color="#2563EB" />
-                <Text style={styles.editSavingChipText}>Sửa quỹ</Text>
+                <Text style={styles.editSavingChipText}>Sửa mục tiêu</Text>
               </Pressable>
 
               <Pressable style={styles.deleteSavingChip} onPress={() => onDelete(detail.saving)}>
                 <MaterialIcons name="delete-outline" size={16} color="#EF4444" />
-                <Text style={styles.deleteSavingChipText}>Xóa quỹ</Text>
+                <Text style={styles.deleteSavingChipText}>Xóa mục tiêu</Text>
               </Pressable>
             </View>
           ) : null}
@@ -745,7 +728,6 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                     <Text style={styles.emptyText}>Chưa có giao dịch cho tiết kiệm này.</Text>
                   ) : (
                     visibleItems.map((item, index) => {
-                      const icon = getTransactionIcon(item.kind);
                       const isLast = index === visibleItems.length - 1;
                       return (
                         <Pressable 
@@ -757,7 +739,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                           })}
                         >
                           <View style={[styles.transactionIcon, { backgroundColor: '#4D9EFF' }]}>
-                            <MaterialIcons name={getSavingIcon(detail.saving.iconKey).name} size={22} color={colors.white} />
+                            <MaterialIcons name="savings" size={22} color={colors.white} />
                           </View>
                           <View style={styles.transactionText}>
                             <Text style={styles.transactionTitle}>{item.title}</Text>
@@ -958,112 +940,122 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{editingItem ? 'Sửa tiết kiệm' : 'Thêm mới'}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>{editingItem ? 'Sửa tiết kiệm' : 'Thêm mới'}</Text>
 
-            <Text style={styles.modalLabel}>Tên mục tiêu</Text>
-            <TextInput
-              value={form.name}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
-              placeholder="Ví dụ: Tiết Kiệm Du Lịch"
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-            />
+              <Text style={styles.modalLabel}>Tên mục tiêu</Text>
+              <TextInput
+                value={form.name}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                placeholder="Ví dụ: Tiết Kiệm Du Lịch"
+                placeholderTextColor={colors.textMuted}
+                style={styles.input}
+              />
 
-            <Text style={styles.modalLabel}>Tổng mục tiêu</Text>
-            <TextInput
-              value={form.targetAmount}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
-              placeholder="10000000"
-              keyboardType="numeric"
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-            />
+              <Text style={styles.modalLabel}>Tổng mục tiêu</Text>
+              <TextInput
+                value={form.targetAmount}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, targetAmount: value }))}
+                placeholder="10000000"
+                keyboardType="numeric"
+                placeholderTextColor={colors.textMuted}
+                style={styles.input}
+              />
 
-            <Text style={styles.modalLabel}>Đã tiết kiệm</Text>
-            <TextInput
-              value={form.currentAmount}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
-              placeholder="500000"
-              keyboardType="numeric"
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-            />
+              <Text style={styles.modalLabel}>Đã tiết kiệm</Text>
+              <TextInput
+                value={form.currentAmount}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, currentAmount: value }))}
+                placeholder="500000"
+                keyboardType="numeric"
+                placeholderTextColor={colors.textMuted}
+                style={styles.input}
+              />
 
-            {!editingItem ? (
-              <>
-                <Text style={styles.modalLabel}>Nguồn tiền ban đầu</Text>
-                <Pressable style={styles.readonlyInput} onPress={() => setShowGoalSourceList((prev) => !prev)}>
-                  <Text style={styles.readonlyText}>
-                    {sourceOptions.find((item) => item.id === form.sourceId)?.label ?? 'Chọn nguồn tiền'}
-                  </Text>
-                  <MaterialIcons name={showGoalSourceList ? 'expand-less' : 'expand-more'} size={18} color={colors.primary} />
+              {!editingItem ? (
+                <>
+                  <Text style={styles.modalLabel}>Nguồn tiền ban đầu</Text>
+                  <Pressable style={styles.readonlyInput} onPress={() => setShowGoalSourceList((prev) => !prev)}>
+                    <Text style={styles.readonlyText}>
+                      {sourceOptions.find((item) => item.id === form.sourceId)?.label ?? 'Chọn nguồn tiền'}
+                    </Text>
+                    <MaterialIcons name={showGoalSourceList ? 'expand-less' : 'expand-more'} size={18} color={colors.primary} />
+                  </Pressable>
+
+                  {showGoalSourceList ? (
+                    <View style={styles.dropdownList}>
+                      {sourceOptions.length > 0 ? (
+                        sourceOptions.map((item) => (
+                          <Pressable
+                            key={item.id}
+                            style={styles.dropdownItem}
+                            onPress={() => {
+                              setForm((prev) => ({ ...prev, sourceId: item.id }));
+                              setShowGoalSourceList(false);
+                            }}
+                          >
+                            <Text style={styles.dropdownText}>{item.label}</Text>
+                          </Pressable>
+                        ))
+                      ) : (
+                        <View style={styles.dropdownItem}>
+                          <Text style={styles.dropdownText}>Chưa có nguồn tiền khả dụng</Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : null}
+                </>
+              ) : null}
+
+              <Text style={styles.modalLabel}>Ngày kết thúc</Text>
+              <Pressable style={styles.readonlyInput} onPress={openEndDatePicker}>
+                <Text style={styles.readonlyText}>{formatDateText(form.endDate.toISOString())}</Text>
+                <MaterialIcons name="event" size={18} color={colors.primary} />
+              </Pressable>
+
+              <Text style={styles.modalLabel}>Biểu tượng</Text>
+              <View style={styles.iconGridWrapper}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.iconGrid}
+                >
+                  {Object.keys(savingIconMeta).map((iconKey) => {
+                    const selected = form.iconKey === iconKey;
+                    return (
+                      <Pressable
+                        key={iconKey}
+                        style={[styles.iconOption, selected && styles.iconOptionActive]}
+                        onPress={() => setForm((prev) => ({ ...prev, iconKey }))}
+                      >
+                        <MaterialIcons
+                          name={savingIconMeta[iconKey].name}
+                          size={22}
+                          color={selected ? colors.white : colors.text}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View style={styles.modalActions}>
+                <Pressable
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    setShowModal(false);
+                    setShowEndDatePicker(false);
+                    setShowGoalSourceList(false);
+                  }}
+                >
+                  <Text style={styles.cancelText}>Hủy</Text>
                 </Pressable>
 
-                {showGoalSourceList ? (
-                  <View style={styles.dropdownList}>
-                    {sourceOptions.length > 0 ? (
-                      sourceOptions.map((item) => (
-                        <Pressable
-                          key={item.id}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setForm((prev) => ({ ...prev, sourceId: item.id }));
-                            setShowGoalSourceList(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownText}>{item.label}</Text>
-                        </Pressable>
-                      ))
-                    ) : (
-                      <View style={styles.dropdownItem}>
-                        <Text style={styles.dropdownText}>Chưa có nguồn tiền khả dụng</Text>
-                      </View>
-                    )}
-                  </View>
-                ) : null}
-              </>
-            ) : null}
-
-            <Text style={styles.modalLabel}>Ngày kết thúc</Text>
-            <Pressable style={styles.readonlyInput} onPress={openEndDatePicker}>
-              <Text style={styles.readonlyText}>{formatDateText(form.endDate.toISOString())}</Text>
-              <MaterialIcons name="event" size={18} color={colors.primary} />
-            </Pressable>
-
-            <Text style={styles.modalLabel}>Biểu tượng</Text>
-            <View style={styles.iconGridWrapper}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.iconGrid}
-              >
-                {Object.keys(savingIconMeta).map((iconKey) => {
-                  const selected = form.iconKey === iconKey;
-                  return (
-                    <Pressable
-                      key={iconKey}
-                      style={[styles.iconOption, selected && styles.iconOptionActive]}
-                      onPress={() => setForm((prev) => ({ ...prev, iconKey }))}
-                    >
-                      <MaterialIcons
-                        name={savingIconMeta[iconKey].name}
-                        size={22}
-                        color={selected ? colors.white : colors.text}
-                      />
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable style={styles.cancelBtn} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelText}>Hủy</Text>
-              </Pressable>
-
-              <Pressable style={styles.saveBtn} onPress={onSave} disabled={savingAction}>
-                <Text style={styles.saveText}>{savingAction ? 'Đang lưu...' : 'Lưu'}</Text>
-              </Pressable>
-            </View>
+                <Pressable style={styles.saveBtn} onPress={onSave} disabled={savingAction}>
+                  <Text style={styles.saveText}>{savingAction ? 'Đang lưu...' : 'Lưu'}</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
           </View>
 
           {Platform.OS === 'ios' && showEndDatePicker ? (
@@ -1636,6 +1628,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.white,
     borderRadius: 16,
+    maxHeight: '88%',
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 12,

@@ -99,7 +99,11 @@ export const EditProfileScreen = ({ navigation }: Props) => {
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.panelContent}
+        >
           <View style={styles.nameBlock}>
             <Text style={styles.nameText}>{fullName}</Text>
             <Text style={styles.idText}>ID: {profile.id}</Text>

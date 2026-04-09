@@ -40,7 +40,11 @@ export const SettingsDeleteAccountScreen = ({ navigation }: Props) => {
       />
 
       <View style={styles.mainPanel}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.panelContent}
+        >
           <Text style={styles.warningText}>Bạn Có Chắc Chắn Muốn Xóa Tài Khoản?</Text>
 
           <View style={styles.noteCard}>
@@ -84,7 +88,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
   },
   headerRow: {
@@ -177,5 +181,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.medium,
     fontSize: 13,
-  },
+  },
+
 });

@@ -21,8 +21,51 @@ const SOURCE_ENDPOINTS = {
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 
-const parseDateOrNow = (value?: string) => {
-  const date = value ? new Date(value) : new Date();
+const parseDateOrNow = (value?: unknown) => {
+  if (value == null) {
+    return new Date();
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? new Date() : value;
+  }
+
+  if (Array.isArray(value) && value.length >= 3) {
+    const year = Number(value[0]);
+    const month = Number(value[1]);
+    const day = Number(value[2]);
+    const hour = Number(value[3] ?? 0);
+    const minute = Number(value[4] ?? 0);
+    const second = Number(value[5] ?? 0);
+
+    if (![year, month, day, hour, minute, second].some((part) => Number.isNaN(part))) {
+      return new Date(year, month - 1, day, hour, minute, second);
+    }
+  }
+
+  if (typeof value !== 'string') {
+    return new Date();
+  }
+
+  const raw = value.trim();
+  if (!raw) {
+    return new Date();
+  }
+
+  // Handle backend format yyyy-MM-dd HH:mm:ss in a cross-platform safe way.
+  const dateTimeMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+  if (dateTimeMatch) {
+    const [, y, m, d, hh, mm, ss] = dateTimeMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+  }
+
+  const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, y, m, d] = dateOnlyMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d), 0, 0, 0);
+  }
+
+  const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? new Date() : date;
 };
 
@@ -222,8 +265,9 @@ export const sourceApi = {
     sourceId: string,
     token?: string
   ): Promise<MoneySourceTransactionsResponse> => {
-    const [transactionsRaw, accountRaw, categoryIconLookups] = await Promise.all([
-      requestApi<any>(SOURCE_ENDPOINTS.transactions(sourceId), { token }),
+    const [allTransactionsRaw, accountTransactionsRaw, accountRaw, categoryIconLookups] = await Promise.all([
+      requestApi<any>('/transactions', { token }).catch(() => null),
+      requestApi<any>(SOURCE_ENDPOINTS.transactions(sourceId), { token }).catch(() => null),
       requestApi<any>(SOURCE_ENDPOINTS.update(sourceId), { token }).catch(() => null),
       buildCategoryIconLookups(token).catch(
         (): { byId: Record<string, string>; byName: Record<string, string> } => ({ byId: {}, byName: {} }),
@@ -231,16 +275,81 @@ export const sourceApi = {
     ]);
 
     const sourceRaw = accountRaw || {};
-    const transactionList = Array.isArray(transactionsRaw)
-      ? transactionsRaw
-      : Array.isArray(transactionsRaw?.transactions)
-        ? transactionsRaw.transactions
-        : Array.isArray(transactionsRaw?.items)
-          ? transactionsRaw.items
-          : [];
+    const sourceNameNormalized = String(sourceRaw?.name ?? '').trim().toLowerCase();
 
-    const items: SourceTransactionItem[] = transactionList.map((tx: any) => {
-      const parsedDate = parseDateOrNow(tx.transactionDate ?? tx.transactionDateTime ?? tx.date);
+    const extractTransactionList = (raw: any): any[] => {
+      if (Array.isArray(raw)) {
+        return raw;
+      }
+
+      if (Array.isArray(raw?.result)) {
+        return raw.result;
+      }
+
+      if (Array.isArray(raw?.transactions)) {
+        return raw.transactions;
+      }
+
+      if (Array.isArray(raw?.items)) {
+        return raw.items;
+      }
+
+      return [];
+    };
+
+    const belongsToSource = (tx: any) => {
+      const txAccountId = tx?.accountId ?? tx?.account_id ?? tx?.accountID;
+      if (txAccountId != null && String(txAccountId) === String(sourceId)) {
+        return true;
+      }
+
+      if (!sourceNameNormalized) {
+        return false;
+      }
+
+      const txAccountName = String(tx?.accountName ?? tx?.account ?? '').trim().toLowerCase();
+      return Boolean(txAccountName) && txAccountName === sourceNameNormalized;
+    };
+
+    const globallyMatched = extractTransactionList(allTransactionsRaw).filter((tx) => belongsToSource(tx));
+    const accountScopedTransactions = extractTransactionList(accountTransactionsRaw);
+
+    // Keep /transactions as the source of truth (same as Transaction screen), fallback to account endpoint only if needed.
+    const mergedTransactions = globallyMatched.length > 0
+      ? globallyMatched
+      : accountScopedTransactions;
+
+    const dedupedById = new Map<string, any>();
+    mergedTransactions.forEach((tx) => {
+      if (tx?.id == null) {
+        return;
+      }
+      const key = String(tx.id);
+      const existing = dedupedById.get(key);
+      if (!existing) {
+        dedupedById.set(key, tx);
+        return;
+      }
+
+      const existingHasCreatedAt = Boolean(existing?.createdAt);
+      const nextHasCreatedAt = Boolean(tx?.createdAt);
+      if (!existingHasCreatedAt && nextHasCreatedAt) {
+        dedupedById.set(key, tx);
+      }
+    });
+    const transactionList = Array.from(dedupedById.values());
+    const sortedTransactions = [...transactionList].sort((a, b) => {
+      const dateA = parseDateOrNow(a?.transactionDateTime ?? a?.date ?? a?.createdAt ?? a?.transactionDate).getTime();
+      const dateB = parseDateOrNow(b?.transactionDateTime ?? b?.date ?? b?.createdAt ?? b?.transactionDate).getTime();
+      return dateB - dateA;
+    });
+
+    const visibleTransactions = sortedTransactions.filter(
+      (tx) => String(tx?.type ?? '').toUpperCase() !== 'SAVING',
+    );
+
+    const items: SourceTransactionItem[] = visibleTransactions.map((tx: any) => {
+      const parsedDate = parseDateOrNow(tx.transactionDateTime ?? tx.date ?? tx.createdAt ?? tx.transactionDate);
       const txType = String(tx.type ?? '').toUpperCase();
       const amount = Number(tx.amount) || 0;
       const kind: SourceTransactionItem['kind'] = txType === 'INCOME' ? 'income' : 'expense';

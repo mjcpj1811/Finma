@@ -60,6 +60,7 @@ export type UpsertSavingPayload = {
   name: string;
   targetAmount: number;
   currentAmount?: number; // Not in GoalRequest, but FE uses it
+  sourceId?: string;
   iconKey?: SavingItem['iconKey'];
   description?: string;
   startDate: string; // Required in GoalRequest
