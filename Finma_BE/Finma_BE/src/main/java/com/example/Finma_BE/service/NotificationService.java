@@ -15,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -83,6 +85,13 @@ public class NotificationService {
         notificationRepository.save(notification);
         log.info("[Notification] Created type={} for user={} ref={}/{}", type, user.getUsername(), referenceType, referenceId);
     }
+
+    /** Kiểm tra xem user đã nhận loại thông báo này trong ngày hôm nay chưa */
+    public boolean hasReceivedTypeToday(Long userId, NotificationType type) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        return notificationRepository.existsByUserIdAndTypeAndCreatedAtAfter(userId, type, startOfDay);
+    }
+
 
     // ===================== APIs =====================
 

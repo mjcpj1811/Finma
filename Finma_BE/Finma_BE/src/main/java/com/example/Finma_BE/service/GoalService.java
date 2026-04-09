@@ -133,7 +133,7 @@ public class GoalService {
                 .goalId(goal.getId())
                 .goalName(goal.getName())
                 .amount(t.getAmount())
-                .depositDate(t.getTransactionDate() != null ? t.getTransactionDate().toLocalDate() : null)
+                .depositDate(t.getTransactionDate())
                 .note(t.getNote())
                 .goalCurrentAmount(currentAmount)
                 .goalTargetAmount(target)
@@ -237,6 +237,10 @@ public class GoalService {
         User user = getCurrentUser();
         Goal goal = goalRepository.findByIdAndUserId(goalId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND));
+        
+        // Xoá tất cả giao dịch liên quan đến goal này trước
+        transactionRepository.deleteAllByGoalId(goalId);
+        
         goalRepository.delete(goal);
         log.info("Deleted goal id={} for user={}", goalId, user.getUsername());
     }
@@ -264,7 +268,7 @@ public class GoalService {
         }
 
         LocalDateTime depositDateTime = request.getDepositDate() != null
-                ? request.getDepositDate().atStartOfDay()
+                ? request.getDepositDate()
                 : LocalDateTime.now();
 
         Transaction transaction = Transaction.builder()
@@ -348,6 +352,7 @@ public class GoalService {
 
         Goal goal = transaction.getGoal();
         transactionRepository.delete(transaction);
+        transactionRepository.flush();
 
         // Tính lại tổng sau khi xoá
         BigDecimal newTotal = queryCurrentAmount(goal.getId());

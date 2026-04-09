@@ -129,7 +129,7 @@ public class TransactionController {
                 .map(c -> new IdLabelTypeVm(
                         String.valueOf(c.getId()),
                         c.getName(),
-                        c.getType() == null ? "expense" : c.getType().name().toLowerCase().contains("income") ? "income" : "expense"
+                        c.getType() == null ? "expense" : c.getType().name().toLowerCase()
                 ))
                 .toList();
         var sources = accountRepository.findByUser_Id(user.getId()).stream()
@@ -176,6 +176,8 @@ public class TransactionController {
                 t.getCategory() == null ? null : t.getCategory().getName(),
                 t.getAccount() == null ? null : t.getAccount().getId(),
                 t.getAccount() == null ? null : t.getAccount().getName(),
+                t.getGoal() == null ? null : t.getGoal().getId(),
+                t.getGoal() == null ? null : t.getGoal().getName(),
                 t.getNote(),
                 t.getTransactionDate() == null ? null : t.getTransactionDate().format(DateTimeFormats.API_DATE_TIME)
         );
@@ -198,6 +200,8 @@ public class TransactionController {
             String categoryName,
             Long accountId,
             String accountName,
+            Long goalId,
+            String goalName,
             String note,
             String transactionDate
     ) {}

@@ -1,12 +1,13 @@
 package com.example.Finma_BE.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -26,8 +27,8 @@ public class GoalDepositRequest {
     Long accountId;
 
     /** Nếu không truyền sẽ dùng ngày hiện tại */
-    LocalDate depositDate;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    LocalDateTime depositDate;
 
     String note;
 }
-
