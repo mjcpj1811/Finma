@@ -21,6 +21,7 @@ import { type SearchCategoryOption, type SearchReportType, type SearchResultItem
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportSearch'>;
 
@@ -236,11 +237,11 @@ export const SearchScreen = ({ navigation }: Props) => {
 
             {results.map((item) => (
               <View key={item.id} style={styles.resultCard}>
-                <View style={styles.resultIconWrap}>
+                <View style={[styles.resultIconWrap, { backgroundColor: resolveTransactionIconBg(item.type) }]}>
                   <MaterialIcons
-                    name={item.type === 'income' ? 'south-west' : 'restaurant'}
+                    name={resolveTransactionIconName(item.iconKey, item.type) as keyof typeof MaterialIcons.glyphMap}
                     size={20}
-                    color={item.type === 'income' ? colors.primary : colors.blueDark}
+                    color={colors.white}
                   />
                 </View>
 
@@ -497,7 +498,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#8BBEFE',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -98,7 +98,13 @@ export const sourceApi = {
   ): Promise<UpsertMoneySourceResponse> => {
     const res: any = await requestApi(SOURCE_ENDPOINTS.create, {
       method: 'POST',
-      body: payload,
+      body: {
+        name: payload.name,
+        type: payload.type === 'cash' ? 'CASH' : payload.type === 'bank' ? 'BANK' : 'E_WALLET',
+        balance: payload.balance,
+        icon: null,
+        color: null,
+      },
       token,
     });
 
@@ -116,7 +122,13 @@ export const sourceApi = {
   ): Promise<UpsertMoneySourceResponse> => {
     await requestApi(SOURCE_ENDPOINTS.update(sourceId), {
       method: 'PUT',
-      body: payload,
+      body: {
+        name: payload.name,
+        type: payload.type === 'cash' ? 'CASH' : payload.type === 'bank' ? 'BANK' : 'E_WALLET',
+        balance: payload.balance,
+        icon: null,
+        color: null,
+      },
       token,
     });
 
@@ -165,7 +177,7 @@ export const sourceApi = {
         note: tx.note || '',
         amount: Number(tx.amount) || 0,
         kind: tx.amount > 0 ? 'income' : 'expense',
-        iconKey: tx.categoryIcon || 'other',
+        iconKey: tx.categoryIcon || (tx.amount > 0 ? 'attach_money' : 'shopping'),
       })
     );
 

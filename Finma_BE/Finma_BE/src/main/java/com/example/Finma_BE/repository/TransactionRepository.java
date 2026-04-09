@@ -49,6 +49,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     List<Transaction> findAllByUserIdOrderByCreatedAtDesc(Long userId);
     long countByAccountId(Long accountId);
     void deleteAllByAccountId(Long accountId);
+    void deleteAllByGoalId(Long goalId);
 
+    @Query("SELECT COUNT(t) > 0 FROM Transaction t WHERE t.user.id = :userId " +
+           "AND t.transactionDate >= :start " +
+           "AND t.transactionDate < :end")
+    boolean existsByUserIdAndDate(@Param("userId") Long userId, 
+                                  @Param("start") java.time.LocalDateTime start, 
+                                  @Param("end") java.time.LocalDateTime end);
+
+    default boolean existsByUserIdAndDate(Long userId, java.time.LocalDate date) {
+        java.time.LocalDateTime start = date.atStartOfDay();
+        java.time.LocalDateTime end = date.plusDays(1).atStartOfDay();
+        return existsByUserIdAndDate(userId, start, end);
+    }
 }
 

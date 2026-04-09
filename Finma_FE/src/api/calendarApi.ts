@@ -1,4 +1,5 @@
 import { request } from './httpClient';
+import { categoryApi } from './categoryApi';
 import {
   type CalendarCategoryResponse,
   type CalendarQuery,
@@ -14,13 +15,56 @@ const CALENDAR_ENDPOINTS = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+type BackendCalendarTransactionItem = {
+  id: number;
+  title: string;
+  timeLabel: string;
+  subLabel: string;
+  amount: number;
+  kind: 'income' | 'expense' | 'INCOME' | 'EXPENSE';
+  categoryId?: number | string | null;
+  categoryName?: string | null;
+  category?: string | null;
+  iconKey?: string | null;
+};
+
+type BackendCalendarTransactionsResponse = {
+  unreadNotifications: number;
+  items: BackendCalendarTransactionItem[];
+};
+
+const normalizeCategoryLabel = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const buildCategoryIconLookups = async (token?: string) => {
+  const dashboard = await categoryApi.getDashboard(token);
+  const allCategories = [
+    ...dashboard.groups.financial,
+    ...dashboard.groups.expense,
+    ...dashboard.groups.income,
+  ];
+
+  return allCategories.reduce<{
+    byId: Record<string, string>;
+    byName: Record<string, string>;
+  }>((acc, category) => {
+    acc.byId[category.id] = category.iconKey;
+    acc.byName[normalizeCategoryLabel(category.name)] = category.iconKey;
+    return acc;
+  }, { byId: {}, byName: {} });
+};
+
 const mockTransactions: CalendarTransactionsResponse = {
   unreadNotifications: 1,
   items: [
     {
       id: 'txn-cal-1',
       title: 'Thực phẩm',
-      timeLabel: '17:00 - April 24',
+      timeLabel: '17:00 - Tháng 4 24',
       subLabel: 'Đồ hộp',
       amount: -100000,
       kind: 'expense',
@@ -28,7 +72,7 @@ const mockTransactions: CalendarTransactionsResponse = {
     {
       id: 'txn-cal-2',
       title: 'Khác',
-      timeLabel: '17:00 - April 24',
+      timeLabel: '17:00 - Tháng 4 24',
       subLabel: 'Payments',
       amount: 120000,
       kind: 'income',
@@ -49,15 +93,47 @@ export const calendarApi = {
   getTransactions: async (query: CalendarQuery, token?: string) => {
     if (CALENDAR_API_USE_MOCK) {
       await sleep(180);
-      return mockTransactions;
+      return {
+        ...mockTransactions,
+        items: mockTransactions.items.map((item) => ({
+          ...item,
+          iconKey: item.kind === 'income' ? 'attach_money' : 'shopping',
+        })),
+      };
     }
 
     const dayQuery = query.day ? `&day=${query.day}` : '';
 
-    return request<CalendarTransactionsResponse>(
-      `${CALENDAR_ENDPOINTS.transactions}?month=${query.month}&year=${query.year}${dayQuery}`,
-      { token },
-    );
+    const [response, categoryIconLookups] = await Promise.all([
+      request<BackendCalendarTransactionsResponse>(
+        `${CALENDAR_ENDPOINTS.transactions}?month=${query.month}&year=${query.year}${dayQuery}`,
+        { token },
+      ),
+      buildCategoryIconLookups(token),
+    ]);
+
+    return {
+      unreadNotifications: response.unreadNotifications ?? 0,
+      items: (response.items ?? []).map((item) => {
+        const kind = item.kind === 'INCOME' ? 'income' : item.kind === 'EXPENSE' ? 'expense' : item.kind;
+        const categoryId = item.categoryId != null ? String(item.categoryId) : undefined;
+        const labelCandidate = item.categoryName ?? item.category ?? item.subLabel ?? item.title ?? '';
+        const normalizedLabel = normalizeCategoryLabel(labelCandidate);
+        return {
+          id: String(item.id),
+          title: item.title,
+          timeLabel: item.timeLabel,
+          subLabel: item.subLabel,
+          amount: Number(item.amount) || 0,
+          kind,
+          iconKey:
+            (categoryId ? categoryIconLookups.byId[categoryId] : undefined) ??
+            categoryIconLookups.byName[normalizedLabel] ??
+            item.iconKey ??
+            (kind === 'income' ? 'attach_money' : 'shopping'),
+        };
+      }),
+    } satisfies CalendarTransactionsResponse;
   },
 
   getCategories: async (query: CalendarQuery, token?: string) => {

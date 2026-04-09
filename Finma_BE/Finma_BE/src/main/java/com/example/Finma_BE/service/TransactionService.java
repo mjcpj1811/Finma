@@ -9,8 +9,11 @@ import com.example.Finma_BE.entity.User;
 import com.example.Finma_BE.enums.CategoryType;
 import com.example.Finma_BE.enums.TransactionType;
 import com.example.Finma_BE.exception.ApiException;
+import com.example.Finma_BE.entity.Goal;
+import com.example.Finma_BE.enums.GoalStatus;
 import com.example.Finma_BE.repository.AccountRepository;
 import com.example.Finma_BE.repository.CategoryRepository;
+import com.example.Finma_BE.repository.GoalRepository;
 import com.example.Finma_BE.repository.TransactionRepository;
 import com.example.Finma_BE.util.DateTimeFormats;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+    private final GoalRepository goalRepository;
 
     @Transactional
     @SuppressWarnings("null")
@@ -48,7 +52,7 @@ public class TransactionService {
                 .type(request.getType())
                 .amount(request.getAmount())
                 .note(resolveNote(request.getNote(), request.getDetail(), request.getTitle()))
-                .imageUrl(request.getImageUrl())
+                .icon(request.getImageUrl())
                 .location(request.getLocation())
                 .transactionDate(txnDate)
                 .account(account)
@@ -89,14 +93,16 @@ public class TransactionService {
         txn.setType(request.getType());
         txn.setAmount(request.getAmount());
         txn.setNote(resolveNote(request.getNote(), request.getDetail(), request.getTitle()));
-        txn.setImageUrl(request.getImageUrl());
+        txn.setIcon(request.getImageUrl());
         txn.setLocation(request.getLocation());
         txn.setTransactionDate(txnDate);
         txn.setAccount(newAccount);
         txn.setCategory(category);
 
         transactionRepository.save(txn);
+        transactionRepository.flush();
         applyBalanceEffect(newAccount, request.getType(), request.getAmount(), true);
+        syncGoalStatus(txn.getGoal());
         return txn;
     }
 
@@ -108,6 +114,28 @@ public class TransactionService {
             applyBalanceEffect(acc, txn.getType(), txn.getAmount(), false);
         }
         transactionRepository.delete(txn);
+        transactionRepository.flush();
+        syncGoalStatus(txn.getGoal());
+    }
+
+    private void syncGoalStatus(Goal goal) {
+        if (goal == null) return;
+        BigDecimal current = transactionRepository.sumSavingByGoalId(goal.getId());
+        BigDecimal target = goal.getTargetAmount() != null ? goal.getTargetAmount() : BigDecimal.ZERO;
+
+        if (current.compareTo(target) < 0) {
+            if (goal.getStatus() == GoalStatus.COMPLETED) {
+                goal.setStatus(GoalStatus.IN_PROGRESS);
+                goal.setCompletedAt(null);
+                goalRepository.saveAndFlush(goal);
+            }
+        } else {
+            if (goal.getStatus() == GoalStatus.IN_PROGRESS) {
+                goal.setStatus(GoalStatus.COMPLETED);
+                goal.setCompletedAt(LocalDate.now());
+                goalRepository.saveAndFlush(goal);
+            }
+        }
     }
 
     public List<TransactionListItemResponse> list(

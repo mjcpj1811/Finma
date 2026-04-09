@@ -19,7 +19,7 @@ public class GoalDepositResponse {
     String goalName;
 
     BigDecimal amount;
-    LocalDate depositDate;
+    LocalDateTime depositDate;
     String note;
 
     // Snapshot tiến độ tại thời điểm nạp

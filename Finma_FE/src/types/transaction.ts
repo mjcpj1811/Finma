@@ -1,10 +1,11 @@
-export type TransactionFilter = 'all' | 'income' | 'expense';
-export type TransactionType = 'income' | 'expense';
+export type TransactionFilter = 'all' | 'income' | 'expense' | 'saving';
+export type TransactionType = 'income' | 'expense' | 'saving' | 'finance';
 
 export type TransactionOverview = {
   totalBalance: number;
   totalIncome: number;
   totalExpense: number;
+  totalSaving: number;
   unreadNotifications: number;
 };
 
@@ -17,7 +18,7 @@ export type TransactionItem = {
   note: string;
   amount: number;
   kind: 'income' | 'expense';
-  iconKey: 'salary' | 'food' | 'rent' | 'transport' | 'other';
+  iconKey: string;
 };
 
 export type TransactionDashboard = {
@@ -66,10 +67,12 @@ export type TransactionDetail = {
   title: string;
   sourceId: string;
   sourceLabel: string;
+  goalId?: string;
+  goalName?: string;
   detail?: string;
   note: string;
   timeLabel: string;
-  iconKey: TransactionItem['iconKey'];
+  iconKey: string;
 };
 
 export type UpdateTransactionPayload = CreateTransactionPayload;

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 
@@ -7,11 +7,22 @@ type Props = {
   totalExpense: number;
   budgetUsedPercent: number;
   budgetLimit: number;
+  onPressBudget?: () => void;
 };
 
 const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
 
-export const BalanceSummaryCard = ({ totalBalance, totalExpense, budgetUsedPercent, budgetLimit }: Props) => {
+export const BalanceSummaryCard = ({
+  totalBalance,
+  totalExpense,
+  budgetUsedPercent,
+  budgetLimit,
+  onPressBudget,
+}: Props) => {
+  const usedPercent = budgetLimit > 0
+    ? Math.min(100, Math.round((totalExpense / budgetLimit) * 100))
+    : budgetUsedPercent;
+
   return (
     <View>
       <View style={styles.topRow}>
@@ -32,15 +43,19 @@ export const BalanceSummaryCard = ({ totalBalance, totalExpense, budgetUsedPerce
         </View>
       </View>
 
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${Math.min(100, budgetUsedPercent)}%` }]} />
-        <Text style={styles.progressPercent}>{budgetUsedPercent}%</Text>
+      <Pressable
+        onPress={onPressBudget}
+        disabled={!onPressBudget}
+        style={styles.progressTrack}
+      >
+        <View style={[styles.progressFill, { width: `${usedPercent}%` }]} />
+        <Text style={styles.progressPercent}>{usedPercent}%</Text>
         <Text style={styles.progressLimit} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
           {formatCurrency(budgetLimit)}
         </Text>
-      </View>
+      </Pressable>
 
-      <Text style={styles.progressText}>{budgetUsedPercent}% Ngân sách chi tiêu</Text>
+      <Text style={styles.progressText}>{usedPercent}% Ngân sách chi tiêu</Text>
     </View>
   );
 };

@@ -1,6 +1,6 @@
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NotificationBellButton } from './NotificationBellButton';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
@@ -20,29 +20,28 @@ export const AppScreenHeader = ({
   showNotificationBadge,
   notificationSize = 30,
 }: Props) => {
-  const insets = useSafeAreaInsets();
-  const topPadding = Platform.OS === 'android' ? Math.max(insets.top, 10) : 10;
-
   return (
-    <View style={[styles.headerRow, { paddingTop: topPadding }]}>
-      {onPressBack ? (
-        <Pressable style={styles.leftSlot} onPress={onPressBack}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-      ) : (
-        <View style={styles.leftSlot} />
-      )}
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <View style={styles.headerRow}>
+        {onPressBack ? (
+          <Pressable style={styles.leftSlot} onPress={onPressBack}>
+            <MaterialIcons name="arrow-back" size={22} color={colors.white} />
+          </Pressable>
+        ) : (
+          <View style={styles.leftSlot} />
+        )}
 
-      <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
 
-      <View style={styles.rightSlot}>
-        <NotificationBellButton
-          size={notificationSize}
-          onPress={onPressNotification}
-          showBadge={showNotificationBadge}
-        />
+        <View style={styles.rightSlot}>
+          <NotificationBellButton
+            size={notificationSize}
+            onPress={onPressNotification}
+            showBadge={showNotificationBadge}
+          />
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -54,6 +53,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  safeArea: {
+    backgroundColor: colors.primary,
   },
   leftSlot: {
     width: 30,

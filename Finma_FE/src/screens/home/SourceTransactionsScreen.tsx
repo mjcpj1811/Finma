@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -17,42 +18,34 @@ import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type MoneySourceTransactionsResponse } from '../../types/source';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SourceTransactions'>;
 
 const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
-
-const iconByKey: Record<
-  MoneySourceTransactionsResponse['items'][number]['iconKey'],
-  { name: keyof typeof MaterialIcons.glyphMap; bg: string }
-> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'restaurant-menu', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'shopping-bag', bg: '#7A8BFF' },
-};
 
 export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
   const { sourceId } = route.params;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<MoneySourceTransactionsResponse | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const response = await sourceApi.getSourceTransactions(sourceId);
-        setData(response);
-      } catch {
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        setLoading(true);
+        try {
+          const response = await sourceApi.getSourceTransactions(sourceId);
+          setData(response);
+        } catch {
+          setData(null);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    void load();
-  }, [sourceId]);
+      void load();
+    }, [sourceId]),
+  );
 
   const groupedItems = useMemo(() => {
     const groups: Record<string, MoneySourceTransactionsResponse['items']> = {};
@@ -108,11 +101,14 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
               <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
-                const iconMeta = iconByKey[item.iconKey];
                 return (
                   <View key={item.id} style={styles.itemCard}>
-                    <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={22} color={colors.white} />
+                    <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={22}
+                        color={colors.white}
+                      />
                     </View>
 
                     <View style={styles.itemInfoWrap}>
@@ -300,7 +296,8 @@ const styles = StyleSheet.create({
     color: '#0B6E5F',
     fontFamily: typography.poppins.semibold,
     fontSize: 15,
-  },
+  },
+
   loaderWrap: {
     flex: 1,
     alignItems: 'center',

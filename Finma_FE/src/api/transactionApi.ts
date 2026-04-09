@@ -30,7 +30,7 @@ type ApiResponse<T> = {
   result: T;
 };
 
-type BackendTransactionType = 'INCOME' | 'EXPENSE';
+type BackendTransactionType = 'INCOME' | 'EXPENSE' | 'SAVING';
 
 type BackendTransactionItem = {
   id: number;
@@ -53,7 +53,9 @@ type BackendTransactionDetail = {
   categoryName: string;
   accountId: number;
   accountName: string;
-  note?: string | null;
+  goalId?: number;
+  goalName?: string;
+  note: string | null;
   transactionDate: string;
 };
 
@@ -140,29 +142,31 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const monthLabelFromDate = (dateIso: string) => {
   const date = new Date(dateIso);
-  return date.toLocaleString('en-US', { month: 'long' });
+  return date.toLocaleString('vi-VN', { month: 'long' });
 };
 
 const timeLabelFromDate = (dateIso: string) => {
   const date = new Date(dateIso);
-  const month = date.toLocaleString('en-US', { month: 'long' });
+  const month = date.toLocaleString('vi-VN', { month: 'long' });
   const day = String(date.getDate()).padStart(2, '0');
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} - ${month} ${day}`;
 };
 
 const iconByCategoryId = (categoryId: string, type: TransactionType): TransactionItem['iconKey'] => {
-  const expenseMap: Record<string, TransactionItem['iconKey']> = {
-    food: 'food',
-    rent: 'rent',
-    transport: 'transport',
-    other: 'other',
+  const normalized = categoryId.trim().toLowerCase().replace(/-/g, '_');
+
+  const expenseMap: Record<string, string> = {
+    food: 'restaurant',
+    rent: 'home',
+    transport: 'directions_bus',
+    other: 'shopping',
   };
 
   if (type === 'income') {
-    return 'salary';
+    return 'attach_money';
   }
 
-  return expenseMap[categoryId] ?? 'other';
+  return expenseMap[normalized] ?? 'shopping';
 };
 
 const filterItems = (items: TransactionItem[], filter: TransactionFilter) => {
@@ -194,9 +198,17 @@ const buildMockDetail = (item: TransactionItem): TransactionDetail => {
   };
 };
 
-const toBackendType = (type: TransactionType): BackendTransactionType => (type === 'income' ? 'INCOME' : 'EXPENSE');
+const toBackendType = (type: TransactionType): BackendTransactionType => {
+  if (type === 'income') return 'INCOME';
+  if (type === 'saving') return 'SAVING';
+  return 'EXPENSE';
+};
 
-const toFrontendType = (type: BackendTransactionType): TransactionType => (type === 'INCOME' ? 'income' : 'expense');
+const toFrontendType = (type: BackendTransactionType): TransactionType => {
+  if (type === 'INCOME') return 'income';
+  if (type === 'SAVING') return 'saving';
+  return 'expense';
+};
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 
@@ -249,23 +261,8 @@ const buildBackendNote = (payload: CreateTransactionPayload | UpdateTransactionP
   return detail ? `${title} | ${detail}` : title;
 };
 
-const mapCategoryIconToTransactionIcon = (iconKey?: string): TransactionItem['iconKey'] => {
-  switch (iconKey) {
-    case 'attach_money':
-      return 'salary';
-    case 'restaurant':
-    case 'shopping':
-      return 'food';
-    case 'directions_bus':
-      return 'transport';
-    case 'account_balance_wallet':
-    case 'movie':
-    case 'healing':
-    case 'card_giftcard':
-      return 'other';
-    default:
-      return 'other';
-  }
+const fallbackIconByType = (type: TransactionType): TransactionItem['iconKey'] => {
+  return type === 'income' ? 'attach_money' : 'shopping';
 };
 
 const buildCategoryIconMap = async (token?: string) => {
@@ -277,7 +274,7 @@ const buildCategoryIconMap = async (token?: string) => {
   ];
 
   return allCategories.reduce<Record<string, TransactionItem['iconKey']>>((acc, category) => {
-    acc[category.id] = mapCategoryIconToTransactionIcon(category.iconKey);
+    acc[category.id] = category.iconKey;
     return acc;
   }, {});
 };
@@ -292,13 +289,13 @@ const mapBackendTransactionItem = (
   return {
     id: String(item.id),
     categoryId: String(item.categoryId),
-    monthLabel: date.toLocaleString('en-US', { month: 'long' }),
+    monthLabel: date.toLocaleString('vi-VN', { month: 'long' }),
     title: parsed.title || item.category || 'Giao dịch',
-    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
+    timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
     note: parsed.detail,
     amount: toFrontendType(item.type) === 'expense' ? -Math.abs(Number(item.amount) || 0) : Math.abs(Number(item.amount) || 0),
     kind: toFrontendType(item.type),
-    iconKey: categoryIconMapById[String(item.categoryId)] ?? mapCategoryIconToTransactionIcon(),
+    iconKey: categoryIconMapById[String(item.categoryId)] ?? fallbackIconByType(toFrontendType(item.type)),
   };
 };
 
@@ -311,28 +308,28 @@ export const transactionApi = {
           totalBalance: 5000000,
           totalIncome: 4120000,
           totalExpense: 1187400,
+          totalSaving: 0,
           unreadNotifications: 1,
         },
         items: filterItems(mockItems, filter),
       } satisfies TransactionDashboard;
     }
 
-    const typeQuery = filter === 'all' ? '' : `?type=${toBackendType(filter)}`;
     const [transactionResponse, accountResponse, categoryIconMapById] = await Promise.all([
-      request<ApiResponse<BackendTransactionItem[]>>(`${TRANSACTION_ENDPOINTS.list}${typeQuery}`, { token }),
+      request<ApiResponse<BackendTransactionItem[]>>(TRANSACTION_ENDPOINTS.list, { token }),
       request<ApiResponse<BackendAccount[]>>(TRANSACTION_ENDPOINTS.accounts, { token }),
       buildCategoryIconMap(token),
     ]);
 
-    const items = (transactionResponse.result ?? []).map((item) =>
+    const allItems = (transactionResponse.result ?? []).map((item) =>
       mapBackendTransactionItem(item, categoryIconMapById),
     );
 
-    const totalIncome = items
+    const totalIncome = allItems
       .filter((item) => item.kind === 'income')
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
-    const totalExpense = items
+    const totalExpense = allItems
       .filter((item) => item.kind === 'expense')
       .reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
@@ -346,9 +343,10 @@ export const transactionApi = {
         totalBalance,
         totalIncome,
         totalExpense,
+        totalSaving: allItems.filter(item => item.kind === 'saving').reduce((sum, item) => sum + Math.abs(item.amount), 0),
         unreadNotifications: 0,
       },
-      items,
+      items: filterItems(allItems, filter),
     } satisfies TransactionDashboard;
   },
 
@@ -372,6 +370,11 @@ export const transactionApi = {
             id: item.id,
             label: item.name,
             type: 'income' as const,
+          })),
+          ...categoryDashboard.groups.financial.map((item) => ({
+            id: item.id,
+            label: item.name,
+            type: 'finance' as const,
           })),
         ];
 
@@ -410,6 +413,11 @@ export const transactionApi = {
           label: item.name,
           type: 'income' as const,
         })),
+        ...categoryDashboard.groups.financial.map((item) => ({
+          id: item.id,
+          label: item.name,
+          type: 'finance' as const,
+        })),
       ],
       sources: (accountResponse.result ?? []).map((item) => ({
         id: String(item.id),
@@ -443,11 +451,14 @@ export const transactionApi = {
       } satisfies CreateTransactionResponse;
     }
 
-    const categoryId = Number.parseInt(payload.categoryId, 10);
-    const accountId = Number.parseInt(payload.sourceId, 10);
+    const categoryId = Number(payload.categoryId);
+    const accountId = Number(payload.sourceId);
 
-    if (!Number.isFinite(categoryId) || !Number.isFinite(accountId)) {
-      throw new Error('Danh mục hoặc nguồn tiền không hợp lệ. Vui lòng chọn lại.');
+    if (Number.isNaN(categoryId)) {
+      throw new Error(`Danh mục không hợp lệ (${payload.categoryId}). Vui lòng chọn lại.`);
+    }
+    if (Number.isNaN(accountId)) {
+      throw new Error(`Nguồn tiền không hợp lệ (${payload.sourceId}). Vui lòng chọn lại.`);
     }
 
     const response = await request<ApiResponse<BackendTransactionItem>>(TRANSACTION_ENDPOINTS.create, {
@@ -485,24 +496,26 @@ export const transactionApi = {
       buildCategoryIconMap(token),
     ]);
 
-    const result = response.result;
-    const date = parseBackendDateTime(result.transactionDate);
-    const parsedNote = splitNote(result.note);
+    const raw = response.result;
+    const date = parseBackendDateTime(raw.transactionDate);
+    const parsedNote = splitNote(raw.note);
 
     return {
-      id: String(result.id),
+      id: String(raw.id),
       date: date.toISOString(),
-      type: toFrontendType(result.type),
-      categoryId: String(result.categoryId),
-      categoryLabel: result.categoryName,
-      amount: Math.abs(Number(result.amount) || 0),
-      title: parsedNote.title || result.categoryName || 'Giao dịch',
-      sourceId: String(result.accountId),
-      sourceLabel: result.accountName,
+      type: toFrontendType(raw.type),
+      categoryId: String(raw.categoryId),
+      categoryLabel: raw.categoryName,
+      amount: Math.abs(Number(raw.amount) || 0),
+      title: parsedNote.title || raw.categoryName || 'Giao dịch',
+      sourceId: String(raw.accountId),
+      sourceLabel: raw.accountName,
+      goalId: raw.goalId ? String(raw.goalId) : undefined,
+      goalName: raw.goalName,
       detail: parsedNote.detail,
-      note: result.note ?? '',
-      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('en-US', { month: 'long' })} ${pad2(date.getDate())}`,
-      iconKey: categoryIconMapById[String(result.categoryId)] ?? 'other',
+      note: raw.note ?? '',
+      timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
+      iconKey: categoryIconMapById[String(result.categoryId)] ?? fallbackIconByType(toFrontendType(result.type)),
     } satisfies TransactionDetail;
   },
 
@@ -531,11 +544,14 @@ export const transactionApi = {
       return { success: true } satisfies TransactionActionResponse;
     }
 
-    const categoryId = Number.parseInt(payload.categoryId, 10);
-    const accountId = Number.parseInt(payload.sourceId, 10);
+    const categoryId = Number(payload.categoryId);
+    const accountId = Number(payload.sourceId);
 
-    if (!Number.isFinite(categoryId) || !Number.isFinite(accountId)) {
-      throw new Error('Danh mục hoặc nguồn tiền không hợp lệ. Vui lòng chọn lại.');
+    if (Number.isNaN(categoryId)) {
+      throw new Error(`Danh mục không hợp lệ (${payload.categoryId}). Vui lòng chọn lại.`);
+    }
+    if (Number.isNaN(accountId)) {
+      throw new Error(`Nguồn tiền không hợp lệ (${payload.sourceId}). Vui lòng chọn lại.`);
     }
 
     await request<ApiResponse<BackendTransactionDetail>>(TRANSACTION_ENDPOINTS.update(transactionId), {

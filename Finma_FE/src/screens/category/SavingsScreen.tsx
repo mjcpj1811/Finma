@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -11,11 +15,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { savingsApi } from '../../api/savingsApi';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
-import { NotificationBellButton } from '../../components/NotificationBellButton';
+import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import {
   type SavingItem,
@@ -34,7 +38,8 @@ type FormState = {
   name: string;
   targetAmount: string;
   currentAmount: string;
-  iconKey: SavingItem['iconKey'];
+  iconKey: string;
+  endDate: Date;
 };
 
 type TransactionFormState = {
@@ -50,6 +55,7 @@ const defaultForm: FormState = {
   targetAmount: '',
   currentAmount: '',
   iconKey: 'savings',
+  endDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
 };
 
 const defaultTransactionForm = (title = ''): TransactionFormState => ({
@@ -62,11 +68,31 @@ const defaultTransactionForm = (title = ''): TransactionFormState => ({
 
 const formatCurrency = (value: number) => `${Math.round(value).toLocaleString('vi-VN')}`;
 
-const savingIconMeta: Record<SavingItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; label: string }> = {
+const savingIconMeta: Record<string, { name: keyof typeof MaterialIcons.glyphMap; label: string }> = {
   savings: { name: 'savings', label: 'Tiết kiệm' },
-  flight: { name: 'flight', label: 'Du lịch' },
-  'directions-car': { name: 'directions-car', label: 'Mua xe' },
-  'home-work': { name: 'home-work', label: 'Mua nhà' },
+  schedule: { name: 'schedule', label: 'Định kỳ' },
+  payments: { name: 'payments', label: 'Vay nợ' },
+  shopping: { name: 'shopping-bag', label: 'Thực phẩm' },
+  restaurant: { name: 'restaurant', label: 'Ăn uống' },
+  card_giftcard: { name: 'card-giftcard', label: 'Quà tặng' },
+  healing: { name: 'healing', label: 'Y tế' },
+  movie: { name: 'movie', label: 'Giải trí' },
+  directions_bus: { name: 'directions-bus', label: 'Di chuyển' },
+  attach_money: { name: 'attach-money', label: 'Lương' },
+  account_balance_wallet: { name: 'account-balance-wallet', label: 'Trợ cấp' },
+  local_grocery_store: { name: 'local-grocery-store', label: 'Siêu thị' },
+  directions_car: { name: 'directions-car', label: 'Xe cộ' },
+  home: { name: 'home', label: 'Nhà ở' },
+  school: { name: 'school', label: 'Học tập' },
+  fitness_center: { name: 'fitness-center', label: 'Thể thao' },
+  pets: { name: 'pets', label: 'Thú cưng' },
+  phone_iphone: { name: 'phone-iphone', label: 'Điện thoại' },
+  book: { name: 'book', label: 'Sách' },
+  music_note: { name: 'music-note', label: 'Âm nhạc' },
+  local_cafe: { name: 'local-cafe', label: 'Cà phê' },
+  work: { name: 'work', label: 'Công việc' },
+  child_care: { name: 'child-care', label: 'Con cái' },
+  checkroom: { name: 'checkroom', label: 'Thời trang' },
 };
 
 const transactionIcon: Record<
@@ -77,6 +103,14 @@ const transactionIcon: Record<
   withdraw: { name: 'north-east', bg: '#FDECEC', color: '#DC2626' },
 };
 
+const getSavingIcon = (iconKey?: string) => {
+  return savingIconMeta[iconKey ?? 'savings'] ?? savingIconMeta.savings;
+};
+
+const getTransactionIcon = (kind: SavingTransactionsResponse['items'][number]['kind']) => {
+  return transactionIcon[kind] ?? transactionIcon.deposit;
+};
+
 const stripSavingPrefix = (name: string) => name.replace(/^Tiết\s*Kiệm\s*/i, '').trim() || name;
 
 const formatDateText = (value: string) => {
@@ -84,11 +118,23 @@ const formatDateText = (value: string) => {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('vi-VN', {
     month: 'long',
     day: '2-digit',
     year: 'numeric',
   });
+};
+
+const formatTransactionTime = (item: any) => {
+  if (!item.dateIso) return item.timeLabel;
+  const date = new Date(item.dateIso);
+  if (isNaN(date.getTime())) return item.timeLabel;
+
+  const timePart = item.timeLabel.split(' - ')[0] || '';
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString();
+
+  return `${timePart} - ${day} Tháng ${month}`;
 };
 
 export const SavingsScreen = ({ navigation, route }: Props) => {
@@ -96,6 +142,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<SavingsDashboard | null>(null);
   const [selectedSavingId, setSelectedSavingId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [detailLoading, setDetailLoading] = useState(true);
   const [detail, setDetail] = useState<SavingTransactionsResponse | null>(null);
@@ -104,7 +151,13 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   const [savingAction, setSavingAction] = useState(false);
   const [editingItem, setEditingItem] = useState<SavingItem | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [draftEndDate, setDraftEndDate] = useState(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [transactionForm, setTransactionForm] = useState<TransactionFormState>(defaultTransactionForm());
+  const [showTransactionDatePicker, setShowTransactionDatePicker] = useState(false);
+  const [draftTransactionDate, setDraftTransactionDate] = useState(new Date());
 
   const selectedSaving = useMemo(
     () => dashboard?.items.find((item) => item.id === selectedSavingId) ?? null,
@@ -126,23 +179,57 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       return 0;
     }
 
-    return dashboard.items.filter((item) => item.targetAmount - item.currentAmount <= 150000).length;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return dashboard.items.filter((item) => {
+      // tính mục tiêu đến hạn
+      if (item.daysRemaining !== undefined && item.daysRemaining !== null) {
+        return item.daysRemaining === 1;
+      }
+
+      // Nếu không có, tự tính toán dựa trên endDate
+      if (item.endDate) {
+        const end = new Date(item.endDate);
+        end.setHours(0, 0, 0, 0);
+        const diffTime = end.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays === 1;
+      }
+
+      return false;
+    }).length;
   }, [dashboard]);
 
-  const groupedTransactions = useMemo(() => {
-    const groups: Record<string, SavingTransactionsResponse['items']> = {};
-    detail?.items.forEach((item) => {
-      if (!groups[item.monthLabel]) {
-        groups[item.monthLabel] = [];
-      }
-      groups[item.monthLabel].push(item);
-    });
+  const monthOptions = useMemo(() => {
+    if (!detail) return [];
+    return Array.from(new Set(detail.items.map((item) => item.monthLabel)));
+  }, [detail]);
 
-    return Object.entries(groups);
-  }, [detail?.items]);
+  useEffect(() => {
+    if (!selectedMonth && monthOptions.length > 0) {
+      setSelectedMonth(monthOptions[0]);
+    }
+  }, [monthOptions, selectedMonth]);
+
+  const visibleItems = useMemo(() => {
+    if (!detail) return [];
+    
+    const filtered = selectedMonth
+      ? detail.items.filter((item) => item.monthLabel === selectedMonth)
+      : detail.items;
+
+    // Sắp xếp giảm dần theo ngày (mới nhất lên đầu)
+    return [...filtered].sort((a, b) => {
+      const dateA = a.dateIso || '';
+      const dateB = b.dateIso || '';
+      return dateB.localeCompare(dateA);
+    });
+  }, [detail, selectedMonth]);
 
   const loadDashboard = async (preferredId?: string | null) => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const response = await savingsApi.getDashboard();
       setDashboard(response);
@@ -154,9 +241,11 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
         null;
 
       setSelectedSavingId(nextSelected);
-    } catch {
+    } catch (error) {
       setDashboard(null);
       setSelectedSavingId(null);
+      const message = error instanceof Error ? error.message : 'Không thể tải mục tiêu tiết kiệm.';
+      setErrorMessage(message);
     } finally {
       setLoading(false);
     }
@@ -181,11 +270,14 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       }
 
       setDetailLoading(true);
+      setErrorMessage(null);
       try {
         const response = await savingsApi.getSavingTransactions(selectedSavingId);
         setDetail(response);
-      } catch {
+      } catch (error) {
         setDetail(null);
+        const message = error instanceof Error ? error.message : 'Không thể tải giao dịch tiết kiệm.';
+        setErrorMessage(message);
       } finally {
         setDetailLoading(false);
       }
@@ -193,6 +285,29 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
 
     void loadDetail();
   }, [selectedSavingId]);
+
+  // Refresh data when screen focus (e.g. back from detail)
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard(selectedSavingId);
+      if (selectedSavingId) {
+        // detail's useEffect will handle the detail load since it depends on selectedSavingId
+        // but we might want to force a reload of detail too if selectedSavingId hasn't changed
+        const loadDetail = async () => {
+          setDetailLoading(true);
+          try {
+            const response = await savingsApi.getSavingTransactions(selectedSavingId);
+            setDetail(response);
+          } catch (error) {
+            console.error('Failed to reload detail on focus:', error);
+          } finally {
+            setDetailLoading(false);
+          }
+        };
+        loadDetail();
+      }
+    }, [selectedSavingId])
+  );
 
   const openCreateModal = () => {
     setEditingItem(null);
@@ -207,6 +322,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       targetAmount: String(item.targetAmount),
       currentAmount: String(item.currentAmount),
       iconKey: item.iconKey,
+      endDate: item.endDate ? new Date(item.endDate) : defaultForm.endDate,
     });
     setShowModal(true);
   };
@@ -220,11 +336,17 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       return;
     }
 
+    const today = new Date();
+    const defaultStartDate = (editingItem?.startDate || today.toISOString().split('T')[0]);
+    const nextEndDate = form.endDate.toISOString().split('T')[0];
+
     const payload: UpsertSavingPayload = {
       name: form.name.trim(),
       targetAmount,
       currentAmount,
       iconKey: form.iconKey,
+      startDate: defaultStartDate,
+      endDate: nextEndDate,
     };
 
     setSavingAction(true);
@@ -232,6 +354,10 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       if (editingItem) {
         await savingsApi.updateSaving(editingItem.id, payload);
         await loadDashboard(editingItem.id);
+        if (selectedSavingId === editingItem.id) {
+          const detailRes = await savingsApi.getSavingTransactions(editingItem.id);
+          setDetail(detailRes);
+        }
       } else {
         const response = await savingsApi.createSaving(payload);
         await loadDashboard(response.savingId ?? null);
@@ -240,6 +366,8 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       setShowModal(false);
       setEditingItem(null);
       setForm(defaultForm);
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể lưu mục tiêu tiết kiệm.');
     } finally {
       setSavingAction(false);
     }
@@ -281,6 +409,49 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     setViewMode('detail');
   };
 
+  const openEndDatePicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: form.endDate,
+        mode: 'date',
+        is24Hour: true,
+        onChange: (event, nextDate) => {
+          if (event.type === 'set' && nextDate) {
+            setForm((prev) => ({ ...prev, endDate: nextDate }));
+          }
+        },
+      });
+      return;
+    }
+
+    setDraftEndDate(form.endDate);
+    setShowEndDatePicker(true);
+  };
+
+  const openTransactionDatePicker = () => {
+    const currentDate = new Date(transactionForm.dateIso);
+
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: currentDate,
+        mode: 'date',
+        is24Hour: true,
+        onChange: (event, nextDate) => {
+          if (event.type === 'set' && nextDate) {
+            setTransactionForm((prev) => ({
+              ...prev,
+              dateIso: nextDate.toISOString().split('T')[0],
+            }));
+          }
+        },
+      });
+      return;
+    }
+
+    setDraftTransactionDate(currentDate);
+    setShowTransactionDatePicker(true);
+  };
+
   const openTransactionForm = () => {
     if (!selectedSaving) {
       return;
@@ -315,6 +486,8 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       const response = await savingsApi.getSavingTransactions(selectedSavingId);
       setDetail(response);
       setViewMode('detail');
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Không thể lưu khoản tiết kiệm.');
     } finally {
       setSavingAction(false);
     }
@@ -325,7 +498,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
 
   const unreadNotifications = detail?.overview.unreadNotifications ?? dashboard?.overview.unreadNotifications ?? 0;
 
-  if (loading || !dashboard) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loaderWrap}>
@@ -337,35 +510,28 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     );
   }
 
+  if (!dashboard) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.loaderWrap}>
+          <Text style={styles.loaderText}>{errorMessage ?? 'Không có dữ liệu tiết kiệm.'}</Text>
+          <Pressable style={styles.addTransactionButton} onPress={() => void loadDashboard()}>
+            <Text style={styles.addTransactionButtonText}>Thử lại</Text>
+          </Pressable>
+        </View>
+        <ScreenBottomNavigation activeTab="layers" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.headerRow}>
-        <Pressable style={styles.backSlot} onPress={onBack}>
-          <MaterialIcons name="arrow-back" size={22} color={colors.white} />
-        </Pressable>
-
-        <Text style={styles.headerTitle}>{screenTitle}</Text>
-
-        <View style={styles.headerActions}>
-          {viewMode === 'detail' && selectedSaving ? (
-            <Pressable style={styles.headerIconButton} onPress={() => openEditModal(selectedSaving)}>
-              <MaterialIcons name="edit" size={18} color={colors.white} />
-            </Pressable>
-          ) : null}
-
-          {viewMode === 'detail' && selectedSaving ? (
-            <Pressable style={styles.headerIconButton} onPress={() => onDelete(selectedSaving)}>
-              <MaterialIcons name="delete-outline" size={19} color="#EF4444" />
-            </Pressable>
-          ) : null}
-
-          <NotificationBellButton
-            size={30}
-            onPress={() => navigation.navigate('Notifications')}
-            showBadge={unreadNotifications > 0}
-          />
-        </View>
-      </View>
+      <AppScreenHeader
+        title={screenTitle}
+        onPressBack={onBack}
+        onPressNotification={() => navigation.navigate('Notifications')}
+        showNotificationBadge={unreadNotifications > 0}
+      />
 
       {viewMode === 'overview' ? (
         <>
@@ -396,7 +562,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
               <View style={styles.savingsGrid}>
                 {dashboard.items.map((item) => {
-                  const icon = savingIconMeta[item.iconKey];
+                  const icon = getSavingIcon(item.iconKey);
                   return (
                     <Pressable
                       key={item.id}
@@ -415,8 +581,8 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                 })}
               </View>
 
-              <Pressable style={styles.addButton} onPress={openCreateModal}>
-                <Text style={styles.addButtonText}>Thêm mục tiêu</Text>
+              <Pressable style={styles.addTransactionButton} onPress={openCreateModal}>
+                <Text style={styles.addTransactionButtonText}>Thêm mục tiêu</Text>
               </Pressable>
             </ScrollView>
           </View>
@@ -424,160 +590,270 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       ) : null}
 
       {viewMode === 'detail' ? (
-        <View style={styles.mainPanel}>
-          {detailLoading || !detail ? (
-            <View style={styles.emptyWrap}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.emptyText}>Đang tải giao dịch tiết kiệm...</Text>
+        <>
+          {detail && !detailLoading ? (
+            <View style={styles.savingActionsRow}>
+              <Pressable style={styles.editSavingChip} onPress={() => openEditModal(detail.saving)}>
+                <MaterialIcons name="edit" size={15} color="#2563EB" />
+                <Text style={styles.editSavingChipText}>Sửa quỹ</Text>
+              </Pressable>
+
+              <Pressable style={styles.deleteSavingChip} onPress={() => onDelete(detail.saving)}>
+                <MaterialIcons name="delete-outline" size={16} color="#EF4444" />
+                <Text style={styles.deleteSavingChipText}>Xóa quỹ</Text>
+              </Pressable>
             </View>
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
-              <View style={styles.detailCard}>
-                <View style={styles.detailLeft}>
-                  <Text style={styles.detailLabel}>Mục Tiêu</Text>
-                  <Text style={styles.detailMainValue}>{formatCurrency(detail.overview.target)}</Text>
+          ) : null}
 
-                  <Text style={styles.detailLabel}>Đã tiết kiệm</Text>
-                  <Text style={[styles.detailMainValue, styles.detailSaved]}>{formatCurrency(detail.overview.saved)}</Text>
-                </View>
-
-                <View style={styles.detailRight}>
-                  <View style={styles.selectedIconWrap}>
-                    <MaterialIcons name={savingIconMeta[detail.saving.iconKey].name} size={34} color={colors.white} />
-                  </View>
-                  <Text style={styles.selectedName}>{stripSavingPrefix(detail.saving.name)}</Text>
-                </View>
+          <View style={styles.mainPanel}>
+            {detailLoading ? (
+              <View style={styles.emptyWrap}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.emptyText}>Đang tải giao dịch tiết kiệm...</Text>
               </View>
-
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${detail.overview.progressPercent}%` }]} />
-                <Text style={styles.progressPercent}>{detail.overview.progressPercent}%</Text>
-                <Text style={styles.progressTargetText}>{formatCurrency(detail.overview.target)}</Text>
-              </View>
-
-              <Text style={styles.progressText}>Đã đạt {detail.overview.progressPercent}% mục tiêu</Text>
-
-              <View style={styles.monthHeaderRow}>
-                <Text style={styles.monthLabel}>April</Text>
-                <Pressable style={styles.calendarChip}>
-                  <MaterialIcons name="calendar-month" size={16} color={colors.primary} />
+            ) : !detail ? (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyText}>{errorMessage ?? 'Không tìm thấy giao dịch tiết kiệm.'}</Text>
+                <Pressable style={styles.addTransactionButton} onPress={() => void loadDashboard(selectedSavingId)}>
+                  <Text style={styles.addTransactionButtonText}>Tải lại</Text>
                 </Pressable>
               </View>
-
-              {groupedTransactions.map(([monthLabel, items]) => (
-                <View key={monthLabel} style={styles.monthGroup}>
-                  {monthLabel !== 'April' ? <Text style={styles.monthLabel}>{monthLabel}</Text> : null}
-                  {items.map((item) => {
-                    const icon = transactionIcon[item.kind];
-                    return (
-                      <View key={item.id} style={styles.transactionItem}>
-                        <View style={[styles.transactionIcon, { backgroundColor: '#6AA8FF' }]}>
-                          <MaterialIcons name={savingIconMeta[detail.saving.iconKey].name} size={18} color={colors.white} />
-                        </View>
-
-                        <View style={styles.transactionCenter}>
-                          <Text style={styles.transactionTitle}>{item.title}</Text>
-                          <Text style={styles.transactionTime}>{item.timeLabel}</Text>
-                        </View>
-
-                        <View style={styles.transactionRight}>
-                          <Text style={styles.transactionAmount}>{formatCurrency(Math.abs(item.amount))}</Text>
-                          <View style={styles.transactionKindRow}>
-                            <MaterialIcons name={icon.name} size={12} color={icon.color} />
-                            <Text style={[styles.transactionKindText, item.kind === 'deposit' ? styles.amountIn : styles.amountOut]}>
-                              {item.kind === 'deposit' ? 'Nạp quỹ' : 'Rút quỹ'}
-                            </Text>
-                          </View>
-                        </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+                <View style={styles.detailCard}>
+                  <View style={styles.detailLeft}>
+                    <View style={styles.statLabelRow}>
+                      <View style={styles.statIconBox}>
+                        <MaterialIcons name="north-west" size={14} color={colors.text} />
                       </View>
-                    );
-                  })}
-                </View>
-              ))}
+                      <Text style={styles.statLabel}>Mục Tiêu</Text>
+                    </View>
+                    <Text style={styles.statValue}>{formatCurrency(detail.overview.target)}</Text>
 
-              <Pressable style={styles.addButton} onPress={openTransactionForm}>
-                <Text style={styles.addButtonText}>Thêm khoản tiết kiệm</Text>
-              </Pressable>
-            </ScrollView>
-          )}
-        </View>
+                    <View style={[styles.statLabelRow, { marginTop: 12 }]}>
+                      <View style={[styles.statIconBox, { borderColor: '#00D09E' }]}>
+                        <MaterialIcons name="north-east" size={14} color="#00D09E" />
+                      </View>
+                      <Text style={styles.statLabel}>Đã Được</Text>
+                    </View>
+                    <Text style={[styles.statValue, { color: '#00D09E' }]}>{formatCurrency(detail.overview.saved)}</Text>
+                  </View>
+
+                  <View style={styles.detailRight}>
+                    <View style={styles.selectedIconWrap}>
+                      <MaterialIcons name={getSavingIcon(detail.saving.iconKey).name} size={34} color={colors.white} />
+                    </View>
+                    <Text style={styles.selectedName}>{stripSavingPrefix(detail.saving.name)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${detail.overview.progressPercent}%` }]} />
+                  <Text style={styles.progressPercent}>{detail.overview.progressPercent}%</Text>
+                  <Text style={styles.progressTargetText}>{formatCurrency(detail.overview.target)}</Text>
+                </View>
+
+                <Text style={styles.progressText}>Đã đạt {detail.overview.progressPercent}% mục tiêu</Text>
+
+                <View style={styles.transactionList}>
+                  <View style={styles.filterWrapper}>
+                    <Text style={styles.monthTitle}>{selectedMonth || 'Tháng'}</Text>
+                    <Pressable style={styles.filterButton} onPress={() => setShowMonthPicker(true)}>
+                      <MaterialIcons name="calendar-today" size={20} color={colors.white} />
+                    </Pressable>
+                  </View>
+
+                  {visibleItems.length === 0 ? (
+                    <Text style={styles.emptyText}>Chưa có giao dịch cho tiết kiệm này.</Text>
+                  ) : (
+                    visibleItems.map((item, index) => {
+                      const icon = getTransactionIcon(item.kind);
+                      const isLast = index === visibleItems.length - 1;
+                      return (
+                        <Pressable 
+                          key={item.id} 
+                          style={[styles.transactionCard, !isLast && styles.transactionCardBorder]}
+                          onPress={() => navigation.navigate('SavingTransactionDetail', { 
+                            transactionId: item.id,
+                            savingId: detail.saving.id
+                          })}
+                        >
+                          <View style={[styles.transactionIcon, { backgroundColor: '#4D9EFF' }]}>
+                            <MaterialIcons name={getSavingIcon(detail.saving.iconKey).name} size={22} color={colors.white} />
+                          </View>
+                          <View style={styles.transactionText}>
+                            <Text style={styles.transactionTitle}>{item.title}</Text>
+                            <Text style={styles.transactionTime}>{formatTransactionTime(item)}</Text>
+                          </View>
+                          <Text style={styles.transactionAmount}>
+                            {formatCurrency(Math.abs(item.amount))}
+                          </Text>
+                        </Pressable>
+                      );
+                    })
+                  )}
+                </View>
+
+                <Pressable style={styles.addTransactionButton} onPress={openTransactionForm}>
+                  <Text style={styles.addTransactionButtonText}>Thêm khoản tiết kiệm</Text>
+                </Pressable>
+
+                <Modal
+                  visible={showMonthPicker}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setShowMonthPicker(false)}
+                >
+                  <View style={styles.modalOverlay}>
+                    <View style={styles.monthPickerCard}>
+                      <Text style={styles.monthPickerTitle}>Chọn tháng</Text>
+                      {monthOptions.map((month) => (
+                        <Pressable
+                          key={month}
+                          style={styles.monthOption}
+                          onPress={() => {
+                            setSelectedMonth(month);
+                            setShowMonthPicker(false);
+                          }}
+                        >
+                          <Text style={[styles.monthOptionText, selectedMonth === month && styles.monthOptionTextActive]}>
+                            {month}
+                          </Text>
+                        </Pressable>
+                      ))}
+                      <Pressable style={styles.monthPickerClose} onPress={() => setShowMonthPicker(false)}>
+                        <Text style={styles.monthPickerCloseText}>Đóng</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </Modal>
+              </ScrollView>
+            )}
+          </View>
+        </>
       ) : null}
 
       {viewMode === 'form' ? (
-        <View style={styles.mainPanel}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.formContent}>
-            <View style={styles.formFieldBlock}>
-              <Text style={styles.formLabel}>Ngày</Text>
-              <View style={styles.readonlyInput}>
-                <Text style={styles.readonlyText}>{formatDateText(transactionForm.dateIso)}</Text>
-                <MaterialIcons name="event" size={18} color={colors.primary} />
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoiding}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.mainPanel}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.formContent}
+            >
+              <View style={styles.formFieldBlock}>
+                <Text style={styles.formLabel}>Ngày giao dịch</Text>
+                <Pressable style={styles.readonlyInput} onPress={openTransactionDatePicker}>
+                  <Text style={styles.readonlyText}>{formatDateText(transactionForm.dateIso)}</Text>
+                  <MaterialIcons name="event" size={18} color={colors.primary} />
+                </Pressable>
               </View>
-            </View>
 
-            <View style={styles.formFieldBlock}>
-              <Text style={styles.formLabel}>Danh Mục</Text>
-              <View style={styles.readonlyInput}>
-                <Text style={styles.readonlyText}>{stripSavingPrefix(selectedSaving?.name ?? 'Tiết kiệm')}</Text>
-                <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+              <View style={styles.formFieldBlock}>
+                <Text style={styles.formLabel}>Danh Mục</Text>
+                <View style={styles.readonlyInput}>
+                  <Text style={styles.readonlyText}>{stripSavingPrefix(selectedSaving?.name ?? 'Tiết kiệm')}</Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+                </View>
               </View>
-            </View>
 
-            <View style={styles.formFieldBlock}>
-              <Text style={styles.formLabel}>Tổng</Text>
-              <TextInput
-                value={transactionForm.amount}
-                onChangeText={(value) => setTransactionForm((prev) => ({ ...prev, amount: value }))}
-                placeholder="201770"
-                keyboardType="numeric"
-                style={styles.input}
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
+              <View style={styles.formFieldBlock}>
+                <Text style={styles.formLabel}>Tổng</Text>
+                <TextInput
+                  value={transactionForm.amount}
+                  onChangeText={(value) => setTransactionForm((prev) => ({ ...prev, amount: value }))}
+                  placeholder="201770"
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
 
-            <View style={styles.formFieldBlock}>
-              <Text style={styles.formLabel}>Tiêu Đề</Text>
-              <TextInput
-                value={transactionForm.title}
-                onChangeText={(value) => setTransactionForm((prev) => ({ ...prev, title: value }))}
-                placeholder="Tiết Kiệm Du Lịch"
-                style={styles.input}
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
+              <View style={styles.formFieldBlock}>
+                <Text style={styles.formLabel}>Tiêu Đề</Text>
+                <TextInput
+                  value={transactionForm.title}
+                  onChangeText={(value) => setTransactionForm((prev) => ({ ...prev, title: value }))}
+                  placeholder="Tiết Kiệm Du Lịch"
+                  style={styles.input}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
 
-            <View style={styles.formFieldBlock}>
-              <Text style={styles.formLabel}>Ghi Chú</Text>
-              <TextInput
-                value={transactionForm.note}
-                onChangeText={(value) => setTransactionForm((prev) => ({ ...prev, note: value }))}
-                placeholder="Chi tiết"
-                style={[styles.input, styles.noteInput]}
-                placeholderTextColor={colors.textMuted}
-                multiline
-              />
-            </View>
+              <View style={styles.formFieldBlock}>
+                <Text style={styles.formLabel}>Ghi Chú</Text>
+                <TextInput
+                  value={transactionForm.note}
+                  onChangeText={(value) => setTransactionForm((prev) => ({ ...prev, note: value }))}
+                  placeholder="Chi tiết"
+                  style={[styles.input, styles.noteInput]}
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                />
+              </View>
 
-            <View style={styles.formKindRow}>
-              <Pressable
-                style={[styles.kindChip, transactionForm.kind === 'deposit' && styles.kindChipActive]}
-                onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'deposit' }))}
-              >
-                <Text style={[styles.kindChipText, transactionForm.kind === 'deposit' && styles.kindChipTextActive]}>Nạp quỹ</Text>
+              <View style={styles.formKindRow}>
+                <Pressable
+                  style={[styles.kindChip, transactionForm.kind === 'deposit' && styles.kindChipActive]}
+                  onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'deposit' }))}
+                >
+                  <Text style={[styles.kindChipText, transactionForm.kind === 'deposit' && styles.kindChipTextActive]}>Nạp quỹ</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.kindChip, transactionForm.kind === 'withdraw' && styles.kindChipActive]}
+                  onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'withdraw' }))}
+                >
+                  <Text style={[styles.kindChipText, transactionForm.kind === 'withdraw' && styles.kindChipTextActive]}>Rút quỹ</Text>
+                </Pressable>
+              </View>
+
+              <Pressable style={styles.addTransactionButton} onPress={onSaveTransaction} disabled={savingAction}>
+                <Text style={styles.addTransactionButtonText}>{savingAction ? 'Đang lưu...' : 'Lưu'}</Text>
               </Pressable>
 
-              <Pressable
-                style={[styles.kindChip, transactionForm.kind === 'withdraw' && styles.kindChipActive]}
-                onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'withdraw' }))}
-              >
-                <Text style={[styles.kindChipText, transactionForm.kind === 'withdraw' && styles.kindChipTextActive]}>Rút quỹ</Text>
-              </Pressable>
-            </View>
+              {Platform.OS === 'ios' && showTransactionDatePicker ? (
+                <View style={[StyleSheet.absoluteFill, styles.dateModalOverlay]}>
+                  <View style={styles.dateModalCard}>
+                    <DateTimePicker
+                      value={draftTransactionDate}
+                      mode="date"
+                      display="spinner"
+                      locale="vi-VN"
+                      onChange={(event, nextDate) => {
+                        if (nextDate) {
+                          setDraftTransactionDate(nextDate);
+                        }
+                      }}
+                    />
 
-            <Pressable style={styles.addButton} onPress={onSaveTransaction} disabled={savingAction}>
-              <Text style={styles.addButtonText}>{savingAction ? 'Đang lưu...' : 'Lưu'}</Text>
-            </Pressable>
-          </ScrollView>
-        </View>
+                    <View style={styles.dateModalActions}>
+                      <Pressable style={styles.dateCancelButton} onPress={() => setShowTransactionDatePicker(false)}>
+                        <Text style={styles.dateCancelText}>Hủy</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.dateDoneButton}
+                        onPress={() => {
+                          setTransactionForm((prev) => ({
+                            ...prev,
+                            dateIso: draftTransactionDate.toISOString().split('T')[0],
+                          }));
+                          setShowTransactionDatePicker(false);
+                        }}
+                      >
+                        <Text style={styles.dateDoneText}>Chọn</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       ) : null}
 
       <ScreenBottomNavigation activeTab="layers" />
@@ -616,24 +892,35 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
               style={styles.input}
             />
 
+            <Text style={styles.modalLabel}>Ngày kết thúc</Text>
+            <Pressable style={styles.readonlyInput} onPress={openEndDatePicker}>
+              <Text style={styles.readonlyText}>{formatDateText(form.endDate.toISOString())}</Text>
+              <MaterialIcons name="event" size={18} color={colors.primary} />
+            </Pressable>
+
             <Text style={styles.modalLabel}>Biểu tượng</Text>
-            <View style={styles.iconOptionsRow}>
-              {(Object.keys(savingIconMeta) as SavingItem['iconKey'][]).map((iconKey) => {
-                const selected = form.iconKey === iconKey;
-                return (
-                  <Pressable
-                    key={iconKey}
-                    style={[styles.iconOption, selected && styles.iconOptionActive]}
-                    onPress={() => setForm((prev) => ({ ...prev, iconKey }))}
-                  >
-                    <MaterialIcons
-                      name={savingIconMeta[iconKey].name}
-                      size={20}
-                      color={selected ? colors.white : colors.text}
-                    />
-                  </Pressable>
-                );
-              })}
+            <View style={styles.iconGridWrapper}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.iconGrid}
+              >
+                {Object.keys(savingIconMeta).map((iconKey) => {
+                  const selected = form.iconKey === iconKey;
+                  return (
+                    <Pressable
+                      key={iconKey}
+                      style={[styles.iconOption, selected && styles.iconOptionActive]}
+                      onPress={() => setForm((prev) => ({ ...prev, iconKey }))}
+                    >
+                      <MaterialIcons
+                        name={savingIconMeta[iconKey].name}
+                        size={22}
+                        color={selected ? colors.white : colors.text}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
 
             <View style={styles.modalActions}>
@@ -646,6 +933,40 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
               </Pressable>
             </View>
           </View>
+
+          {Platform.OS === 'ios' && showEndDatePicker ? (
+            <View style={[StyleSheet.absoluteFill, styles.dateModalOverlay]}>
+              <View style={styles.dateModalCard}>
+                <DateTimePicker
+                  value={draftEndDate}
+                  mode="date"
+                  display="spinner"
+                  locale="vi-VN"
+                  onChange={(event, nextDate) => {
+                    if (nextDate) {
+                      setDraftEndDate(nextDate);
+                    }
+                  }}
+                />
+
+                <View style={styles.dateModalActions}>
+                  <Pressable style={styles.dateCancelButton} onPress={() => setShowEndDatePicker(false)}>
+                    <Text style={styles.dateCancelText}>Hủy</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.dateDoneButton}
+                    onPress={() => {
+                      setForm((prev) => ({ ...prev, endDate: draftEndDate }));
+                      setShowEndDatePicker(false);
+                    }}
+                  >
+                    <Text style={styles.dateDoneText}>Chọn</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ) : null}
         </View>
       </Modal>
     </SafeAreaView>
@@ -727,6 +1048,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#C6EFE4',
     marginHorizontal: 10,
   },
+  savingActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  editSavingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8EEFF',
+    borderRadius: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  editSavingChipText: {
+    color: '#2563EB',
+    fontFamily: typography.poppins.medium,
+    fontSize: 11,
+  },
+  deleteSavingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FCE8E8',
+    borderRadius: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  deleteSavingChipText: {
+    color: '#EF4444',
+    fontFamily: typography.poppins.medium,
+    fontSize: 11,
+  },
   summaryProgressTrack: {
     marginHorizontal: 16,
     height: 20,
@@ -768,8 +1124,11 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   formContent: {
-    paddingBottom: 120,
+    paddingBottom: 180,
     gap: 8,
+  },
+  keyboardAvoiding: {
+    flex: 1,
   },
   savingsGrid: {
     flexDirection: 'row',
@@ -822,46 +1181,46 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#2A74E6',
   },
-  savingTabText: {
-    color: colors.text,
-    fontFamily: typography.poppins.medium,
-    fontSize: 12,
-    textAlign: 'center',
-    width: '100%',
-  },
   detailCard: {
-    backgroundColor: '#DFF7E2',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
   detailLeft: {
     flex: 1,
   },
-  detailRight: {
-    width: 110,
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  statIconBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailLabel: {
-    color: '#DFF7E2',
+  statLabel: {
+    color: colors.text,
     fontFamily: typography.poppins.medium,
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: 14,
   },
-  detailMainValue: {
+  statValue: {
     color: colors.text,
     fontFamily: typography.poppins.bold,
-    fontSize: 28,
+    fontSize: 26,
     lineHeight: 32,
-    marginBottom: 8,
+    marginLeft: 30,
   },
-  detailSaved: {
-    color: '#0B8D72',
-    marginBottom: 0,
+  detailRight: {
+    alignItems: 'center',
+    gap: 10,
   },
   selectedIconWrap: {
     width: 74,
@@ -919,13 +1278,98 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  calendarChip: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  transactionList: {
+    marginTop: 20,
+    backgroundColor: colors.white,
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  filterWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: 4,
+  },
+  monthTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontFamily: typography.poppins.semibold,
+  },
+  filterButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D9F3E8',
+  },
+  transactionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  transactionCardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  transactionText: {
+    flex: 1,
+  },
+  addTransactionButton: {
+    marginTop: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 24,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  addTransactionButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontFamily: typography.poppins.semibold,
+  },
+  monthPickerCard: {
+    width: '100%',
+    backgroundColor: colors.white,
+    borderRadius: 24,
+    padding: 20,
+  },
+  monthPickerTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontFamily: typography.poppins.semibold,
+    marginBottom: 16,
+  },
+  monthOption: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  monthOptionText: {
+    color: colors.text,
+    fontSize: 15,
+    fontFamily: typography.poppins.regular,
+  },
+  monthOptionTextActive: {
+    color: colors.primary,
+    fontFamily: typography.poppins.semibold,
+  },
+  monthPickerClose: {
+    marginTop: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+  },
+  monthPickerCloseText: {
+    color: colors.white,
+    fontSize: 15,
+    fontFamily: typography.poppins.semibold,
   },
   actionRow: {
     flexDirection: 'row',
@@ -980,38 +1424,28 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    marginRight: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  transactionCenter: {
-    flex: 1,
-  },
   transactionTitle: {
     color: colors.text,
-    fontFamily: typography.poppins.medium,
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: typography.poppins.semibold,
   },
   transactionTime: {
-    color: '#0E62D0',
-    fontFamily: typography.poppins.medium,
+    marginTop: 4,
+    color: colors.blueDark,
     fontSize: 12,
-  },
-  transactionRight: {
-    alignItems: 'flex-end',
-    minWidth: 100,
-  },
-  transactionNote: {
-    color: '#4F6B63',
-    fontFamily: typography.poppins.medium,
-    fontSize: 12,
+    fontFamily: typography.poppins.regular,
   },
   transactionAmount: {
+    color: colors.text,
+    fontSize: 15,
     fontFamily: typography.poppins.semibold,
-    fontSize: 14,
-    color: '#2A3A35',
   },
   transactionKindRow: {
     flexDirection: 'row',
@@ -1028,21 +1462,7 @@ const styles = StyleSheet.create({
   amountOut: {
     color: '#DC2626',
   },
-  addButton: {
-    alignSelf: 'center',
-    marginTop: 14,
-    minHeight: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-  },
-  addButtonText: {
-    color: '#0C6657',
-    fontFamily: typography.poppins.semibold,
-    fontSize: 15,
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
@@ -1133,18 +1553,25 @@ const styles = StyleSheet.create({
   kindChipTextActive: {
     color: colors.white,
   },
-  iconOptionsRow: {
+  iconGridWrapper: {
+    maxHeight: 210,
+    minHeight: 160,
+    marginTop: 8,
+  },
+  iconGrid: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 2,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingBottom: 0,
   },
   iconOption: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 14,
     backgroundColor: '#E8F5F1',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 10,
   },
   iconOptionActive: {
     backgroundColor: colors.primary,
@@ -1177,6 +1604,50 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   saveText: {
+    color: colors.white,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 13,
+  },
+  dateModalOverlay: {
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
+  dateModalCard: {
+    width: '100%',
+    backgroundColor: '#F1FFF3',
+    borderRadius: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    paddingHorizontal: 10,
+  },
+  dateModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 6,
+    marginTop: 4,
+  },
+  dateCancelButton: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#DFF7E2',
+  },
+  dateCancelText: {
+    color: colors.text,
+    fontFamily: typography.poppins.medium,
+    fontSize: 13,
+  },
+  dateDoneButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  dateDoneText: {
     color: colors.white,
     fontFamily: typography.poppins.semibold,
     fontSize: 13,

@@ -1,6 +1,5 @@
 import { type ReactNode, useState } from 'react';
 import {
-  Image,
   Platform,
   Pressable,
   SafeAreaView,
@@ -9,11 +8,13 @@ import {
   TextInput,
   View,
   ScrollView,
-  type ImageSourcePropType,
 } from 'react-native';
+import type { SvgProps } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+
+type SvgIconComponent = React.ComponentType<SvgProps>;
 
 type AuthLayoutProps = {
   title: string;
@@ -35,8 +36,8 @@ type PasswordInputProps = {
   value: string;
   onChangeText: (text: string) => void;
   placeholder: string;
-  eyeIcon: ImageSourcePropType;
-  eyeOffIcon: ImageSourcePropType;
+  eyeIcon: SvgIconComponent;
+  eyeOffIcon: SvgIconComponent;
 };
 
 type AuthButtonProps = {
@@ -47,8 +48,8 @@ type AuthButtonProps = {
 };
 
 type SocialButtonsProps = {
-  facebookIcon: ImageSourcePropType;
-  googleIcon: ImageSourcePropType;
+  facebookIcon: SvgIconComponent;
+  googleIcon: SvgIconComponent;
   onPressFacebook?: () => void;
   onPressGoogle?: () => void;
 };
@@ -110,6 +111,7 @@ export const PasswordInput = ({
   eyeOffIcon,
 }: PasswordInputProps) => {
   const [hidden, setHidden] = useState(true);
+  const EyeIcon = hidden ? eyeOffIcon : eyeIcon;
 
   return (
     <View style={styles.fieldWrap}>
@@ -125,12 +127,7 @@ export const PasswordInput = ({
           style={[styles.input, styles.passwordInput]}
         />
         <Pressable onPress={() => setHidden((prev) => !prev)} style={styles.eyeButton}>
-          <Image
-            source={hidden ? eyeOffIcon : eyeIcon}
-            style={styles.eyeIcon}
-            tintColor={colors.textSecondary}
-            resizeMode="contain"
-          />
+          <EyeIcon width={18} height={18} color={colors.textSecondary} />
         </Pressable>
       </View>
     </View>
@@ -154,13 +151,16 @@ export const AuthButton = ({ title, onPress, disabled = false, variant = 'primar
 export const DividerText = ({ text }: { text: string }) => <Text style={styles.dividerText}>{text}</Text>;
 
 export const SocialButtons = ({ facebookIcon, googleIcon, onPressFacebook, onPressGoogle }: SocialButtonsProps) => {
+  const FacebookIcon = facebookIcon;
+  const GoogleIcon = googleIcon;
+
   return (
     <View style={styles.socialRow}>
       <Pressable style={styles.socialButton} onPress={onPressFacebook}>
-        <Image source={facebookIcon} style={styles.socialIcon} resizeMode="contain" />
+        <FacebookIcon width={22} height={22} />
       </Pressable>
       <Pressable style={styles.socialButton} onPress={onPressGoogle}>
-        <Image source={googleIcon} style={styles.socialIcon} resizeMode="contain" />
+        <GoogleIcon width={22} height={22} />
       </Pressable>
     </View>
   );
@@ -305,7 +305,6 @@ const styles = StyleSheet.create({
   socialIcon: {
     width: 22,
     height: 22,
-    tintColor: colors.textSecondary,
   },
   footerRow: {
     flexDirection: 'row',

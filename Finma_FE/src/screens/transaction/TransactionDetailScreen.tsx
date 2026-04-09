@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
@@ -19,16 +20,9 @@ import { type TransactionDetail } from '../../types/transaction';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TransactionDetail'>;
-
-const iconByKey: Record<TransactionDetail['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'shopping-bag', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'restaurant-menu', bg: '#A8A8FF' },
-};
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 const formatDate = (value: string) => new Date(value).toLocaleDateString('vi-VN');
@@ -40,21 +34,23 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
   const [deleting, setDeleting] = useState(false);
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
 
-  useEffect(() => {
-    const loadDetail = async () => {
-      setLoading(true);
-      try {
-        const response = await transactionApi.getTransactionDetail(transactionId);
-        setTransaction(response);
-      } catch {
-        setTransaction(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadDetail();
+  const loadDetail = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await transactionApi.getTransactionDetail(transactionId);
+      setTransaction(response);
+    } catch {
+      setTransaction(null);
+    } finally {
+      setLoading(false);
+    }
   }, [transactionId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDetail();
+    }, [loadDetail]),
+  );
 
   const onDelete = () => {
     if (Platform.OS === 'web') {
@@ -111,7 +107,8 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
     );
   }
 
-  const iconMeta = iconByKey[transaction.iconKey];
+  const iconName = resolveTransactionIconName(transaction.iconKey, transaction.type);
+  const iconBg = resolveTransactionIconBg(transaction.type);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -124,8 +121,8 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentWrap}>
           <View style={styles.heroCard}>
-            <View style={[styles.heroIconWrap, { backgroundColor: iconMeta.bg }]}>
-              <MaterialIcons name={iconMeta.name} size={26} color={colors.white} />
+            <View style={[styles.heroIconWrap, { backgroundColor: iconBg }]}>
+              <MaterialIcons name={iconName as keyof typeof MaterialIcons.glyphMap} size={26} color={colors.white} />
             </View>
             <Text style={styles.heroTitle}>{transaction.title}</Text>
             <Text style={styles.heroAmount}>

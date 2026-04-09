@@ -9,5 +9,15 @@ public enum NotificationType {
     // Mục tiêu tiết kiệm
     GOAL_COMPLETED,       // Đạt 100% mục tiêu
     GOAL_DEADLINE_NEAR,   // Còn ≤ 7 ngày đến deadline mà chưa đạt
-    GOAL_DEPOSIT_ADDED    // Nạp tiền thành công vào mục tiêu
+    GOAL_DEPOSIT_ADDED,  // Nạp tiền thành công vào mục tiêu
+
+    RECURRING_REMINDER,
+    BUDGET_ALERT,
+    DEBT_REMINDER,
+    GOAL_PROGRESS,
+    TRANSACTION,
+    PROFILE_UPDATED,
+    PASSWORD_CHANGED,
+    DAILY_REMINDER,
+    DAILY_GREETING
 }

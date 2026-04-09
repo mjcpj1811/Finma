@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -20,29 +19,51 @@ import { type TransactionDashboard, type TransactionFilter, type TransactionItem
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transactions'>;
 
-const ICON_BACK = require('../../../assets/icons/back.png');
-
-const filterOptions: Array<{ key: TransactionFilter; label: string }> = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'income', label: 'Thu nhập' },
-  { key: 'expense', label: 'Chi tiêu' },
-];
-
-const iconByKey: Record<TransactionItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'shopping-bag', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'restaurant-menu', bg: '#A8A8FF' },
-};
+type SelectedTransactionType = Extract<TransactionFilter, 'income' | 'expense'>;
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
+const filterConfig: Record<
+  SelectedTransactionType,
+  {
+    label: string;
+    icon: keyof typeof MaterialIcons.glyphMap;
+    activeBackground: string;
+    inactiveBackground: string;
+    activeText: string;
+    inactiveText: string;
+    activeIcon: string;
+    inactiveIcon: string;
+  }
+> = {
+  income: {
+    label: 'Thu Nhập',
+    icon: 'south-west',
+    activeBackground: colors.blueDark,
+    inactiveBackground: colors.white,
+    activeText: colors.white,
+    inactiveText: colors.text,
+    activeIcon: colors.white,
+    inactiveIcon: colors.primary,
+  },
+  expense: {
+    label: 'Chi Tiêu',
+    icon: 'north-east',
+    activeBackground: colors.blueDark,
+    inactiveBackground: colors.white,
+    activeText: colors.white,
+    inactiveText: colors.text,
+    activeIcon: colors.white,
+    inactiveIcon: colors.blueDark,
+  },
+};
+
 export const TransactionScreen = ({ navigation }: Props) => {
-  const [filter, setFilter] = useState<TransactionFilter>('all');
+  const [selectedType, setSelectedType] = useState<SelectedTransactionType>('income');
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<TransactionDashboard | null>(null);
 
@@ -50,14 +71,14 @@ export const TransactionScreen = ({ navigation }: Props) => {
     setLoading(true);
     try {
       await recurringApi.syncDueTransactions();
-      const response = await transactionApi.getDashboard(filter);
+      const response = await transactionApi.getDashboard(selectedType);
       setDashboard(response);
     } catch {
       setDashboard(null);
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [selectedType]);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,37 +124,43 @@ export const TransactionScreen = ({ navigation }: Props) => {
       </View>
 
       <View style={styles.summaryRow}>
-        <Pressable
-          style={[styles.summaryMiniCard, filter === 'income' && styles.summaryMiniCardActive]}
-          onPress={() => setFilter('income')}
-        >
-          <View style={styles.summaryMiniIconWrap}>
-            <MaterialIcons name="south-west" size={18} color={colors.primary} />
-          </View>
-          <Text style={[styles.summaryMiniLabel, styles.incomeLabel]}>Thu Nhập</Text>
-          <Text style={[styles.summaryMiniValue, styles.incomeValue]}>
-            {formatCurrency(dashboard.overview.totalIncome)}
-          </Text>
-        </Pressable>
+        {(['income', 'expense'] as SelectedTransactionType[]).map((type) => {
+          const config = filterConfig[type];
+          const isActive = selectedType === type;
+          const value = type === 'income' ? dashboard.overview.totalIncome : dashboard.overview.totalExpense;
 
-        <Pressable
-          style={[styles.summaryMiniCard, filter === 'expense' && styles.summaryMiniCardActive]}
-          onPress={() => setFilter('expense')}
-        >
-          <View style={styles.summaryMiniIconWrap}>
-            <MaterialIcons name="north-east" size={18} color={colors.blueDark} />
-          </View>
-          <Text style={[styles.summaryMiniLabel, styles.expenseLabel]}>Chi Tiêu</Text>
-          <Text style={[styles.summaryMiniValue, styles.expenseValue]}>
-            {formatCurrency(dashboard.overview.totalExpense)}
-          </Text>
-        </Pressable>
+          return (
+            <Pressable
+              key={type}
+              style={[
+                styles.summaryMiniCard,
+                { backgroundColor: isActive ? config.activeBackground : config.inactiveBackground },
+                isActive ? styles.summaryMiniCardActive : styles.summaryMiniCardInactive,
+              ]}
+              onPress={() => setSelectedType(type)}
+            >
+              <View style={[styles.summaryMiniIconWrap, isActive ? styles.summaryMiniIconWrapActive : styles.summaryMiniIconWrapInactive]}>
+                <MaterialIcons
+                  name={config.icon}
+                  size={18}
+                  color={isActive ? config.activeIcon : config.inactiveIcon}
+                />
+              </View>
+              <Text style={[styles.summaryMiniLabel, { color: isActive ? config.activeText : config.inactiveText }]}>
+                {config.label}
+              </Text>
+              <Text style={[styles.summaryMiniValue, { color: isActive ? config.activeText : config.inactiveText }]}>
+                {formatCurrency(value)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
           <View style={styles.listHeaderRow}>
-            <Text style={styles.monthHeader}>April</Text>
+            <Text style={styles.monthHeader}></Text>
             <View style={styles.listActions}>
               <Pressable style={styles.roundAction} onPress={() => navigation.navigate('AddTransaction')}>
                 <MaterialIcons name="add" size={22} color={colors.white} />
@@ -144,14 +171,11 @@ export const TransactionScreen = ({ navigation }: Props) => {
             </View>
           </View>
 
-          {filterOptions.some((option) => option.key === filter) ? null : null}
-
           {groupedItems.map(([monthLabel, items]) => (
             <View key={monthLabel} style={styles.monthGroup}>
               <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
-                const iconMeta = iconByKey[item.iconKey];
                 const secondaryText = item.note.trim();
                 return (
                   <Pressable
@@ -159,8 +183,12 @@ export const TransactionScreen = ({ navigation }: Props) => {
                     style={styles.itemCard}
                     onPress={() => navigation.navigate('TransactionDetail', { transactionId: item.id })}
                   >
-                    <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={24} color={colors.white} />
+                    <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={24}
+                        color={colors.white}
+                      />
                     </View>
 
                     <View style={styles.itemInfoWrap}>
@@ -261,52 +289,41 @@ const styles = StyleSheet.create({
   },
   summaryMiniCard: {
     flex: 1,
-    backgroundColor: '#F1FFF3',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  summaryMiniCardActive: {
+    borderColor: colors.blueDark,
+  },
+  summaryMiniCardInactive: {
+    borderColor: '#E5EDEB',
     borderRadius: 14,
     padding: 12,
   },
-  summaryMiniCardActive: {
+  summaryMiniIconWrapActive: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  summaryMiniIconWrapInactive: {
     backgroundColor: '#F1FFF3',
-    borderWidth: 1,
-    borderColor: colors.primary,
   },
   summaryMiniIconWrap: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   summaryMiniLabel: {
-    color: colors.text,
     fontFamily: typography.poppins.medium,
     fontSize: 12,
   },
-  summaryMiniLabelActive: {
-    color: colors.white,
-  },
   summaryMiniValue: {
-    color: colors.text,
     fontFamily: typography.poppins.bold,
     fontSize: 24,
     lineHeight: 30,
-  },
-  summaryMiniValueActive: {
-    color: colors.white,
-  },
-  expenseLabel: {
-    color: colors.blueDark,
-  },
-  incomeLabel: {
-    color: colors.primary,
-  },
-  incomeValue: {
-    color: colors.primary,
-  },
-  expenseValue: {
-    color: colors.blueDark,
   },
   mainPanel: {
     flex: 1,

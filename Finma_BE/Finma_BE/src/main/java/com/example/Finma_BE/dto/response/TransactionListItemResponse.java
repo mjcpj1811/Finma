@@ -14,6 +14,7 @@ public class TransactionListItemResponse {
     private BigDecimal amount;
     private Long categoryId;
     private String category;
+    private String categoryIcon;
     private Long accountId;
     private String account;
     private String note;

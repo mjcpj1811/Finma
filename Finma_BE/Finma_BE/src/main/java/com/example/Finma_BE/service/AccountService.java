@@ -129,7 +129,7 @@ public class AccountService {
                 .type(transaction.getType())
                 .amount(transaction.getAmount())
                 .note(transaction.getNote())
-                .imageUrl(transaction.getImageUrl())
+                .imageUrl(transaction.getIcon())
                 .location(transaction.getLocation())
                 .transactionDate(transaction.getTransactionDate())
                 .category(transaction.getCategory() != null ? transaction.getCategory().getName() : null)

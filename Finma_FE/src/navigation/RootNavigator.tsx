@@ -32,6 +32,10 @@ import { TransactionScreen } from '../screens/transaction/TransactionScreen';
 import { AddTransactionScreen } from '../screens/transaction/AddTransactionScreen';
 import { OAuthCallbackScreen } from '../screens/auth/OAuthCallbackScreen';
 import { ResetPasswordFromEmailScreen } from '../screens/auth/ResetPasswordFromEmailScreen';
+import { BudgetScreen } from '../screens/budget/BudgetScreen';
+import { BudgetCreateScreen } from '../screens/budget/BudgetCreateScreen';
+import { BudgetDetailScreen } from '../screens/budget/BudgetDetailScreen';
+import { SavingTransactionDetailScreen } from '../screens/category/SavingTransactionDetailScreen';
 
 const TransactionDetailScreen =
   require('../screens/transaction/TransactionDetailScreen').TransactionDetailScreen;
@@ -85,6 +89,19 @@ export type RootStackParamList = {
   }
   | undefined;
   TransactionDetail: { transactionId: string };
+  SavingTransactionDetail: { transactionId: string; savingId: string };
+  Budget: undefined;
+  BudgetCreate: { budgetId?: string } | undefined;
+  BudgetDetail: {
+    budgetId: string;
+    categoryId: string;
+    categoryName: string;
+    categoryGroup?: 'financial' | 'expense' | 'income';
+    amountLimit: number;
+    spentAmount: number;
+    categoryIcon: string;
+    categoryColor?: string;
+  };
   Notifications: undefined;
   OAuthCallback: undefined;
   ResetPasswordFromEmail: { token?: string } | undefined;
@@ -149,6 +166,10 @@ export const RootNavigator = () => {
         <Stack.Screen name="Transactions" component={TransactionScreen} />
         <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
         <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+        <Stack.Screen name="Budget" component={BudgetScreen} />
+        <Stack.Screen name="BudgetCreate" component={BudgetCreateScreen} />
+        <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
+        <Stack.Screen name="SavingTransactionDetail" component={SavingTransactionDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
         <Stack.Screen name="ResetPasswordFromEmail" component={ResetPasswordFromEmailScreen} />
