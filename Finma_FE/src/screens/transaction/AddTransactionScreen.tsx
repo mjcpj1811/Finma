@@ -194,23 +194,40 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
       return;
     }
 
-    const categoryStillValid = options.categories.some(
-      (item) => item.id === categoryId && item.type === type,
-    );
+    const categoryStillValid = options.categories.some((item) => {
+      if (item.id === categoryId) {
+        if (type === 'saving' || type === 'debt_payment') {
+          return item.type === 'finance';
+        }
+        return item.type === type;
+      }
+      return false;
+    });
 
     if (!categoryStillValid) {
-      const firstByType = options.categories.find((item) => item.type === type);
+      const firstByType = options.categories.find((item) => {
+        if (type === 'saving' || type === 'debt_payment') {
+          return item.type === 'finance';
+        }
+        return item.type === type;
+      });
       setCategoryId(firstByType?.id ?? '');
     }
   }, [type, categoryId, options.categories]);
 
   const categoriesByType = useMemo(() => {
-    return options.categories.filter((item) => item.type === type);
+    return options.categories.filter((item) => {
+      if (type === 'saving' || type === 'debt_payment') {
+        return item.type === 'finance';
+      }
+      return item.type === type;
+    });
   }, [options.categories, type]);
 
   const selectedCategoryLabel = useMemo(() => {
+    if (type === 'saving') return 'Khoản tiết kiệm';
     return categoriesByType.find((item) => item.id === categoryId)?.label ?? 'Chọn danh mục';
-  }, [categoriesByType, categoryId]);
+  }, [categoriesByType, categoryId, type]);
 
   const selectedSourceLabel = useMemo(() => {
     return options.sources.find((item) => item.id === sourceId)?.label ?? 'Chọn nguồn tiền';
@@ -301,7 +318,9 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Loại Giao Dịch</Text>
               <Pressable style={styles.selectField} onPress={() => setShowTypeList((prev) => !prev)}>
-                <Text style={styles.fieldText}>{type === 'expense' ? 'Chi Tiêu' : 'Thu Nhập'}</Text>
+                <Text style={styles.fieldText}>
+                  {type === 'expense' ? 'Chi Tiêu' : type === 'income' ? 'Thu Nhập' : 'Tiết Kiệm'}
+                </Text>
                 <MaterialIcons name={showTypeList ? 'expand-less' : 'expand-more'} size={18} color={colors.primary} />
               </Pressable>
 
@@ -313,6 +332,11 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
                   <Pressable style={styles.dropdownItem} onPress={() => onChangeType('income')}>
                     <Text style={styles.dropdownText}>Thu Nhập</Text>
                   </Pressable>
+                  {type === 'saving' && (
+                    <Pressable style={styles.dropdownItem} onPress={() => onChangeType('saving')}>
+                      <Text style={styles.dropdownText}>Tiết Kiệm</Text>
+                    </Pressable>
+                  )}
                 </View>
               ) : null}
             </View>

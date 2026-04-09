@@ -34,6 +34,7 @@ import { OAuthCallbackScreen } from '../screens/auth/OAuthCallbackScreen';
 import { BudgetScreen } from '../screens/budget/BudgetScreen';
 import { BudgetCreateScreen } from '../screens/budget/BudgetCreateScreen';
 import { BudgetDetailScreen } from '../screens/budget/BudgetDetailScreen';
+import { SavingTransactionDetailScreen } from '../screens/category/SavingTransactionDetailScreen';
 
 const TransactionDetailScreen =
   require('../screens/transaction/TransactionDetailScreen').TransactionDetailScreen;
@@ -86,6 +87,7 @@ export type RootStackParamList = {
       }
     | undefined;
   TransactionDetail: { transactionId: string };
+  SavingTransactionDetail: { transactionId: string; savingId: string };
   Budget: undefined;
   BudgetCreate: { budgetId?: string } | undefined;
   BudgetDetail: {
@@ -157,6 +159,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="Budget" component={BudgetScreen} />
         <Stack.Screen name="BudgetCreate" component={BudgetCreateScreen} />
         <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
+        <Stack.Screen name="SavingTransactionDetail" component={SavingTransactionDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
       </Stack.Navigator>

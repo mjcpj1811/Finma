@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,7 +17,6 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { savingsApi } from '../../api/savingsApi';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -284,6 +285,29 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
 
     void loadDetail();
   }, [selectedSavingId]);
+
+  // Refresh data when screen focus (e.g. back from detail)
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard(selectedSavingId);
+      if (selectedSavingId) {
+        // detail's useEffect will handle the detail load since it depends on selectedSavingId
+        // but we might want to force a reload of detail too if selectedSavingId hasn't changed
+        const loadDetail = async () => {
+          setDetailLoading(true);
+          try {
+            const response = await savingsApi.getSavingTransactions(selectedSavingId);
+            setDetail(response);
+          } catch (error) {
+            console.error('Failed to reload detail on focus:', error);
+          } finally {
+            setDetailLoading(false);
+          }
+        };
+        loadDetail();
+      }
+    }, [selectedSavingId])
+  );
 
   const openCreateModal = () => {
     setEditingItem(null);
@@ -646,7 +670,14 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                       const icon = getTransactionIcon(item.kind);
                       const isLast = index === visibleItems.length - 1;
                       return (
-                        <View key={item.id} style={[styles.transactionCard, !isLast && styles.transactionCardBorder]}>
+                        <Pressable 
+                          key={item.id} 
+                          style={[styles.transactionCard, !isLast && styles.transactionCardBorder]}
+                          onPress={() => navigation.navigate('SavingTransactionDetail', { 
+                            transactionId: item.id,
+                            savingId: detail.saving.id
+                          })}
+                        >
                           <View style={[styles.transactionIcon, { backgroundColor: '#4D9EFF' }]}>
                             <MaterialIcons name={getSavingIcon(detail.saving.iconKey).name} size={22} color={colors.white} />
                           </View>
@@ -657,7 +688,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                           <Text style={styles.transactionAmount}>
                             {formatCurrency(Math.abs(item.amount))}
                           </Text>
-                        </View>
+                        </Pressable>
                       );
                     })
                   )}

@@ -9,6 +9,7 @@ import com.example.Finma_BE.dto.request.UserUpdateRequest;
 import com.example.Finma_BE.dto.response.UserResponse;
 import com.example.Finma_BE.entity.PasswordResetToken;
 import com.example.Finma_BE.entity.User;
+import com.example.Finma_BE.enums.NotificationType;
 import com.example.Finma_BE.exception.AppException;
 import com.example.Finma_BE.exception.ErrorCode;
 import com.example.Finma_BE.mapper.UserMapper;
@@ -26,7 +27,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
-import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -39,6 +39,7 @@ public class UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     EmailService emailService;
+    NotificationService notificationService;
 
     public UserResponse createUser(UserCreationRequest request) {
 
@@ -125,7 +126,18 @@ public class UserService {
         if  (request.getEmail() != null) {
             user.setEmail(request.getEmail());
         }
-        return userMapper.toUserResponse(userRepository.save(user));
+        User updatedUser = userRepository.save(user);
+        
+        // Gửi thông báo
+        notificationService.createNotification(
+                updatedUser,
+                NotificationType.PROFILE_UPDATED,
+                "✅ Cập nhật hồ sơ thành công",
+                "Thông tin cá nhân của bạn đã được cập nhật bản mới nhất.",
+                null, null
+        );
+
+        return userMapper.toUserResponse(updatedUser);
     }
 
     public UserResponse changePassword(ChangePasswordRequest request) {
@@ -136,7 +148,18 @@ public class UserService {
             throw new AppException(ErrorCode.INCORRECT_PASSWORD);
         }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        return userMapper.toUserResponse(userRepository.save(user));
+        User updatedUser = userRepository.save(user);
+
+        // Gửi thông báo
+        notificationService.createNotification(
+                updatedUser,
+                NotificationType.PASSWORD_CHANGED,
+                "🔐 Đổi mật khẩu thành công",
+                "Mật khẩu của bạn đã được thay đổi. Hãy sử dụng mật khẩu mới cho lần đăng nhập sau.",
+                null, null
+        );
+
+        return userMapper.toUserResponse(updatedUser);
     }
 
     public String requestPasswordReset(ForgotPasswordRequest request) {
@@ -169,6 +192,15 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         passwordResetTokenRepository.delete(resetToken);
+
+        // Gửi thông báo
+        notificationService.createNotification(
+                user,
+                NotificationType.PASSWORD_CHANGED,
+                "🔐 Đặt lại mật khẩu thành công",
+                "Mật khẩu của bạn đã được đặt lại thành công. Hãy đăng nhập bằng mật khẩu mới.",
+                null, null
+        );
     }
 
 //    public UserResponse updateUser(String userId, UserUpdateRequest request){
