@@ -30,10 +30,10 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
     setLoading(true);
     try {
       const response = await authApi.forgotPassword({ email });
-      Alert.alert('Xác nhận', response.message || 'Mã xác minh đã được gửi.', [
+      Alert.alert('Đã gửi email', 'Link đặt lại mật khẩu đã được gửi đến email của bạn. Hãy kiểm tra email và bấm vào link!', [
         {
-          text: 'Nhập mã',
-          onPress: () => navigation.navigate('VerifyResetCode', { email }),
+          text: 'OK',
+          onPress: () => navigation.navigate('Login'),
         },
       ]);
     } catch (error) {

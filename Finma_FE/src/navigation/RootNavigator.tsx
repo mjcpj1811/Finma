@@ -31,6 +31,7 @@ import { ReportCalendarScreen } from '../screens/report/ReportCalendarScreen';
 import { TransactionScreen } from '../screens/transaction/TransactionScreen';
 import { AddTransactionScreen } from '../screens/transaction/AddTransactionScreen';
 import { OAuthCallbackScreen } from '../screens/auth/OAuthCallbackScreen';
+import { ResetPasswordFromEmailScreen } from '../screens/auth/ResetPasswordFromEmailScreen';
 
 const TransactionDetailScreen =
   require('../screens/transaction/TransactionDetailScreen').TransactionDetailScreen;
@@ -75,26 +76,35 @@ export type RootStackParamList = {
   ReportCalendar: undefined;
   Transactions: undefined;
   AddTransaction:
-    | {
-        transactionId?: string;
-        presetType?: 'income' | 'expense';
-        presetCategoryId?: string;
-        presetTitle?: string;
-      }
-    | undefined;
+  | {
+    transactionId?: string;
+    presetType?: 'income' | 'expense';
+    presetCategoryId?: string;
+    presetTitle?: string;
+    presetSourceId?: string;
+  }
+  | undefined;
   TransactionDetail: { transactionId: string };
   Notifications: undefined;
   OAuthCallback: undefined;
+  ResetPasswordFromEmail: { token?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator = () => {
   const linking = {
-    prefixes: ['http://localhost:8081', 'http://192.168.1.2:8081'],
+    // prefixes: ['http://localhost:8081', 'http://192.168.1.2:8081'],
+    prefixes: [
+      'finma://',
+      'exp://192.168.1.66:8081/--',
+      'http://localhost:8081',
+      'http://192.168.1.66:8081',
+    ],
     config: {
       screens: {
         OAuthCallback: 'oauth-callback',
+        ResetPasswordFromEmail: 'reset-password',
       },
     },
   };
@@ -141,6 +151,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
+        <Stack.Screen name="ResetPasswordFromEmail" component={ResetPasswordFromEmailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
