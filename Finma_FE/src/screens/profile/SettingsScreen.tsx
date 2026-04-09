@@ -39,7 +39,6 @@ export const SettingsScreen = ({ navigation }: Props) => {
         title="Cài Đặt"
         onPressBack={() => navigation.goBack()}
         onPressNotification={() => navigation.navigate('Notifications')}
-        showNotificationBadge={false}
       />
 
       <View style={styles.mainPanel}>

@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    backgroundColor: colors.bgPage,
+    backgroundColor: '#F1FFF3',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingTop: 12,
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   summaryCard: {
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 32,
     padding: 22,
     flexDirection: 'row',
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     marginTop: 20,
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 28,
     padding: 20,
   },
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 24,
     padding: 18,
     marginTop: 20,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   transactionList: {
     marginTop: 20,
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 28,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 24,
     padding: 20,
   },

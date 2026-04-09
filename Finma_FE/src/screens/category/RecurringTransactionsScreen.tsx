@@ -463,7 +463,7 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
           ))}
 
           <Pressable style={styles.addButton} onPress={onOpenAddModal}>
-            <Text style={styles.addButtonText}>Thêm Mới</Text>
+            <Text style={styles.addButtonText}>Thêm giao dịch định kỳ</Text>
           </Pressable>
         </ScrollView>
       </View>

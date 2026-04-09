@@ -36,6 +36,13 @@ export const BudgetCreateScreen = ({ navigation, route }: Props) => {
 
   const selectedMonth = useMemo(() => new Date(), []);
 
+  const navigateToBudgetList = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Budget' }],
+    });
+  };
+
   // Format month for display
   const selectedMonthLabel = selectedMonth.toLocaleDateString('vi-VN', { month: 'long' });
 
@@ -139,9 +146,7 @@ export const BudgetCreateScreen = ({ navigation, route }: Props) => {
       Alert.alert('Thành công', isEdit ? 'Ngân sách đã được cập nhật.' : 'Ngân sách mới đã được tạo.', [
         {
           text: 'OK',
-          onPress: () => {
-            navigation.navigate('Budget');
-          },
+          onPress: navigateToBudgetList,
         },
       ]);
     } catch (error) {

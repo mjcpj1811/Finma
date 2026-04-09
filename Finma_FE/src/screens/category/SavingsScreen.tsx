@@ -783,22 +783,6 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                 />
               </View>
 
-              <View style={styles.formKindRow}>
-                <Pressable
-                  style={[styles.kindChip, transactionForm.kind === 'deposit' && styles.kindChipActive]}
-                  onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'deposit' }))}
-                >
-                  <Text style={[styles.kindChipText, transactionForm.kind === 'deposit' && styles.kindChipTextActive]}>Nạp quỹ</Text>
-                </Pressable>
-
-                <Pressable
-                  style={[styles.kindChip, transactionForm.kind === 'withdraw' && styles.kindChipActive]}
-                  onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'withdraw' }))}
-                >
-                  <Text style={[styles.kindChipText, transactionForm.kind === 'withdraw' && styles.kindChipTextActive]}>Rút quỹ</Text>
-                </Pressable>
-              </View>
-
               <Pressable style={styles.addTransactionButton} onPress={onSaveTransaction} disabled={savingAction}>
                 <Text style={styles.addTransactionButtonText}>{savingAction ? 'Đang lưu...' : 'Lưu'}</Text>
               </Pressable>
@@ -1516,30 +1500,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 13,
-  },
-  formKindRow: {
-    marginTop: 4,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  kindChip: {
-    flex: 1,
-    minHeight: 34,
-    borderRadius: 10,
-    backgroundColor: '#E8F5F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kindChipActive: {
-    backgroundColor: colors.primary,
-  },
-  kindChipText: {
-    color: colors.text,
-    fontFamily: typography.poppins.medium,
-    fontSize: 12,
-  },
-  kindChipTextActive: {
-    color: colors.white,
   },
   iconGridWrapper: {
     maxHeight: 210,

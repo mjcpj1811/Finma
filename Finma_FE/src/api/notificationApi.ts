@@ -154,6 +154,14 @@ export const notificationApi = {
     return groupNotifications(items);
   },
 
+  getUnreadCount: async (token?: string) => {
+    const groups = await notificationApi.getNotifications(token);
+    return groups.reduce(
+      (total, group) => total + group.items.filter((item) => !item.isRead).length,
+      0,
+    );
+  },
+
   markAsRead: async (id: string, token?: string) => {
     return request<any>(NOTIFICATION_ENDPOINTS.markAsRead(id), {
       method: 'PATCH',
