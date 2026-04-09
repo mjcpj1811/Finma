@@ -133,7 +133,7 @@ public class ReportController {
 
         return new ReportDashboardVm(
                 new OverviewVm(totalBalance, summary.getTotalExpense(), budgetUsedPercent, totalBudgetLimit),
-                goals.isEmpty() ? "0% Muc tieu, 0 muc tieu sap den han" : goals.size() + " muc tieu dang theo doi",
+                goals.isEmpty() ? "0% Mục tiêu, 0 mục tiêu sắp đến hạn" : goals.size() + " mục tiêu đang theo dõi",
                 summary.getTotalIncome(),
                 summary.getTotalExpense(),
                 chartPoints,

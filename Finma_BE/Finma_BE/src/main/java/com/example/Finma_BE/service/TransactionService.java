@@ -1,6 +1,7 @@
 package com.example.Finma_BE.service;
 import com.example.Finma_BE.dto.request.CreateTransactionRequest;
 import com.example.Finma_BE.dto.request.UpdateTransactionRequest;
+import com.example.Finma_BE.dto.response.TransactionDetailResponse;
 import com.example.Finma_BE.dto.response.TransactionListItemResponse;
 import com.example.Finma_BE.entity.Account;
 import com.example.Finma_BE.entity.Category;
@@ -69,8 +70,9 @@ public class TransactionService {
                 .stream().limit(limit).collect(Collectors.toList());
     }
 
-    public Transaction getById(User user, Long id) {
-        return loadTransactionOwnedByUser(id, user);
+    public TransactionDetailResponse getById(User user, Long id) {
+        Transaction txn = loadTransactionOwnedByUser(id, user);
+        return toDetail(txn);
     }
 
     @Transactional
@@ -364,6 +366,22 @@ public class TransactionService {
                 .note(txn.getNote())
                 .date(txn.getTransactionDate() != null ? txn.getTransactionDate().toLocalDate().format(DateTimeFormats.API_DATE) : null)
                 .transactionDateTime(txn.getTransactionDate() != null ? txn.getTransactionDate().format(DateTimeFormats.API_DATE_TIME) : null)
+                .build();
+    }
+
+    private TransactionDetailResponse toDetail(Transaction txn) {
+        return TransactionDetailResponse.builder()
+                .id(txn.getId())
+                .type(txn.getType())
+                .amount(txn.getAmount())
+                .categoryId(txn.getCategory() != null ? txn.getCategory().getId() : null)
+                .categoryName(txn.getCategory() != null ? txn.getCategory().getName() : null)
+                .accountId(txn.getAccount() != null ? txn.getAccount().getId() : null)
+                .accountName(txn.getAccount() != null ? txn.getAccount().getName() : null)
+                .note(txn.getNote())
+                .imageUrl(txn.getIcon())
+                .location(txn.getLocation())
+                .transactionDate(txn.getTransactionDate() != null ? txn.getTransactionDate().format(DateTimeFormats.API_DATE_TIME) : null)
                 .build();
     }
 
