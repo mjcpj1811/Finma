@@ -1,13 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,16 +22,19 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
   const { sourceId } = route.params;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<MoneySourceTransactionsResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         setLoading(true);
+        setError(null);
         try {
           const response = await sourceApi.getSourceTransactions(sourceId);
           setData(response);
         } catch {
           setData(null);
+          setError('Không thể tải dữ liệu giao dịch. Vui lòng thử lại.');
         } finally {
           setLoading(false);
         }
@@ -60,12 +56,26 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
     return Object.entries(groups);
   }, [data?.items]);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải giao dịch...</Text>
+        </View>
+        <ScreenBottomNavigation activeTab="home" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!data) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.loaderWrap}>
+          <Text style={styles.loaderText}>{error ?? 'Không có dữ liệu giao dịch.'}</Text>
+          <Pressable style={styles.addButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.addButtonText}>Quay lại</Text>
+          </Pressable>
         </View>
         <ScreenBottomNavigation activeTab="home" />
       </SafeAreaView>
@@ -150,7 +160,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
   },
   headerRow: {

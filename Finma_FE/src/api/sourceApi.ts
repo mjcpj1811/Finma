@@ -1,4 +1,5 @@
 import { requestApi } from './httpClient';
+import { categoryApi } from './categoryApi';
 import {
   type MoneySourceActionResponse,
   type MoneySourceDashboard,
@@ -29,6 +30,49 @@ const formatMonthLabelVi = (date: Date) => `Tháng ${date.getMonth() + 1}`;
 
 const formatTimeLabelVi = (date: Date) =>
   `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${formatMonthLabelVi(date)} ${pad2(date.getDate())}`;
+
+const splitNote = (rawNote?: string | null) => {
+  const note = (rawNote ?? '').trim();
+  if (!note) {
+    return { title: 'Giao dịch', detail: '' };
+  }
+
+  const divider = ' | ';
+  const dividerIndex = note.indexOf(divider);
+  if (dividerIndex < 0) {
+    return { title: note, detail: '' };
+  }
+
+  return {
+    title: note.slice(0, dividerIndex).trim() || 'Giao dịch',
+    detail: note.slice(dividerIndex + divider.length).trim(),
+  };
+};
+
+const normalizeCategoryLabel = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const buildCategoryIconLookups = async (token?: string) => {
+  const dashboard = await categoryApi.getDashboard(token);
+  const allCategories = [
+    ...dashboard.groups.financial,
+    ...dashboard.groups.expense,
+    ...dashboard.groups.income,
+  ];
+
+  return allCategories.reduce<{
+    byId: Record<string, string>;
+    byName: Record<string, string>;
+  }>((acc, category) => {
+    acc.byId[category.id] = category.iconKey;
+    acc.byName[normalizeCategoryLabel(category.name)] = category.iconKey;
+    return acc;
+  }, { byId: {}, byName: {} });
+};
 
 // ====================
 // 🔥 Helper mapping
@@ -168,27 +212,46 @@ export const sourceApi = {
     sourceId: string,
     token?: string
   ): Promise<MoneySourceTransactionsResponse> => {
-    const res: any = await requestApi(
-      SOURCE_ENDPOINTS.transactions(sourceId),
-      { token }
-    );
+    const [transactionsRaw, accountRaw, categoryIconLookups] = await Promise.all([
+      requestApi<any>(SOURCE_ENDPOINTS.transactions(sourceId), { token }),
+      requestApi<any>(SOURCE_ENDPOINTS.update(sourceId), { token }).catch(() => null),
+      buildCategoryIconLookups(token).catch(() => ({ byId: {}, byName: {} })),
+    ]);
 
-    const data = res?.result || {};
+    const sourceRaw = accountRaw || {};
+    const transactionList = Array.isArray(transactionsRaw)
+      ? transactionsRaw
+      : Array.isArray(transactionsRaw?.transactions)
+        ? transactionsRaw.transactions
+        : Array.isArray(transactionsRaw?.items)
+          ? transactionsRaw.items
+          : [];
 
-    const sourceRaw = data.account || {};
+    const items: SourceTransactionItem[] = transactionList.map((tx: any) => {
+      const parsedDate = parseDateOrNow(tx.transactionDate ?? tx.transactionDateTime ?? tx.date);
+      const txType = String(tx.type ?? '').toUpperCase();
+      const amount = Number(tx.amount) || 0;
+      const kind: SourceTransactionItem['kind'] = txType === 'INCOME' ? 'income' : 'expense';
+      const parsedNote = splitNote(tx.note);
+      const categoryLabel = String(tx.categoryName ?? tx.category ?? '').trim();
+      const categoryId = tx.categoryId ?? tx.category_id ?? tx.categoryID;
+      const normalizedCategoryLabel = normalizeCategoryLabel(categoryLabel);
 
-    const items: SourceTransactionItem[] = (data.transactions || []).map((tx: any) => {
-      const parsedDate = parseDateOrNow(tx.date);
       return {
         id: String(tx.id),
         sourceId: String(sourceId),
         monthLabel: formatMonthLabelVi(parsedDate),
-        title: tx.title || tx.categoryName || 'Giao dịch',
+        title: parsedNote.title || categoryLabel || 'Giao dịch',
         timeLabel: formatTimeLabelVi(parsedDate),
-        note: tx.note || '',
-        amount: Number(tx.amount) || 0,
-        kind: tx.amount > 0 ? 'income' : 'expense',
-        iconKey: tx.categoryIcon || (tx.amount > 0 ? 'attach_money' : 'shopping'),
+        note: parsedNote.detail || categoryLabel || '',
+        amount: amount,
+        kind,
+        iconKey:
+          categoryIconLookups.byId[String(categoryId ?? '')] ||
+          categoryIconLookups.byName[normalizedCategoryLabel] ||
+          tx.categoryIcon ||
+          tx.imageUrl ||
+          (kind === 'income' ? 'attach_money' : 'shopping'),
       };
     });
 

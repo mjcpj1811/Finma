@@ -24,7 +24,7 @@ type BackendUser = {
 
 type BackendTransactionItem = {
   id: number;
-  type: 'INCOME' | 'EXPENSE';
+  type: 'INCOME' | 'EXPENSE' | 'SAVING';
   amount: number;
   categoryId?: number | null;
   category_id?: number | null;
@@ -100,26 +100,6 @@ const getCurrentRange = (period: PeriodFilter, reference = new Date()) => {
     case 'month':
     default:
       return { from: formatApiDate(startOfMonth(reference)), to: formatApiDateTime(endOfMonth(reference)) };
-  }
-};
-
-const getPreviousRange = (period: PeriodFilter, reference = new Date()) => {
-  switch (period) {
-    case 'day': {
-      const previous = shiftDays(reference, -1);
-      return { from: formatApiDate(startOfDay(previous)), to: formatApiDateTime(endOfDay(previous)) };
-    }
-    case 'week': {
-      const currentStart = startOfWeek(reference);
-      const previousStart = shiftDays(currentStart, -7);
-      const previousEnd = shiftDays(previousStart, 6);
-      return { from: formatApiDate(previousStart), to: formatApiDateTime(endOfDay(previousEnd)) };
-    }
-    case 'month':
-    default: {
-      const previous = shiftMonths(reference, -1);
-      return { from: formatApiDate(startOfMonth(previous)), to: formatApiDateTime(endOfMonth(previous)) };
-    }
   }
 };
 
@@ -299,12 +279,11 @@ const mapTransactionItem = (
 export const homeApi = {
   getDashboard: async (period: PeriodFilter = 'month', token?: string) => {
     const currentRange = getCurrentRange(period);
-    const previousRange = getPreviousRange(period);
 
-    const [currentDashboardResponse, previousSummaryResponse, userResponse, transactionsResponse, categoryIconLookups] = await Promise.all([
+    const [currentDashboardResponse, summaryResponse, userResponse, transactionsResponse, categoryIconLookups] = await Promise.all([
       request<BackendReportDashboard>(`${HOME_ENDPOINTS.dashboard}?period=${period}`, { token }),
       request<ApiResponse<BackendSummary>>(
-        `${HOME_ENDPOINTS.summary}?from=${encodeURIComponent(previousRange.from)}&to=${encodeURIComponent(previousRange.to)}`,
+        `${HOME_ENDPOINTS.summary}?from=${encodeURIComponent(currentRange.from)}&to=${encodeURIComponent(currentRange.to)}`,
         { token },
       ),
       request<ApiResponse<BackendUser>>(HOME_ENDPOINTS.userInfo, { token }),
@@ -317,7 +296,7 @@ export const homeApi = {
 
     const user = userResponse.result;
     const currentDashboard = currentDashboardResponse;
-    const previousSummary = previousSummaryResponse.result;
+    const summary = summaryResponse.result;
 
     return {
       user: {
@@ -329,10 +308,12 @@ export const homeApi = {
       overview: currentDashboard.overview as HomeOverview,
       goalSummaryText: currentDashboard.goalSummaryText,
       headerSummary: {
-        totalIncome: Number(previousSummary.totalIncome ?? 0),
-        totalExpense: Number(previousSummary.totalExpense ?? 0),
+        totalIncome: Number(summary.totalIncome ?? 0),
+        totalExpense: Number(summary.totalExpense ?? 0),
       },
-      transactions: (transactionsResponse.result ?? []).map((item) => mapTransactionItem(item, categoryIconLookups)),
+      transactions: (transactionsResponse.result ?? [])
+        .filter((item) => item.type !== 'SAVING')
+        .map((item) => mapTransactionItem(item, categoryIconLookups)),
       unreadNotifications: currentDashboard.unreadNotifications,
     } satisfies HomeDashboard;
   },

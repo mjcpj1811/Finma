@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
@@ -103,7 +96,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
   },
   headerRow: {
@@ -163,7 +156,8 @@ const styles = StyleSheet.create({
   },
   toggleThumbOn: {
     alignSelf: 'flex-end',
-  },
+  },
+
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loaderText: { color: colors.white, fontFamily: typography.poppins.medium, fontSize: 14 },
 });
