@@ -16,7 +16,9 @@ import type { PeriodType, BudgetRequest } from '../../types/budget';
 type Props = NativeStackScreenProps<RootStackParamList, 'BudgetCreate'>;
 
 export const BudgetCreateScreen = ({ navigation, route }: Props) => {
-  const budgetId = (route.params as any)?.budgetId;
+  const budgetId = route.params?.budgetId;
+  const presetCategoryId = route.params?.categoryId;
+  const presetCategoryName = route.params?.categoryName;
   const isEdit = Boolean(budgetId);
 
   const [amount, setAmount] = useState('');
@@ -62,6 +64,14 @@ export const BudgetCreateScreen = ({ navigation, route }: Props) => {
           homeApi.getDashboard('month').catch(() => null),
         ]);
         setCategories(categoryList);
+        if (!isEdit && presetCategoryId) {
+          setSelectedCategoryId(presetCategoryId);
+          const matchedName =
+            presetCategoryName ||
+            categoryList.find((category) => category.id === presetCategoryId)?.name ||
+            'Chọn danh mục';
+          setSelectedCategoryName(matchedName);
+        }
         if (homeData) {
           setUnreadNotifications(homeData.user.unreadNotifications);
         }
@@ -93,7 +103,7 @@ export const BudgetCreateScreen = ({ navigation, route }: Props) => {
     };
 
     void loadData();
-  }, []);
+  }, [budgetId, isEdit, presetCategoryId, presetCategoryName]);
 
   const onSave = async () => {
     // Validate inputs

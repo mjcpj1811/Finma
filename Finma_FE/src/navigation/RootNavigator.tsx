@@ -35,6 +35,7 @@ import { ResetPasswordFromEmailScreen } from '../screens/auth/ResetPasswordFromE
 import { BudgetScreen } from '../screens/budget/BudgetScreen';
 import { BudgetCreateScreen } from '../screens/budget/BudgetCreateScreen';
 import { BudgetDetailScreen } from '../screens/budget/BudgetDetailScreen';
+import { BudgetCategoryListScreen } from '../screens/budget/BudgetCategoryListScreen';
 import { SavingTransactionDetailScreen } from '../screens/category/SavingTransactionDetailScreen';
 
 const TransactionDetailScreen =
@@ -91,7 +92,14 @@ export type RootStackParamList = {
   TransactionDetail: { transactionId: string };
   SavingTransactionDetail: { transactionId: string; savingId: string };
   Budget: undefined;
-  BudgetCreate: { budgetId?: string } | undefined;
+  BudgetCategories: undefined;
+  BudgetCreate:
+  | {
+    budgetId?: string;
+    categoryId?: string;
+    categoryName?: string;
+  }
+  | undefined;
   BudgetDetail: {
     budgetId: string;
     categoryId: string;
@@ -167,6 +175,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
         <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
         <Stack.Screen name="Budget" component={BudgetScreen} />
+        <Stack.Screen name="BudgetCategories" component={BudgetCategoryListScreen} />
         <Stack.Screen name="BudgetCreate" component={BudgetCreateScreen} />
         <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
         <Stack.Screen name="SavingTransactionDetail" component={SavingTransactionDetailScreen} />
