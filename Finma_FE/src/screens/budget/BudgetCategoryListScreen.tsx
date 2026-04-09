@@ -100,7 +100,7 @@ export const BudgetCategoryListScreen = ({ navigation }: Props) => {
                   })
                 }
               >
-                <MaterialIcons name={icon.name} size={34} color={colors.white} />
+                    <MaterialIcons name={icon.name} size={34} color={colors.primary} />
               </Pressable>
                   <Text style={styles.categoryName} numberOfLines={1}>
                     {item.name}
@@ -157,7 +157,9 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 22,
-    backgroundColor: '#5B9EFF',
+    backgroundColor: '#F1FFF3',
+    borderWidth: 1,
+    borderColor: '#D5E9DD',
     alignItems: 'center',
     justifyContent: 'center',
   },

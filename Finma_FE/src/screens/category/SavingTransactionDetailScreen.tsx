@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     color: '#55716A',
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 12,
     padding: 12,
     fontSize: 16,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: '',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   iosDateContainer: {
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     paddingBottom: 20,
   },
   iosDateDone: {

@@ -16,7 +16,7 @@ public class GeminiService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final String API_KEY = "AIzaSyAnRfctDoh0EGyyrvwawsazdrPcH4i08T8";
+    private final String API_KEY = "AIzaSyD-JGn-IHh4X0Yunf8t2AuQvwYHcc_hWts";
 
     public String callGemini(List<ChatMessage> chatHistory, String userContext) {
 

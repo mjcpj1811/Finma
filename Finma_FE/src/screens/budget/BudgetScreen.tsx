@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   summaryBox: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 24,
     padding: 18,
     flexDirection: 'row',
