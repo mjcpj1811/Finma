@@ -118,6 +118,32 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
     return Object.entries(groups);
   }, [detail?.items]);
 
+  const forcedTransactionKind = useMemo<DebtTransactionItem['kind'] | null>(() => {
+    if (!selectedDebt) {
+      return null;
+    }
+
+    return selectedDebt.direction === 'lend' ? 'borrow' : 'repay';
+  }, [selectedDebt]);
+
+  useEffect(() => {
+    if (!transactionModalVisible || !forcedTransactionKind) {
+      return;
+    }
+
+    setTransactionForm((prev) => {
+      if (prev.kind === forcedTransactionKind) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        kind: forcedTransactionKind,
+        counterparty: prev.counterparty.trim() || (forcedTransactionKind === 'borrow' ? 'Thu nợ' : 'Trả nợ'),
+      };
+    });
+  }, [transactionModalVisible, forcedTransactionKind]);
+
   const loadDetail = async (debtId: string) => {
     setDetailLoading(true);
     try {
@@ -283,13 +309,14 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
   };
 
   const openEditTransactionModal = (item: DebtTransactionItem) => {
+    const nextKind = forcedTransactionKind ?? item.kind;
     setEditingTransaction(item);
     setTransactionForm({
       dateIso: item.dateIso,
       title: item.title,
       counterparty: item.counterparty,
       amount: String(Math.abs(item.amount)),
-      kind: item.kind,
+      kind: nextKind,
     });
     setTransactionModalVisible(true);
   };
@@ -305,12 +332,14 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       return;
     }
 
+    const nextKind = forcedTransactionKind ?? transactionForm.kind;
+
     const payload: UpsertDebtTransactionPayload = {
       dateIso: transactionForm.dateIso,
       title: transactionForm.title.trim(),
-      counterparty: transactionForm.counterparty.trim() || (transactionForm.kind === 'borrow' ? 'Thu nợ' : 'Trả nợ'),
+      counterparty: transactionForm.counterparty.trim() || (nextKind === 'borrow' ? 'Thu nợ' : 'Trả nợ'),
       amount,
-      kind: transactionForm.kind,
+      kind: nextKind,
     };
 
     setSaving(true);
@@ -647,15 +676,25 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
             <Text style={styles.modalLabel}>Loại</Text>
             <View style={styles.typeRow}>
               <Pressable
-                style={[styles.typeChip, transactionForm.kind === 'borrow' && styles.typeChipActive]}
+                style={[
+                  styles.typeChip,
+                  transactionForm.kind === 'borrow' && styles.typeChipActive,
+                  forcedTransactionKind === 'repay' && styles.typeChipDisabled,
+                ]}
                 onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'borrow' }))}
+                disabled={forcedTransactionKind === 'repay'}
               >
                 <Text style={[styles.typeChipText, transactionForm.kind === 'borrow' && styles.typeChipTextActive]}>Thu</Text>
               </Pressable>
 
               <Pressable
-                style={[styles.typeChip, transactionForm.kind === 'repay' && styles.typeChipActive]}
+                style={[
+                  styles.typeChip,
+                  transactionForm.kind === 'repay' && styles.typeChipActive,
+                  forcedTransactionKind === 'borrow' && styles.typeChipDisabled,
+                ]}
                 onPress={() => setTransactionForm((prev) => ({ ...prev, kind: 'repay' }))}
+                disabled={forcedTransactionKind === 'borrow'}
               >
                 <Text style={[styles.typeChipText, transactionForm.kind === 'repay' && styles.typeChipTextActive]}>Trả</Text>
               </Pressable>
@@ -1086,6 +1125,9 @@ const styles = StyleSheet.create({
   },
   typeChipActive: {
     backgroundColor: colors.primary,
+  },
+  typeChipDisabled: {
+    opacity: 0.5,
   },
   typeChipText: {
     color: colors.text,

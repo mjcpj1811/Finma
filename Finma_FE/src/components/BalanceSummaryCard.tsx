@@ -20,9 +20,7 @@ export const BalanceSummaryCard = ({
   budgetLimit,
   onPressBudget,
 }: Props) => {
-  const usedPercent = budgetLimit > 0
-    ? Math.min(100, Math.round((totalExpense / budgetLimit) * 100))
-    : budgetUsedPercent;
+  const usedPercent = Math.min(100, Math.max(0, Math.round(budgetUsedPercent || 0)));
 
   return (
     <View>

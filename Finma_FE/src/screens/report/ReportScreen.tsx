@@ -63,24 +63,28 @@ export const ReportScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<ReportDashboard | null>(null);
   const [realBudgetLimit, setRealBudgetLimit] = useState(0);
+  const [budgetSpentAmount, setBudgetSpentAmount] = useState(0);
   const [currentMonthExpense, setCurrentMonthExpense] = useState(0);
 
   useEffect(() => {
     const loadReport = async () => {
       setLoading(true);
       try {
-        const [response, activeBudgets] = await Promise.all([
+        const [response, monthlyDashboard, activeBudgets] = await Promise.all([
           reportApi.getDashboard(period),
+          period === 'month'
+            ? Promise.resolve<ReportDashboard | null>(null)
+            : reportApi.getDashboard('month').catch(() => null),
           budgetApi.getActiveBudgets().catch(() => []),
         ]);
-
-        const monthDashboard = period === 'month' ? response : await reportApi.getDashboard('month');
         setDashboard(response);
+        setCurrentMonthExpense(Number((monthlyDashboard ?? response).expenseTotal ?? 0));
         setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
-        setCurrentMonthExpense(Number(monthDashboard.expenseTotal ?? monthDashboard.overview.totalExpense ?? 0));
+        setBudgetSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
       } catch {
         setDashboard(null);
         setRealBudgetLimit(0);
+        setBudgetSpentAmount(0);
         setCurrentMonthExpense(0);
       } finally {
         setLoading(false);
@@ -114,8 +118,8 @@ export const ReportScreen = ({ navigation }: Props) => {
         <BalanceSummaryCard
           totalBalance={dashboard.overview.totalBalance}
           totalExpense={currentMonthExpense}
-          budgetUsedPercent={dashboard.overview.budgetUsedPercent}
-          budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : dashboard.overview.budgetLimit}
+          budgetUsedPercent={realBudgetLimit > 0 ? Math.min(100, Math.round((budgetSpentAmount / realBudgetLimit) * 100)) : 0}
+          budgetLimit={realBudgetLimit}
         />
 
         <Text style={styles.goalSummary}>{dashboard.goalSummaryText}</Text>

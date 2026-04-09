@@ -98,25 +98,30 @@ export const HomeScreen = ({ navigation }: Props) => {
   const [dashboard, setDashboard] = useState<HomeDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [realBudgetLimit, setRealBudgetLimit] = useState(0);
+  const [budgetSpentAmount, setBudgetSpentAmount] = useState(0);
   const [currentMonthExpense, setCurrentMonthExpense] = useState(0);
 
   useEffect(() => {
     const loadHome = async () => {
       setLoading(true);
       try {
-        const [response, activeBudgets] = await Promise.all([
+        const [response, monthlyDashboard, activeBudgets] = await Promise.all([
           homeApi.getDashboard(period),
+          period === 'month'
+            ? Promise.resolve<HomeDashboard | null>(null)
+            : homeApi.getDashboard('month').catch(() => null),
           budgetApi.getActiveBudgets().catch(() => []),
         ]);
 
-        const monthDashboard = period === 'month' ? response : await homeApi.getDashboard('month');
-
         setDashboard(response);
+        setCurrentMonthExpense(Number((monthlyDashboard ?? response).headerSummary.totalExpense ?? 0));
         setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
-        setCurrentMonthExpense(Number(monthDashboard.headerSummary.totalExpense ?? 0));
+        setBudgetSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
       } catch {
         setDashboard(null);
         setCurrentMonthExpense(0);
+        setRealBudgetLimit(0);
+        setBudgetSpentAmount(0);
       } finally {
         setLoading(false);
       }
@@ -181,8 +186,8 @@ export const HomeScreen = ({ navigation }: Props) => {
         <BalanceSummaryCard
           totalBalance={activeDashboard.overview.totalBalance}
           totalExpense={currentMonthExpense}
-          budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
-          budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : activeDashboard.overview.budgetLimit}
+          budgetUsedPercent={realBudgetLimit > 0 ? Math.min(100, Math.round((budgetSpentAmount / realBudgetLimit) * 100)) : 0}
+          budgetLimit={realBudgetLimit}
           onPressBudget={() => navigation.navigate('Budget')}
         />
       </View>
