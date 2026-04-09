@@ -18,21 +18,11 @@ import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type MoneySourceTransactionsResponse } from '../../types/source';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SourceTransactions'>;
 
 const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
-
-const iconByKey: Record<
-  MoneySourceTransactionsResponse['items'][number]['iconKey'],
-  { name: keyof typeof MaterialIcons.glyphMap; bg: string }
-> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'restaurant-menu', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'shopping-bag', bg: '#7A8BFF' },
-};
 
 export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
   const { sourceId } = route.params;
@@ -111,11 +101,14 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
               <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
-                const iconMeta = iconByKey[item.iconKey];
                 return (
                   <View key={item.id} style={styles.itemCard}>
-                    <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={22} color={colors.white} />
+                    <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={22}
+                        color={colors.white}
+                      />
                     </View>
 
                     <View style={styles.itemInfoWrap}>

@@ -11,6 +11,7 @@ export type CalendarTransactionItem = {
   subLabel: string;
   amount: number;
   kind: 'income' | 'expense';
+  iconKey?: string;
 };
 
 export type CalendarCategorySlice = {

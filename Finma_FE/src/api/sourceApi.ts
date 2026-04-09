@@ -177,7 +177,7 @@ export const sourceApi = {
         note: tx.note || '',
         amount: Number(tx.amount) || 0,
         kind: tx.amount > 0 ? 'income' : 'expense',
-        iconKey: tx.categoryIcon || 'other',
+        iconKey: tx.categoryIcon || (tx.amount > 0 ? 'attach_money' : 'shopping'),
       })
     );
 

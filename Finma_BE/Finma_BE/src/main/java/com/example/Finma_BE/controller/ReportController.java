@@ -295,7 +295,10 @@ public class ReportController {
                 timeLabel,
                 t.getNote(),
                 amount,
-                kind
+                kind,
+                t.getCategory() == null ? null : String.valueOf(t.getCategory().getId()),
+                t.getCategory() == null ? null : t.getCategory().getName(),
+                t.getCategory() == null ? null : t.getCategory().getIcon()
         );
     }
 
@@ -344,7 +347,17 @@ public class ReportController {
     public record SearchRequestVm(String keyword, String categoryId, String date, String reportType) {}
     public record SearchItemVm(String id, String title, String timeLabel, BigDecimal amount, String type, String categoryId) {}
     public record SearchResultVm(List<SearchItemVm> items) {}
-    public record CalendarTransactionItemVm(String id, String title, String timeLabel, String subLabel, BigDecimal amount, String kind) {}
+    public record CalendarTransactionItemVm(
+            String id,
+            String title,
+            String timeLabel,
+            String subLabel,
+            BigDecimal amount,
+            String kind,
+            String categoryId,
+            String categoryName,
+            String iconKey
+    ) {}
     public record CalendarTransactionsVm(long unreadNotifications, List<CalendarTransactionItemVm> items) {}
     public record CategorySliceVm(String id, String label, int percent, String color) {}
     public record CalendarCategoriesVm(long unreadNotifications, List<CategorySliceVm> slices) {}

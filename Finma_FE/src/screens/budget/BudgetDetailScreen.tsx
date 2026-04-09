@@ -21,6 +21,7 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import * as budgetApi from '../../api/budgetApi';
 import { homeApi } from '../../api/homeApi';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BudgetDetail'>;
 
@@ -70,18 +71,10 @@ const mapTxItem = (item: BackendTxItem): TransactionItem => {
     note: item.note ?? '',
     amount: item.type === 'EXPENSE' ? -Math.abs(Number(item.amount)) : Math.abs(Number(item.amount)),
     kind: item.type === 'INCOME' ? 'income' : 'expense',
-    iconKey: 'other',
+    iconKey: item.category || (item.type === 'INCOME' ? 'attach_money' : 'shopping'),
   };
 };
 // ─────────────────────────────────────────────────────────────────────────────
-
-const iconByKey: Record<TransactionItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'restaurant-menu', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'shopping-bag', bg: '#7A8BFF' },
-};
 
 export const BudgetDetailScreen = ({ navigation, route }: Props) => {
   const insets = useSafeAreaInsets();
@@ -232,12 +225,15 @@ export const BudgetDetailScreen = ({ navigation, route }: Props) => {
               <Text style={styles.emptyText}>Chưa có giao dịch cho ngân sách này.</Text>
             ) : (
               visibleItems.map((item, index) => {
-                const iconMeta = iconByKey[item.iconKey] ?? iconByKey.other;
                 const isLast = index === visibleItems.length - 1;
                 return (
                   <View key={item.id} style={[styles.transactionCard, !isLast && styles.transactionCardBorder]}>
-                    <View style={[styles.transactionIcon, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={22} color={colors.white} />
+                    <View style={[styles.transactionIcon, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={22}
+                        color={colors.white}
+                      />
                     </View>
                     <View style={styles.transactionText}>
                       <Text style={styles.transactionTitle}>{item.title}</Text>

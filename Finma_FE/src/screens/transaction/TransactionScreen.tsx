@@ -19,18 +19,11 @@ import { type TransactionDashboard, type TransactionFilter, type TransactionItem
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transactions'>;
 
 type SelectedTransactionType = Extract<TransactionFilter, 'income' | 'expense'>;
-
-const iconByKey: Record<TransactionItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'shopping-bag', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'restaurant-menu', bg: '#A8A8FF' },
-};
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
@@ -167,7 +160,7 @@ export const TransactionScreen = ({ navigation }: Props) => {
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
           <View style={styles.listHeaderRow}>
-            <Text style={styles.monthHeader}>April</Text>
+            <Text style={styles.monthHeader}></Text>
             <View style={styles.listActions}>
               <Pressable style={styles.roundAction} onPress={() => navigation.navigate('AddTransaction')}>
                 <MaterialIcons name="add" size={22} color={colors.white} />
@@ -183,7 +176,6 @@ export const TransactionScreen = ({ navigation }: Props) => {
               <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
-                const iconMeta = iconByKey[item.iconKey];
                 const secondaryText = item.note.trim();
                 return (
                   <Pressable
@@ -191,8 +183,12 @@ export const TransactionScreen = ({ navigation }: Props) => {
                     style={styles.itemCard}
                     onPress={() => navigation.navigate('TransactionDetail', { transactionId: item.id })}
                   >
-                    <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={24} color={colors.white} />
+                    <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={24}
+                        color={colors.white}
+                      />
                     </View>
 
                     <View style={styles.itemInfoWrap}>

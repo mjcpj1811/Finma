@@ -1,4 +1,5 @@
 import { request } from './httpClient';
+import { categoryApi } from './categoryApi';
 import {
   type SearchFilters,
   type SearchOptionsResponse,
@@ -17,6 +18,19 @@ type ApiResponse<T> = {
   code: number;
   message?: string;
   result: T;
+};
+
+type BackendSearchItem = {
+  id: number;
+  title: string;
+  timeLabel: string;
+  amount: number;
+  type: 'INCOME' | 'EXPENSE';
+  categoryId?: number | null;
+};
+
+type BackendSearchResultResponse = {
+  items: BackendSearchItem[];
 };
 
 const mockOptions: SearchOptionsResponse = {
@@ -49,6 +63,20 @@ const mockItems: SearchResultItem[] = [
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const buildCategoryIconMap = async (token?: string) => {
+  const dashboard = await categoryApi.getDashboard(token);
+  const allCategories = [
+    ...dashboard.groups.financial,
+    ...dashboard.groups.expense,
+    ...dashboard.groups.income,
+  ];
+
+  return allCategories.reduce<Record<string, string>>((acc, category) => {
+    acc[category.id] = category.iconKey;
+    return acc;
+  }, {});
+};
+
 export const searchApi = {
   getOptions: async (token?: string) => {
     if (SEARCH_API_USE_MOCK) {
@@ -71,19 +99,42 @@ export const searchApi = {
         return byType && byCategory && byKeyword;
       });
 
-      return { items: filtered } satisfies SearchResultResponse;
+      return {
+        items: filtered.map((item) => ({
+          ...item,
+          iconKey: item.type === 'income' ? 'attach_money' : 'shopping',
+        })),
+      } satisfies SearchResultResponse;
     }
 
-    const response = await request<ApiResponse<SearchResultResponse>>(SEARCH_ENDPOINTS.search, {
-      method: 'POST',
-      body: {
-        keyword: filters.keyword,
-        categoryId: filters.categoryId,
-        date: filters.date,
-        reportType: filters.reportType,
-      },
-      token,
+    const [response, categoryIconMapById] = await Promise.all([
+      request<ApiResponse<BackendSearchResultResponse>>(SEARCH_ENDPOINTS.search, {
+        method: 'POST',
+        body: {
+          keyword: filters.keyword,
+          categoryId: filters.categoryId,
+          date: filters.date,
+          reportType: filters.reportType,
+        },
+        token,
+      }),
+      buildCategoryIconMap(token),
+    ]);
+
+    const items = (response.result?.items ?? []).map((item) => {
+      const type = item.type === 'INCOME' ? 'income' : 'expense';
+      const categoryId = item.categoryId != null ? String(item.categoryId) : undefined;
+      return {
+        id: String(item.id),
+        title: item.title,
+        timeLabel: item.timeLabel,
+        amount: Number(item.amount) || 0,
+        type,
+        categoryId,
+        iconKey: (categoryId ? categoryIconMapById[categoryId] : undefined) ?? (type === 'income' ? 'attach_money' : 'shopping'),
+      } satisfies SearchResultItem;
     });
-    return response.result ?? { items: [] };
+
+    return { items };
   },
 };

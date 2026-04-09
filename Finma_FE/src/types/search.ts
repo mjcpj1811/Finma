@@ -12,6 +12,7 @@ export type SearchResultItem = {
   amount: number;
   type: SearchReportType;
   categoryId?: string;
+  iconKey?: string;
 };
 
 export type SearchFilters = {

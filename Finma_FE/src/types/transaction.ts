@@ -17,8 +17,8 @@ export type TransactionItem = {
   timeLabel: string;
   note: string;
   amount: number;
-  kind: TransactionType;
-  iconKey: 'salary' | 'food' | 'rent' | 'transport' | 'other';
+  kind: 'income' | 'expense';
+  iconKey: string;
 };
 
 export type TransactionDashboard = {
@@ -72,7 +72,7 @@ export type TransactionDetail = {
   detail?: string;
   note: string;
   timeLabel: string;
-  iconKey: TransactionItem['iconKey'];
+  iconKey: string;
 };
 
 export type UpdateTransactionPayload = CreateTransactionPayload;

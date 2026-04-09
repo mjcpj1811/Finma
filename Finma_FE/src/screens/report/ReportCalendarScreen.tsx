@@ -21,6 +21,7 @@ import {
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportCalendar'>;
 type TabMode = 'transactions' | 'categories';
@@ -296,10 +297,14 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
 
           {!loading && activeTab === 'transactions' ? (
             <View style={styles.listWrap}>
-              {transactions.map((item, index) => (
+              {transactions.map((item) => (
                 <View key={item.id} style={styles.transactionCard}>
-                  <View style={[styles.txIconWrap, index === 0 ? styles.txIconBlue : styles.txIconLightBlue]}>
-                    <MaterialIcons name={index === 0 ? 'shopping-bag' : 'inventory-2'} size={22} color={colors.white} />
+                  <View style={[styles.txIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                    <MaterialIcons
+                      name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                      size={22}
+                      color={colors.white}
+                    />
                   </View>
 
                   <View style={styles.txInfo}>
@@ -495,12 +500,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#6BBAFF',
   },
   txInfo: {
-    flex: 1,
-  },
-  txTitle: {
-    color: '#2D3748',
-    fontFamily: typography.poppins.semibold,
-    fontSize: 16,
   },
   txTime: {
     color: '#3B82F6',

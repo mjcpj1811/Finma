@@ -46,7 +46,7 @@ export type SourceTransactionItem = {
   note: string;
   amount: number;
   kind: 'income' | 'expense';
-  iconKey: 'salary' | 'food' | 'rent' | 'transport' | 'other';
+  iconKey: string;
 };
 
 export type MoneySourceTransactionsResponse = {

@@ -26,7 +26,7 @@ public class Transaction extends BaseEntity {
     private BigDecimal amount;
 
     private String note;
-    private String imageUrl;
+    private String icon;
     private String location;
 
     private LocalDateTime transactionDate;
