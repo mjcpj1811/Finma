@@ -85,6 +85,7 @@ export const authApi = {
       method: 'POST',
       omitAuth: true,
       body: payload as unknown as Record<string, unknown>,
+      timeoutMs: 60000,
     }),
 
   verifyResetCode: (payload: VerifyResetCodePayload) =>
@@ -100,4 +101,28 @@ export const authApi = {
       omitAuth: true,
       body: payload as unknown as Record<string, unknown>,
     }),
+
+  resetPasswordByToken: (payload: { token: string; newPassword: string }) =>
+    request<AuthResponse>(AUTH_ENDPOINTS.resetPassword, {
+      method: 'POST',
+      omitAuth: true,
+      body: payload as unknown as Record<string, unknown>,
+    }),
+
+  // ===== [MOBILE OAUTH] Gửi access token từ Google/Facebook lên BE để verify và nhận JWT =====
+  // Flow: expo-auth-session lấy token từ provider → gọi API này → BE verify → trả JWT
+  mobileOAuthLogin: async (provider: string, accessToken: string, idToken?: string) => {
+    const response = await request<ApiResponse<BackendAuthenticationResult>>(
+      '/auth/oauth2/mobile-login',
+      {
+        method: 'POST',
+        omitAuth: true,
+        body: { provider, accessToken, idToken },
+      }
+    );
+    return {
+      message: 'Đăng nhập thành công',
+      accessToken: response.result?.token,
+    } satisfies AuthResponse;
+  },
 };

@@ -9,6 +9,7 @@ type RequestOptions = {
   token?: string;
   signal?: AbortSignal;
   omitAuth?: boolean;
+  timeoutMs?: number;
 };
 
 const buildUrl = (path: string) => {
@@ -20,14 +21,14 @@ const buildUrl = (path: string) => {
 };
 
 export const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-  const { method = 'GET', body, token, signal, omitAuth = false } = options;
+  const { method = 'GET', body, token, signal, omitAuth = false, timeoutMs } = options;
   const authToken = omitAuth ? undefined : token ?? (await getAccessToken()) ?? undefined;
 
   const controller = signal ? null : new AbortController();
   const timeoutId = controller
     ? setTimeout(() => {
         controller.abort();
-      }, API_CONFIG.timeoutMs)
+      }, timeoutMs ?? API_CONFIG.timeoutMs)
     : null;
 
   try {
