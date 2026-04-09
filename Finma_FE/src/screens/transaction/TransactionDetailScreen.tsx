@@ -33,14 +33,17 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const response = await transactionApi.getTransactionDetail(transactionId);
       setTransaction(response);
-    } catch {
+    } catch (error) {
       setTransaction(null);
+      setErrorMessage(error instanceof Error ? error.message : 'Không thể tải chi tiết giao dịch.');
     } finally {
       setLoading(false);
     }
@@ -95,12 +98,26 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
     ]);
   };
 
-  if (loading || !transaction) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loaderText}>Đang tải chi tiết giao dịch...</Text>
+        </View>
+        <ScreenBottomNavigation activeTab="exchange" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!transaction) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.loaderWrap}>
+          <Text style={styles.loaderText}>{errorMessage ?? 'Không thể tải chi tiết giao dịch.'}</Text>
+          <Pressable style={styles.retryButton} onPress={() => void loadDetail()}>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </Pressable>
         </View>
         <ScreenBottomNavigation activeTab="exchange" />
       </SafeAreaView>
@@ -309,6 +326,18 @@ const styles = StyleSheet.create({
   loaderText: {
     color: colors.white,
     fontFamily: typography.poppins.medium,
+    fontSize: 14,
+  },
+  retryButton: {
+    marginTop: 4,
+    backgroundColor: colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: colors.primary,
+    fontFamily: typography.poppins.semibold,
     fontSize: 14,
   },
 

@@ -50,13 +50,13 @@ type BackendTransactionDetail = {
   type: BackendTransactionType;
   amount: number;
   categoryId: number;
-  categoryName: string;
+  categoryName: string | null;
   accountId: number;
-  accountName: string;
+  accountName: string | null;
   goalId?: number;
   goalName?: string;
   note: string | null;
-  transactionDate: string;
+  transactionDate: string | null;
 };
 
 type BackendAccount = {
@@ -493,29 +493,30 @@ export const transactionApi = {
 
     const [response, categoryIconMapById] = await Promise.all([
       request<ApiResponse<BackendTransactionDetail>>(TRANSACTION_ENDPOINTS.detail(transactionId), { token }),
-      buildCategoryIconMap(token),
+      buildCategoryIconMap(token).catch(() => ({} as Record<string, TransactionItem['iconKey']>)),
     ]);
 
     const raw = response.result;
     const date = parseBackendDateTime(raw.transactionDate);
     const parsedNote = splitNote(raw.note);
+    const transactionType = toFrontendType(raw.type);
 
     return {
       id: String(raw.id),
       date: date.toISOString(),
-      type: toFrontendType(raw.type),
+      type: transactionType,
       categoryId: String(raw.categoryId),
-      categoryLabel: raw.categoryName,
+      categoryLabel: raw.categoryName ?? 'Khác',
       amount: Math.abs(Number(raw.amount) || 0),
       title: parsedNote.title || raw.categoryName || 'Giao dịch',
       sourceId: String(raw.accountId),
-      sourceLabel: raw.accountName,
+      sourceLabel: raw.accountName ?? 'Không xác định',
       goalId: raw.goalId ? String(raw.goalId) : undefined,
       goalName: raw.goalName,
       detail: parsedNote.detail,
       note: raw.note ?? '',
       timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
-      iconKey: categoryIconMapById[String(result.categoryId)] ?? fallbackIconByType(toFrontendType(result.type)),
+      iconKey: categoryIconMapById[String(raw.categoryId)] ?? fallbackIconByType(transactionType),
     } satisfies TransactionDetail;
   },
 

@@ -3,8 +3,8 @@ package com.example.Finma_BE.controller;
 import com.example.Finma_BE.dto.request.ApiResponse;
 import com.example.Finma_BE.dto.request.CreateTransactionRequest;
 import com.example.Finma_BE.dto.request.UpdateTransactionRequest;
+import com.example.Finma_BE.dto.response.TransactionDetailResponse;
 import com.example.Finma_BE.dto.response.TransactionListItemResponse;
-import com.example.Finma_BE.entity.Transaction;
 import com.example.Finma_BE.enums.TransactionType;
 import com.example.Finma_BE.repository.AccountRepository;
 import com.example.Finma_BE.repository.CategoryRepository;
@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -61,12 +63,12 @@ public class TransactionController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<TransactionDetailResponseVm> getById(@PathVariable Long id) {
+    public ApiResponse<TransactionDetailResponse> getById(@PathVariable Long id) {
         var user = authContext.requireCurrentUser();
         var txn = transactionService.getById(user, id);
-        return ApiResponse.<TransactionDetailResponseVm>builder()
+        return ApiResponse.<TransactionDetailResponse>builder()
                 .message("OK")
-                .result(toDetailResponseVm(txn))
+                                .result(txn)
                 .build();
     }
 
@@ -100,14 +102,14 @@ public class TransactionController {
             default -> null;
         };
 
-        var items = transactionService.listRaw(user, type);
+        var items = transactionService.list(user, type, null, null, null, null, null);
         BigDecimal totalIncome = items.stream()
                 .filter(t -> t.getType() == TransactionType.INCOME)
-                .map(Transaction::getAmount)
+                .map(TransactionListItemResponse::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalExpense = items.stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
+                .map(TransactionListItemResponse::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalBalance = accountRepository.findByUser_Id(user.getId()).stream()
                 .map(a -> a.getBalance() == null ? BigDecimal.ZERO : a.getBalance())
@@ -138,17 +140,18 @@ public class TransactionController {
         return new TransactionFormOptionsVm(categories, sources);
     }
 
-    private TransactionDashboardItemVm toDashboardItem(Transaction t) {
+    private TransactionDashboardItemVm toDashboardItem(TransactionListItemResponse t) {
         String kind = t.getType() == TransactionType.INCOME ? "income" : "expense";
         BigDecimal amount = t.getType() == TransactionType.EXPENSE ? t.getAmount().negate() : t.getAmount();
-        String monthLabel = t.getTransactionDate() == null ? "" : t.getTransactionDate().format(MONTH_FMT);
-        String timeLabel = t.getTransactionDate() == null ? "" :
-                t.getTransactionDate().format(TIME_FMT) + " - " + t.getTransactionDate().format(DAY_FMT);
-        String iconKey = t.getType() == TransactionType.INCOME ? "salary" : mapExpenseIcon(t);
+        LocalDateTime txnDateTime = parseTransactionDateTime(t.getTransactionDateTime(), t.getDate());
+        String monthLabel = txnDateTime == null ? "" : txnDateTime.format(MONTH_FMT);
+        String timeLabel = txnDateTime == null ? "" :
+                txnDateTime.format(TIME_FMT) + " - " + txnDateTime.format(DAY_FMT);
+        String iconKey = resolveIconKey(t);
         return new TransactionDashboardItemVm(
                 String.valueOf(t.getId()),
                 monthLabel,
-                t.getCategory() != null ? t.getCategory().getName() : "Giao dịch",
+                t.getCategory() != null ? t.getCategory() : "Giao dịch",
                 timeLabel,
                 t.getNote(),
                 amount,
@@ -157,30 +160,31 @@ public class TransactionController {
         );
     }
 
-    private String mapExpenseIcon(Transaction t) {
-        String categoryName = t.getCategory() != null && t.getCategory().getName() != null
-                ? t.getCategory().getName().toLowerCase()
-                : "";
-        if (categoryName.contains("food") || categoryName.contains("ẩm") || categoryName.contains("thực")) return "food";
-        if (categoryName.contains("rent") || categoryName.contains("nhà")) return "rent";
-        if (categoryName.contains("transport") || categoryName.contains("xăng") || categoryName.contains("đi")) return "transport";
+        private String resolveIconKey(TransactionListItemResponse t) {
+                if (t.getCategoryIcon() != null && !t.getCategoryIcon().isBlank()) {
+                        return t.getCategoryIcon();
+                }
+                if (t.getType() == TransactionType.INCOME) {
+                        return "salary";
+                }
+                String categoryName = t.getCategory() != null ? t.getCategory().toLowerCase() : "";
+                if (categoryName.contains("food") || categoryName.contains("ẩm") || categoryName.contains("thực")) return "food";
+                if (categoryName.contains("rent") || categoryName.contains("nhà")) return "rent";
+                if (categoryName.contains("transport") || categoryName.contains("xăng") || categoryName.contains("đi")) return "transport";
         return "other";
     }
 
-    private TransactionDetailResponseVm toDetailResponseVm(Transaction t) {
-        return new TransactionDetailResponseVm(
-                t.getId(),
-                t.getType(),
-                t.getAmount(),
-                t.getCategory() == null ? null : t.getCategory().getId(),
-                t.getCategory() == null ? null : t.getCategory().getName(),
-                t.getAccount() == null ? null : t.getAccount().getId(),
-                t.getAccount() == null ? null : t.getAccount().getName(),
-                t.getGoal() == null ? null : t.getGoal().getId(),
-                t.getGoal() == null ? null : t.getGoal().getName(),
-                t.getNote(),
-                t.getTransactionDate() == null ? null : t.getTransactionDate().format(DateTimeFormats.API_DATE_TIME)
-        );
+        private LocalDateTime parseTransactionDateTime(String dateTime, String date) {
+                try {
+                        if (dateTime != null && !dateTime.isBlank()) {
+                                return LocalDateTime.parse(dateTime, DateTimeFormats.API_DATE_TIME);
+                        }
+                        if (date != null && !date.isBlank()) {
+                                return LocalDate.parse(date, DateTimeFormats.API_DATE).atStartOfDay();
+                        }
+                } catch (Exception ignored) {
+                }
+                return null;
     }
 
     public record CreateTransactionResultVm(Long id) {}
@@ -192,17 +196,4 @@ public class TransactionController {
     public record IdLabelTypeVm(String id, String label, String type) {}
     public record IdLabelVm(String id, String label) {}
     public record TransactionFormOptionsVm(List<IdLabelTypeVm> categories, List<IdLabelVm> sources) {}
-    public record TransactionDetailResponseVm(
-            Long id,
-            TransactionType type,
-            BigDecimal amount,
-            Long categoryId,
-            String categoryName,
-            Long accountId,
-            String accountName,
-            Long goalId,
-            String goalName,
-            String note,
-            String transactionDate
-    ) {}
 }
