@@ -290,14 +290,30 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+          <View style={styles.listHeaderRow}>
+            <Text style={styles.monthHeader}></Text>
+            <View style={styles.listActions}>
+              <Pressable
+                style={styles.roundAction}
+                onPress={() =>
+                  navigation.navigate('AddTransaction', {
+                    presetType: currentCategoryGroup === 'income' ? 'income' : 'expense',
+                    presetCategoryId: categoryId,
+                    presetTitle: currentCategoryName,
+                  })
+                }
+              >
+                <MaterialIcons name="add" size={22} color={colors.white} />
+              </Pressable>
+              <Pressable style={styles.roundAction} onPress={() => navigation.navigate('ReportCalendar')}>
+                <MaterialIcons name="calendar-month" size={18} color={colors.white} />
+              </Pressable>
+            </View>
+          </View>
+
           {groupedItems.map(([monthLabel, items]) => (
             <View key={monthLabel} style={styles.monthGroup}>
-              <View style={styles.monthHeaderRow}>
-                <Text style={styles.monthLabel}>{monthLabel}</Text>
-                <Pressable style={styles.calendarChip} onPress={() => navigation.navigate('ReportCalendar')}>
-                  <MaterialIcons name="calendar-month" size={16} color={colors.white} />
-                </Pressable>
-              </View>
+              <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
                 const absoluteAmount = Math.abs(item.amount);
@@ -334,19 +350,6 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
           ))}
 
           {filteredItems.length === 0 ? <Text style={styles.emptyText}>Chưa có giao dịch cho danh mục này.</Text> : null}
-
-          <Pressable
-            style={styles.addButton}
-            onPress={() =>
-              navigation.navigate('AddTransaction', {
-                presetType: currentCategoryGroup === 'income' ? 'income' : 'expense',
-                presetCategoryId: categoryId,
-                presetTitle: currentCategoryName,
-              })
-            }
-          >
-            <Text style={styles.addButtonText}>{currentCategoryGroup === 'income' ? 'Thêm thu nhập' : 'Thêm chi tiêu'}</Text>
-          </Pressable>
         </ScrollView>
       </View>
 
@@ -529,28 +532,39 @@ const styles = StyleSheet.create({
   panelContent: {
     paddingBottom: 120,
   },
-  monthGroup: {
-    marginBottom: 16,
-    gap: 8,
-  },
-  monthHeaderRow: {
+  listHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthGroup: {
+    marginBottom: 16,
+    gap: 8,
   },
   monthLabel: {
     color: colors.text,
     fontFamily: typography.poppins.semibold,
     fontSize: 18,
     lineHeight: 24,
-  },
-  calendarChip: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   itemCard: {
     flexDirection: 'row',
@@ -595,21 +609,6 @@ const styles = StyleSheet.create({
   },
   incomeAmountText: {
     color: colors.primary,
-  },
-  addButton: {
-    minHeight: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-    alignSelf: 'center',
-    paddingHorizontal: 28,
-  },
-  addButtonText: {
-    color: '#0B6E5F',
-    fontFamily: typography.poppins.semibold,
-    fontSize: 15,
   },
   emptyText: {
     textAlign: 'center',

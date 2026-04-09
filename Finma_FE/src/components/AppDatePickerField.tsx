@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -120,55 +121,65 @@ export const AppDatePickerField = ({
       </Pressable>
 
       {showPicker ? (
-        <View style={[styles.pickerWrap, pickerWrapStyle]}>
-          <DateTimePicker
-            value={draftDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            locale={locale}
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
-            onChange={(_, nextDate) => {
-              if (Platform.OS === 'ios') {
-                if (nextDate) {
-                  setDraftDate(nextDate);
-                }
-                return;
-              }
+        <Modal transparent animationType="fade" visible={showPicker} onRequestClose={() => setShowPicker(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.pickerCard, pickerWrapStyle]}>
+              <DateTimePicker
+                value={draftDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                locale={locale}
+                textColor="#111111"
+                minimumDate={minimumDate}
+                maximumDate={maximumDate}
+                onChange={(_, nextDate) => {
+                  if (Platform.OS === 'ios') {
+                    if (nextDate) {
+                      setDraftDate(nextDate);
+                    }
+                    return;
+                  }
 
-              setShowPicker(false);
-              if (nextDate) {
-                applyDate(nextDate);
-              }
-            }}
-          />
-
-          {Platform.OS === 'ios' ? (
-            <View style={[styles.pickerActions, pickerActionsStyle]}>
-              <Pressable style={cancelButtonStyle} onPress={() => setShowPicker(false)}>
-                <Text style={cancelTextStyle}>{cancelLabel}</Text>
-              </Pressable>
-
-              <Pressable
-                style={confirmButtonStyle}
-                onPress={() => {
-                  applyDate(draftDate);
                   setShowPicker(false);
+                  if (nextDate) {
+                    applyDate(nextDate);
+                  }
                 }}
-              >
-                <Text style={confirmTextStyle}>{confirmLabel}</Text>
-              </Pressable>
+              />
+
+              {Platform.OS === 'ios' ? (
+                <View style={[styles.pickerActions, pickerActionsStyle]}>
+                  <Pressable style={cancelButtonStyle} onPress={() => setShowPicker(false)}>
+                    <Text style={cancelTextStyle}>{cancelLabel}</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={confirmButtonStyle}
+                    onPress={() => {
+                      applyDate(draftDate);
+                      setShowPicker(false);
+                    }}
+                  >
+                    <Text style={confirmTextStyle}>{confirmLabel}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </View>
+          </View>
+        </Modal>
       ) : null}
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  pickerWrap: {
-    marginTop: 6,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  pickerCard: {
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D4EFE8',

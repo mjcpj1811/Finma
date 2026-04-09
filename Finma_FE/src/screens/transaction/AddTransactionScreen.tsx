@@ -185,7 +185,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
     const categoryStillValid = options.categories.some((item) => {
       if (item.id === categoryId) {
-        if (type === 'saving' || type === 'debt_payment') {
+        if (type === 'saving') {
           return item.type === 'finance';
         }
         return item.type === type;
@@ -195,7 +195,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
     if (!categoryStillValid) {
       const firstByType = options.categories.find((item) => {
-        if (type === 'saving' || type === 'debt_payment') {
+        if (type === 'saving') {
           return item.type === 'finance';
         }
         return item.type === type;
@@ -206,7 +206,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
   const categoriesByType = useMemo(() => {
     return options.categories.filter((item) => {
-      if (type === 'saving' || type === 'debt_payment') {
+      if (type === 'saving') {
         return item.type === 'finance';
       }
       return item.type === type;
@@ -430,37 +430,40 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
       </View>
 
       {Platform.OS === 'ios' && showDatePicker ? (
-        <View style={styles.dateModalOverlay}>
-          <View style={styles.dateModalCard}>
-            <DateTimePicker
-              value={draftDate}
-              mode="date"
-              display="spinner"
-              locale="vi-VN"
-              onChange={(event, nextDate) => {
-                if (nextDate) {
-                  setDraftDate(nextDate);
-                }
-              }}
-            />
-
-            <View style={styles.dateModalActions}>
-              <Pressable style={styles.dateCancelButton} onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.dateCancelText}>Hủy</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.dateDoneButton}
-                onPress={() => {
-                  setDate(draftDate);
-                  setShowDatePicker(false);
+        <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
+          <View style={styles.dateModalOverlay}>
+            <View style={styles.dateModalCard}>
+              <DateTimePicker
+                value={draftDate}
+                mode="date"
+                display="spinner"
+                locale="vi-VN"
+                textColor="#111111"
+                onChange={(event, nextDate) => {
+                  if (nextDate) {
+                    setDraftDate(nextDate);
+                  }
                 }}
-              >
-                <Text style={styles.dateDoneText}>Chọn</Text>
-              </Pressable>
+              />
+
+              <View style={styles.dateModalActions}>
+                <Pressable style={styles.dateCancelButton} onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.dateCancelText}>Hủy</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.dateDoneButton}
+                  onPress={() => {
+                    setDate(draftDate);
+                    setShowDatePicker(false);
+                  }}
+                >
+                  <Text style={styles.dateDoneText}>Chọn</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
+        </Modal>
       ) : null}
 
       {showWebCalendar ? (

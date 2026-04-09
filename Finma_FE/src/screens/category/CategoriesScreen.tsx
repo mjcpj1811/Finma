@@ -193,6 +193,15 @@ export const CategoriesScreen = ({ navigation }: Props) => {
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+          <View style={styles.listHeaderRow}>
+            <Text style={styles.monthHeader}></Text>
+            <View style={styles.listActions}>
+              <Pressable style={styles.roundAction} onPress={openCreateModal}>
+                <MaterialIcons name="add" size={22} color={colors.white} />
+              </Pressable>
+            </View>
+          </View>
+
           {visibleSections.map((section, index) => {
             const items = data.groups[section.key];
 
@@ -222,10 +231,6 @@ export const CategoriesScreen = ({ navigation }: Props) => {
               </View>
             );
           })}
-
-          <Pressable style={styles.addButton} onPress={openCreateModal}>
-            <Text style={styles.addButtonText}>Thêm danh mục</Text>
-          </Pressable>
         </ScrollView>
       </View>
 
@@ -345,6 +350,28 @@ const styles = StyleSheet.create({
     paddingBottom: 106,
     gap: 18,
   },
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionWrap: {
     paddingTop: 2,
   },
@@ -419,21 +446,6 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     fontFamily: typography.poppins.medium,
     fontSize: 10,
-  },
-  addButton: {
-    alignSelf: 'center',
-    minHeight: 42,
-    borderRadius: 21,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    marginTop: -2,
-  },
-  addButtonText: {
-    color: '#0C6657',
-    fontFamily: typography.poppins.semibold,
-    fontSize: 15,
   },
 
   modalOverlay: {

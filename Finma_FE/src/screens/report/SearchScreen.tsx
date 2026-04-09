@@ -54,6 +54,8 @@ export const SearchScreen = ({ navigation }: Props) => {
   const [showCategoryList, setShowCategoryList] = useState(false);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showIosDateModal, setShowIosDateModal] = useState(false);
+  const [iosDraftDate, setIosDraftDate] = useState(new Date());
   const [showWebCalendar, setShowWebCalendar] = useState(false);
   const [webCalendarYear, setWebCalendarYear] = useState(new Date().getFullYear());
   const [webCalendarMonth, setWebCalendarMonth] = useState(new Date().getMonth());
@@ -69,6 +71,12 @@ export const SearchScreen = ({ navigation }: Props) => {
       setWebCalendarYear(date.getFullYear());
       setWebCalendarMonth(date.getMonth());
       setShowWebCalendar(true);
+      return;
+    }
+
+    if (Platform.OS === 'ios') {
+      setIosDraftDate(date);
+      setShowIosDateModal(true);
       return;
     }
 
@@ -249,19 +257,60 @@ export const SearchScreen = ({ navigation }: Props) => {
         )}
       </View>
 
-      {showDatePicker ? (
+      {Platform.OS === 'android' && showDatePicker ? (
         <DateTimePicker
           value={date}
           mode="date"
           display="default"
           locale="vi-VN"
-          onChange={(_, nextDate) => {
+          onChange={(event, nextDate) => {
             setShowDatePicker(false);
-            if (nextDate) {
+            if (event.type === 'set' && nextDate) {
               setDate(nextDate);
             }
           }}
         />
+      ) : null}
+
+      {Platform.OS === 'ios' ? (
+        <Modal
+          transparent
+          animationType="fade"
+          visible={showIosDateModal}
+          onRequestClose={() => setShowIosDateModal(false)}
+        >
+          <Pressable style={styles.iosPickerBackdrop} onPress={() => setShowIosDateModal(false)}>
+            <Pressable style={styles.iosPickerCard} onPress={(event) => event.stopPropagation()}>
+              <DateTimePicker
+                value={iosDraftDate}
+                mode="date"
+                display="spinner"
+                locale="vi-VN"
+                textColor="#111827"
+                onChange={(_, nextDate) => {
+                  if (nextDate) {
+                    setIosDraftDate(nextDate);
+                  }
+                }}
+              />
+
+              <View style={styles.iosPickerActions}>
+                <Pressable style={styles.iosPickerButton} onPress={() => setShowIosDateModal(false)}>
+                  <Text style={styles.iosPickerButtonText}>Hủy</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.iosPickerButton, styles.iosPickerConfirmButton]}
+                  onPress={() => {
+                    setDate(iosDraftDate);
+                    setShowIosDateModal(false);
+                  }}
+                >
+                  <Text style={styles.iosPickerConfirmText}>Chọn</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       ) : null}
 
       {showWebCalendar ? (
@@ -513,6 +562,50 @@ const styles = StyleSheet.create({
   },
   expenseAmount: {
     color: colors.blueDark,
+  },
+  iosPickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+  },
+  iosPickerCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 16,
+    backgroundColor: '#DFF7E2',
+    paddingTop: 10,
+    paddingBottom: 12,
+    paddingHorizontal: 10,
+  },
+  iosPickerActions: {
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  iosPickerButton: {
+    minWidth: 84,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  iosPickerButtonText: {
+    color: '#111827',
+    fontFamily: typography.poppins.medium,
+    fontSize: 13,
+  },
+  iosPickerConfirmButton: {
+    backgroundColor: colors.primary,
+  },
+  iosPickerConfirmText: {
+    color: colors.white,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 13,
   },
   modalOverlay: {
     flex: 1,

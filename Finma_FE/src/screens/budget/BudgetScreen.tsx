@@ -173,6 +173,15 @@ export const BudgetScreen = ({ navigation }: Props) => {
             </View>
           ) : (
             <>
+              <View style={styles.listHeaderRow}>
+                <Text style={styles.monthHeader}></Text>
+                <View style={styles.listActions}>
+                  <Pressable style={styles.roundAction} onPress={() => navigation.navigate('BudgetCreate')}>
+                    <MaterialIcons name="add" size={22} color={colors.white} />
+                  </Pressable>
+                </View>
+              </View>
+
               {budgetItems.length === 0 ? (
                 <View style={styles.centerContent}>
                   <MaterialIcons name="account-balance-wallet" size={48} color={colors.textSecondary} />
@@ -212,10 +221,6 @@ export const BudgetScreen = ({ navigation }: Props) => {
                   </Pressable>
                 ))
               )}
-
-              <Pressable style={styles.addBtn} onPress={() => navigation.navigate('BudgetCreate')}>
-                <Text style={styles.addText}>Thêm Ngân Sách</Text>
-              </Pressable>
             </>
           )}
         </ScrollView>
@@ -321,6 +326,29 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 150,
   },
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   itemRow: {
     flexDirection: 'row',
     gap: 16,
@@ -369,18 +397,6 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontFamily: typography.poppins.bold,
-  },
-  addBtn: {
-    marginTop: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  addText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: typography.poppins.semibold,
   },
   centerContent: {
     flex: 1,

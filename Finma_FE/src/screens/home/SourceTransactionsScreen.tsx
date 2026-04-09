@@ -109,6 +109,15 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+          <View style={styles.listHeaderRow}>
+            <Text style={styles.monthHeader}></Text>
+            <View style={styles.listActions}>
+              <Pressable style={styles.roundAction} onPress={() => navigation.navigate('AddTransaction')}>
+                <MaterialIcons name="add" size={22} color={colors.white} />
+              </Pressable>
+            </View>
+          </View>
+
           {groupedItems.map(([monthLabel, items]) => (
             <View key={monthLabel} style={styles.monthGroup}>
               <Text style={styles.monthLabel}>{monthLabel}</Text>
@@ -144,10 +153,6 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
               })}
             </View>
           ))}
-
-          <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddTransaction')}>
-            <Text style={styles.addButtonText}>Thêm giao dịch</Text>
-          </Pressable>
         </ScrollView>
       </View>
 
@@ -236,6 +241,30 @@ const styles = StyleSheet.create({
   },
   panelContent: {
     paddingBottom: 120,
+  },
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   monthGroup: {
     marginBottom: 16,
