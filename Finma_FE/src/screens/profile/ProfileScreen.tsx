@@ -112,7 +112,6 @@ export const ProfileScreen = ({ navigation }: Props) => {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
           <View style={styles.nameBlock}>
             <Text style={styles.nameText}>{profile.fullName}</Text>
-            <Text style={styles.idText}>ID: {profile.id}</Text>
           </View>
 
           <View style={styles.menuWrap}>
