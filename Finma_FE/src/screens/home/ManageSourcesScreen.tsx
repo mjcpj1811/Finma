@@ -92,14 +92,14 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
 
   const onSave = async () => {
     const parsedBalance = Number(form.balance.replace(/[^\d]/g, ''));
-    if (!form.name.trim() || !form.icon.trim() || !form.color.trim() || !parsedBalance) {
+    if (!form.name.trim() || !form.color || !parsedBalance) {
       return;
     }
 
     const payload: UpsertMoneySourcePayload = {
       name: form.name.trim(),
-      icon: form.icon.trim(),
-      color: form.color.trim(),
+      icon: editingSource ? (form.icon || 'account-balance-wallet') : (iconMetaByType[form.type]?.name || 'account-balance-wallet'),
+      color: form.color,
       balance: parsedBalance,
       type: form.type,
     };
@@ -187,8 +187,8 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
                 <Pressable onPress={() => navigation.navigate('SourceTransactions', { sourceId: item.id })}>
                   <View style={styles.itemTopRow}>
                     <View style={styles.itemLeftGroup}>
-                      <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                        <MaterialIcons name={iconMeta.name} size={24} color={iconMeta.color} />
+                      <View style={[styles.itemIconWrap, { backgroundColor: (item.color || iconMeta.color) + '20' }]}>
+                        <MaterialIcons name={(item.icon as any) || iconMeta.name} size={24} color={item.color || iconMeta.color} />
                       </View>
 
                       <View>
@@ -248,25 +248,27 @@ export const ManageSourcesScreen = ({ navigation }: Props) => {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Icon (Tên MaterialIcon)</Text>
-              <TextInput
-                value={form.icon}
-                onChangeText={(value) => setForm((prev) => ({ ...prev, icon: value }))}
-                placeholder="Ví dụ: account-balance"
-                style={styles.input}
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Màu sắc (Mã Hex)</Text>
-              <TextInput
-                value={form.color}
-                onChangeText={(value) => setForm((prev) => ({ ...prev, color: value }))}
-                placeholder="Ví dụ: #4CAF50"
-                style={styles.input}
-                placeholderTextColor={colors.textMuted}
-              />
+              <Text style={styles.fieldLabel}>Màu sắc</Text>
+              <View style={styles.colorPalette}>
+                {[
+                  '#00D09E', '#6366F1', '#F59E0B', '#4CAF50',
+                  '#EF4444', '#EC4899', '#8B5CF6', '#14B8A6',
+                  '#F97316', '#06B6D4'
+                ].map((c) => (
+                  <Pressable
+                    key={c}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: c }
+                    ]}
+                    onPress={() => setForm((prev) => ({ ...prev, color: c }))}
+                  >
+                    {form.color === c && (
+                       <MaterialIcons name="check" size={20} color="#FFF" />
+                    )}
+                  </Pressable>
+                ))}
+              </View>
             </View>
 
             <View style={styles.fieldGroup}>
@@ -523,6 +525,20 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 14,
+  },
+  colorPalette: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  colorCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   typeRow: {
     flexDirection: 'row',

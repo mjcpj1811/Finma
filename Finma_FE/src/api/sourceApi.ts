@@ -129,8 +129,8 @@ export const sourceApi = {
     const items: MoneySourceItem[] = accounts.map((acc: any) => ({
       id: String(acc.accountId),
       name: acc.name,
-      icon: getIconByType(acc.type),
-      color: getColorByType(acc.type),
+      icon: acc.icon || getIconByType(acc.type),
+      color: acc.color || getColorByType(acc.type),
       balance: Number(acc.balance) || 0,
       type: acc.type,
     }));
@@ -152,17 +152,20 @@ export const sourceApi = {
     payload: UpsertMoneySourcePayload,
     token?: string
   ): Promise<UpsertMoneySourceResponse> => {
-    const res: any = await requestApi(SOURCE_ENDPOINTS.create, {
+    const reqOptions: any = {
       method: 'POST',
       body: {
         name: payload.name,
-        type: payload.type === 'cash' ? 'CASH' : payload.type === 'bank' ? 'BANK' : 'E_WALLET',
+        type: payload.type,
         balance: payload.balance,
-        icon: null,
-        color: null,
+        icon: payload.icon,
+        color: payload.color,
       },
       token,
-    });
+    };
+    console.log('=== CREATE SOURCE (BE EXPECTED PAYLOAD) ===', reqOptions.body);
+
+    const res: any = await requestApi(SOURCE_ENDPOINTS.create, reqOptions);
 
     return {
       success: true,
@@ -176,17 +179,20 @@ export const sourceApi = {
     payload: UpsertMoneySourcePayload,
     token?: string
   ): Promise<UpsertMoneySourceResponse> => {
-    await requestApi(SOURCE_ENDPOINTS.update(sourceId), {
+    const reqOptions: any = {
       method: 'PUT',
       body: {
         name: payload.name,
-        type: payload.type === 'cash' ? 'CASH' : payload.type === 'bank' ? 'BANK' : 'E_WALLET',
+        type: payload.type,
         balance: payload.balance,
-        icon: null,
-        color: null,
+        icon: payload.icon,
+        color: payload.color,
       },
       token,
-    });
+    };
+    console.log('=== UPDATE SOURCE (BE EXPECTED PAYLOAD) ===', reqOptions.body);
+
+    await requestApi(SOURCE_ENDPOINTS.update(sourceId), reqOptions);
 
     return {
       success: true,
@@ -267,8 +273,8 @@ export const sourceApi = {
       source: {
         id: String(sourceRaw.accountId || sourceId),
         name: sourceRaw.name || '',
-        icon: getIconByType(sourceRaw.type),
-        color: getColorByType(sourceRaw.type),
+        icon: sourceRaw.icon || getIconByType(sourceRaw.type),
+        color: sourceRaw.color || getColorByType(sourceRaw.type),
         balance: Number(sourceRaw.balance) || 0,
         type: sourceRaw.type,
       },
