@@ -1,4 +1,4 @@
-export type NotificationSection = 'today' | 'yesterday' | 'weekend';
+export type NotificationSection = 'today' | 'yesterday' | 'older';
 
 export type NotificationItem = {
   id: string;
@@ -8,6 +8,7 @@ export type NotificationItem = {
   timeLabel: string;
   section: NotificationSection;
   isRead: boolean;
+  createdAt: string;
 };
 
 export type NotificationGroup = {

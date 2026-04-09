@@ -29,6 +29,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      */
     boolean existsByUserIdAndTypeAndReferenceId(Long userId, NotificationType type, Long referenceId);
 
+    /** Kiểm tra xem user đã có thông báo loại này kể từ thời điểm nào đó chưa */
+    boolean existsByUserIdAndTypeAndCreatedAtAfter(Long userId, NotificationType type, java.time.LocalDateTime after);
+
+
     /** Đánh dấu tất cả thông báo của user là đã đọc */
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")

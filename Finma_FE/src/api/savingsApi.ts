@@ -198,7 +198,7 @@ export const savingsApi = {
       goalId: parseInt(savingId),
       amount: payload.amount,
       accountId: payload.accountId,
-      depositDate: payload.depositDate || (payload.dateIso ? payload.dateIso.split('T')[0] : undefined),
+      depositDate: payload.depositDate || payload.dateIso || new Date().toISOString(),
       note: payload.title ? `${payload.title} - ${payload.note}` : payload.note,
     };
 
