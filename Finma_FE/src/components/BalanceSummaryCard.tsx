@@ -11,6 +11,7 @@ type Props = {
 };
 
 const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
+const hasNonZeroAmount = (value: number) => Math.round(Math.abs(value)) > 0;
 
 export const BalanceSummaryCard = ({
   totalBalance,
@@ -38,7 +39,7 @@ export const BalanceSummaryCard = ({
         <View style={styles.statBlock}>
           <Text style={styles.statLabel}>Tổng chi</Text>
           <Text style={styles.expenseValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-            -{formatCurrency(totalExpense)}
+            {hasNonZeroAmount(totalExpense) ? '-' : ''}{formatCurrency(Math.abs(totalExpense))}
           </Text>
         </View>
       </View>

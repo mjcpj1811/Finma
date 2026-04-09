@@ -24,7 +24,8 @@ import { resolveTransactionIconBg, resolveTransactionIconName } from '../../util
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TransactionDetail'>;
 
-const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
+const toRoundedMoney = (value: number) => Math.round(Number(value) || 0);
+const formatCurrency = (value: number) => toRoundedMoney(value).toLocaleString('vi-VN');
 const formatDate = (value: string) => new Date(value).toLocaleDateString('vi-VN');
 
 export const TransactionDetailScreen = ({ navigation, route }: Props) => {
@@ -143,7 +144,7 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
             </View>
             <Text style={styles.heroTitle}>{transaction.title}</Text>
             <Text style={styles.heroAmount}>
-              {transaction.type === 'expense' ? '-' : ''}
+              {transaction.type === 'expense' && toRoundedMoney(Math.abs(transaction.amount)) > 0 ? '-' : ''}
               {formatCurrency(transaction.amount)}
             </Text>
           </View>

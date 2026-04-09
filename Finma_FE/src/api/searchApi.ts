@@ -33,6 +33,32 @@ type BackendSearchResultResponse = {
   items: BackendSearchItem[];
 };
 
+const MONTH_EN_TO_VI: Record<string, string> = {
+  january: 'Tháng 1',
+  february: 'Tháng 2',
+  march: 'Tháng 3',
+  april: 'Tháng 4',
+  may: 'Tháng 5',
+  june: 'Tháng 6',
+  july: 'Tháng 7',
+  august: 'Tháng 8',
+  september: 'Tháng 9',
+  october: 'Tháng 10',
+  november: 'Tháng 11',
+  december: 'Tháng 12',
+};
+
+const localizeDateLabel = (value?: string | null) => {
+  const raw = (value ?? '').trim();
+  if (!raw) {
+    return '';
+  }
+  return raw.replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/gi, (matched) => {
+    const mapped = MONTH_EN_TO_VI[matched.toLowerCase()];
+    return mapped ?? matched;
+  });
+};
+
 const mockOptions: SearchOptionsResponse = {
   categories: [
     { id: 'all', label: 'Chọn danh mục' },
@@ -127,7 +153,7 @@ export const searchApi = {
       return {
         id: String(item.id),
         title: item.title,
-        timeLabel: item.timeLabel,
+        timeLabel: localizeDateLabel(item.timeLabel),
         amount: Number(item.amount) || 0,
         type,
         categoryId,

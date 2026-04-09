@@ -37,7 +37,7 @@ type FormState = {
   type: MoneySourceType;
 };
 
-const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
+const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
 const defaultFormState: FormState = {
   name: '',

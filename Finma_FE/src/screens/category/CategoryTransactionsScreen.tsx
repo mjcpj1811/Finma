@@ -293,7 +293,8 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
         <View style={[styles.summaryCol, styles.summaryColRight]}>
           <Text style={styles.summaryLabel}>{currentCategoryGroup === 'income' ? 'Tổng thu' : 'Tổng chi'}</Text>
           <Text style={[styles.summaryValue, styles.expenseValue]}>
-            {currentCategoryGroup === 'income' ? '+' : '-'}{formatCurrency(totalAmount)}
+            {Math.abs(totalAmount) > 0 ? (currentCategoryGroup === 'income' ? '+' : '-') : ''}
+            {formatCurrency(Math.abs(totalAmount))}
           </Text>
         </View>
       </View>
@@ -310,6 +311,8 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
               </View>
 
               {items.map((item) => {
+                const absoluteAmount = Math.abs(item.amount);
+                const amountSign = absoluteAmount > 0 ? (item.kind === 'expense' ? '-' : '+') : '';
                 return (
                   <Pressable
                     key={item.id}
@@ -331,7 +334,8 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
 
                     <View style={styles.itemRightWrap}>
                       <Text style={[styles.itemAmount, item.kind === 'expense' ? styles.expenseAmountText : styles.incomeAmountText]}>
-                        {item.kind === 'expense' ? '-' : '+'}{formatCurrency(Math.abs(item.amount))}
+                        {amountSign}
+                        {formatCurrency(absoluteAmount)}
                       </Text>
                     </View>
                   </Pressable>
