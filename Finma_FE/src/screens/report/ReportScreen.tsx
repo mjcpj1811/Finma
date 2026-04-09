@@ -63,7 +63,7 @@ export const ReportScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<ReportDashboard | null>(null);
   const [realBudgetLimit, setRealBudgetLimit] = useState(0);
-  const [realSpentAmount, setRealSpentAmount] = useState(0);
+  const [currentMonthExpense, setCurrentMonthExpense] = useState(0);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -73,13 +73,15 @@ export const ReportScreen = ({ navigation }: Props) => {
           reportApi.getDashboard(period),
           budgetApi.getActiveBudgets().catch(() => []),
         ]);
+
+        const monthDashboard = period === 'month' ? response : await reportApi.getDashboard('month');
         setDashboard(response);
         setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
-        setRealSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
+        setCurrentMonthExpense(Number(monthDashboard.expenseTotal ?? monthDashboard.overview.totalExpense ?? 0));
       } catch {
         setDashboard(null);
         setRealBudgetLimit(0);
-        setRealSpentAmount(0);
+        setCurrentMonthExpense(0);
       } finally {
         setLoading(false);
       }
@@ -111,7 +113,7 @@ export const ReportScreen = ({ navigation }: Props) => {
 
         <BalanceSummaryCard
           totalBalance={dashboard.overview.totalBalance}
-          totalExpense={realSpentAmount > 0 ? realSpentAmount : dashboard.overview.totalExpense}
+          totalExpense={currentMonthExpense}
           budgetUsedPercent={dashboard.overview.budgetUsedPercent}
           budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : dashboard.overview.budgetLimit}
         />

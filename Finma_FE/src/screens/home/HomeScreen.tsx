@@ -98,7 +98,7 @@ export const HomeScreen = ({ navigation }: Props) => {
   const [dashboard, setDashboard] = useState<HomeDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [realBudgetLimit, setRealBudgetLimit] = useState(0);
-  const [realSpentAmount, setRealSpentAmount] = useState(0);
+  const [currentMonthExpense, setCurrentMonthExpense] = useState(0);
 
   useEffect(() => {
     const loadHome = async () => {
@@ -109,11 +109,14 @@ export const HomeScreen = ({ navigation }: Props) => {
           budgetApi.getActiveBudgets().catch(() => []),
         ]);
 
+        const monthDashboard = period === 'month' ? response : await homeApi.getDashboard('month');
+
         setDashboard(response);
         setRealBudgetLimit(activeBudgets.reduce((sum, b) => sum + (b.amountLimit ?? 0), 0));
-        setRealSpentAmount(activeBudgets.reduce((sum, b) => sum + (b.spentAmount ?? 0), 0));
+        setCurrentMonthExpense(Number(monthDashboard.headerSummary.totalExpense ?? 0));
       } catch {
         setDashboard(null);
+        setCurrentMonthExpense(0);
       } finally {
         setLoading(false);
       }
@@ -177,7 +180,7 @@ export const HomeScreen = ({ navigation }: Props) => {
 
         <BalanceSummaryCard
           totalBalance={activeDashboard.overview.totalBalance}
-          totalExpense={realSpentAmount > 0 ? realSpentAmount : activeDashboard.overview.totalExpense}
+          totalExpense={currentMonthExpense}
           budgetUsedPercent={activeDashboard.overview.budgetUsedPercent}
           budgetLimit={realBudgetLimit > 0 ? realBudgetLimit : activeDashboard.overview.budgetLimit}
           onPressBudget={() => navigation.navigate('Budget')}
