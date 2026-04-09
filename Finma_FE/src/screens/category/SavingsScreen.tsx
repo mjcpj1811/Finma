@@ -1268,7 +1268,7 @@ const styles = StyleSheet.create({
   },
   transactionList: {
     marginTop: 20,
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 28,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -1323,7 +1323,7 @@ const styles = StyleSheet.create({
   },
   monthPickerCard: {
     width: '100%',
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 24,
     padding: 20,
   },

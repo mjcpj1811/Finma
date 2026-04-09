@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
+import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { request } from '../../api/httpClient';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
 import { type TransactionItem } from '../../types/transaction';
@@ -67,7 +68,6 @@ const mapTxItem = (item: BackendTxItem): TransactionItem => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BudgetDetailScreen = ({ navigation, route }: Props) => {
-  const insets = useSafeAreaInsets();
   const {
     budgetId,
     categoryId,
@@ -270,6 +270,8 @@ export const BudgetDetailScreen = ({ navigation, route }: Props) => {
 
         </ScrollView>
       </View>
+
+      <ScreenBottomNavigation activeTab="layers" />
     </SafeAreaView>
   );
 };
@@ -342,7 +344,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingBottom: 120,
   },
   summaryCard: {
     backgroundColor: colors.white,
