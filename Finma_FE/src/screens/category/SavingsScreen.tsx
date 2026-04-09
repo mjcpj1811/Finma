@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { savingsApi } from '../../api/savingsApi';
+import { transactionApi } from '../../api/transactionApi';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -15,6 +16,7 @@ import {
   type SavingsDashboard,
   type UpsertSavingPayload,
 } from '../../types/savings';
+import { type TransactionSourceOption } from '../../types/transaction';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
@@ -26,12 +28,14 @@ type FormState = {
   name: string;
   targetAmount: string;
   currentAmount: string;
+  sourceId: string;
   iconKey: string;
   endDate: Date;
 };
 
 type TransactionFormState = {
   dateIso: string;
+  sourceId: string;
   amount: string;
   title: string;
   note: string;
@@ -42,12 +46,14 @@ const defaultForm: FormState = {
   name: '',
   targetAmount: '',
   currentAmount: '',
+  sourceId: '',
   iconKey: 'savings',
   endDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
 };
 
 const defaultTransactionForm = (title = ''): TransactionFormState => ({
   dateIso: new Date().toISOString(),
+  sourceId: '',
   amount: '',
   title,
   note: '',
@@ -139,11 +145,14 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   const [savingAction, setSavingAction] = useState(false);
   const [editingItem, setEditingItem] = useState<SavingItem | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
+  const [showGoalSourceList, setShowGoalSourceList] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [draftEndDate, setDraftEndDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [transactionForm, setTransactionForm] = useState<TransactionFormState>(defaultTransactionForm());
+  const [sourceOptions, setSourceOptions] = useState<TransactionSourceOption[]>([]);
+  const [showSourceList, setShowSourceList] = useState(false);
   const [showTransactionDatePicker, setShowTransactionDatePicker] = useState(false);
   const [draftTransactionDate, setDraftTransactionDate] = useState(new Date());
 
@@ -215,6 +224,25 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     });
   }, [detail, selectedMonth]);
 
+  const selectedSourceLabel = useMemo(() => {
+    return sourceOptions.find((item) => item.id === transactionForm.sourceId)?.label ?? 'Chọn nguồn tiền';
+  }, [sourceOptions, transactionForm.sourceId]);
+
+  const loadSourceOptions = useCallback(async () => {
+    try {
+      const options = await transactionApi.getFormOptions();
+      setSourceOptions(options.sources);
+      setTransactionForm((prev) => {
+        if (prev.sourceId || options.sources.length === 0) {
+          return prev;
+        }
+        return { ...prev, sourceId: options.sources[0].id };
+      });
+    } catch {
+      setSourceOptions([]);
+    }
+  }, []);
+
   const loadDashboard = async (preferredId?: string | null) => {
     setLoading(true);
     setErrorMessage(null);
@@ -242,6 +270,10 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   useEffect(() => {
     void loadDashboard(route.params?.savingId ?? null);
   }, [route.params?.savingId]);
+
+  useEffect(() => {
+    void loadSourceOptions();
+  }, [loadSourceOptions]);
 
   useEffect(() => {
     if (route.params?.savingId) {
@@ -277,6 +309,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
   // Refresh data when screen focus (e.g. back from detail)
   useFocusEffect(
     useCallback(() => {
+      void loadSourceOptions();
       loadDashboard(selectedSavingId);
       if (selectedSavingId) {
         // detail's useEffect will handle the detail load since it depends on selectedSavingId
@@ -294,12 +327,16 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
         };
         loadDetail();
       }
-    }, [selectedSavingId])
+    }, [loadSourceOptions, selectedSavingId])
   );
 
   const openCreateModal = () => {
     setEditingItem(null);
-    setForm(defaultForm);
+    setForm({
+      ...defaultForm,
+      sourceId: sourceOptions[0]?.id ?? '',
+    });
+    setShowGoalSourceList(false);
     setShowModal(true);
   };
 
@@ -309,9 +346,11 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
       name: item.name,
       targetAmount: String(item.targetAmount),
       currentAmount: String(item.currentAmount),
+      sourceId: '',
       iconKey: item.iconKey,
       endDate: item.endDate ? new Date(item.endDate) : defaultForm.endDate,
     });
+    setShowGoalSourceList(false);
     setShowModal(true);
   };
 
@@ -321,6 +360,10 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
 
     if (!form.name.trim() || !targetAmount || currentAmount < 0) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên và số tiền hợp lệ.');
+      return;
+    }
+    if (!editingItem && currentAmount > 0 && !form.sourceId) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng chọn nguồn tiền để ghi nhận số tiền tiết kiệm ban đầu.');
       return;
     }
 
@@ -348,12 +391,35 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
         }
       } else {
         const response = await savingsApi.createSaving(payload);
+        if (currentAmount > 0 && response.savingId) {
+          try {
+            await savingsApi.createSavingTransaction(response.savingId, {
+              dateIso: new Date().toISOString(),
+              accountId: Number(form.sourceId),
+              amount: currentAmount,
+              title: form.name.trim(),
+              note: 'Số tiền tiết kiệm ban đầu',
+              kind: 'deposit',
+            });
+          } catch (error) {
+            await loadDashboard(response.savingId);
+            setShowModal(false);
+            setEditingItem(null);
+            setForm(defaultForm);
+            setShowGoalSourceList(false);
+
+            const message = error instanceof Error ? error.message : 'Không thể ghi nhận số tiền tiết kiệm ban đầu.';
+            Alert.alert('Đã tạo mục tiêu', `Mục tiêu đã được tạo nhưng chưa ghi nhận tiền ban đầu: ${message}`);
+            return;
+          }
+        }
         await loadDashboard(response.savingId ?? null);
       }
 
       setShowModal(false);
       setEditingItem(null);
       setForm(defaultForm);
+      setShowGoalSourceList(false);
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể lưu mục tiêu tiết kiệm.');
     } finally {
@@ -444,8 +510,17 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     if (!selectedSaving) {
       return;
     }
+    if (sourceOptions.length === 0) {
+      Alert.alert('Thiếu nguồn tiền', 'Vui lòng tạo nguồn tiền trước khi nạp tiết kiệm.');
+      return;
+    }
 
-    setTransactionForm(defaultTransactionForm(selectedSaving.name));
+    const firstSourceId = sourceOptions[0]?.id ?? '';
+    setTransactionForm({
+      ...defaultTransactionForm(selectedSaving.name),
+      sourceId: firstSourceId,
+    });
+    setShowSourceList(false);
     setViewMode('form');
   };
 
@@ -455,8 +530,8 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     }
 
     const amount = Number(transactionForm.amount.replace(/[^\d]/g, ''));
-    if (!amount || !transactionForm.title.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tổng tiền và tiêu đề hợp lệ.');
+    if (!amount || !transactionForm.title.trim() || !transactionForm.sourceId) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng chọn nguồn tiền và nhập thông tin hợp lệ.');
       return;
     }
 
@@ -464,6 +539,7 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
     try {
       await savingsApi.createSavingTransaction(selectedSavingId, {
         dateIso: transactionForm.dateIso,
+        accountId: Number(transactionForm.sourceId),
         amount,
         title: transactionForm.title.trim(),
         note: transactionForm.note.trim(),
@@ -548,6 +624,15 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
 
           <View style={styles.mainPanel}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+              <View style={styles.listHeaderRow}>
+                <Text style={styles.monthHeader}></Text>
+                <View style={styles.listActions}>
+                  <Pressable style={styles.roundAction} onPress={openCreateModal}>
+                    <MaterialIcons name="add" size={22} color={colors.white} />
+                  </Pressable>
+                </View>
+              </View>
+
               <View style={styles.savingsGrid}>
                 {dashboard.items.map((item) => {
                   const icon = getSavingIcon(item.iconKey);
@@ -568,10 +653,6 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                   );
                 })}
               </View>
-
-              <Pressable style={styles.addTransactionButton} onPress={openCreateModal}>
-                <Text style={styles.addTransactionButtonText}>Thêm mục tiêu</Text>
-              </Pressable>
             </ScrollView>
           </View>
         </>
@@ -608,6 +689,15 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+                <View style={styles.listHeaderRow}>
+                  <Text style={styles.monthHeader}></Text>
+                  <View style={styles.listActions}>
+                    <Pressable style={styles.roundAction} onPress={openTransactionForm}>
+                      <MaterialIcons name="add" size={22} color={colors.white} />
+                    </Pressable>
+                  </View>
+                </View>
+
                 <View style={styles.detailCard}>
                   <View style={styles.detailLeft}>
                     <View style={styles.statLabelRow}>
@@ -682,10 +772,6 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
                   )}
                 </View>
 
-                <Pressable style={styles.addTransactionButton} onPress={openTransactionForm}>
-                  <Text style={styles.addTransactionButtonText}>Thêm khoản tiết kiệm</Text>
-                </Pressable>
-
                 <Modal
                   visible={showMonthPicker}
                   transparent
@@ -743,9 +829,40 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
               <View style={styles.formFieldBlock}>
                 <Text style={styles.formLabel}>Danh Mục</Text>
                 <View style={styles.readonlyInput}>
-                  <Text style={styles.readonlyText}>{stripSavingPrefix(selectedSaving?.name ?? 'Tiết kiệm')}</Text>
-                  <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+                  <Text style={styles.readonlyText}>Tiết kiệm</Text>
+                  <MaterialIcons name="check-circle" size={18} color={colors.primary} />
                 </View>
+              </View>
+
+              <View style={styles.formFieldBlock}>
+                <Text style={styles.formLabel}>Nguồn tiền</Text>
+                <Pressable style={styles.readonlyInput} onPress={() => setShowSourceList((prev) => !prev)}>
+                  <Text style={styles.readonlyText}>{selectedSourceLabel}</Text>
+                  <MaterialIcons name={showSourceList ? 'expand-less' : 'expand-more'} size={18} color={colors.primary} />
+                </Pressable>
+
+                {showSourceList ? (
+                  <View style={styles.dropdownList}>
+                    {sourceOptions.length > 0 ? (
+                      sourceOptions.map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setTransactionForm((prev) => ({ ...prev, sourceId: item.id }));
+                            setShowSourceList(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownText}>{item.label}</Text>
+                        </Pressable>
+                      ))
+                    ) : (
+                      <View style={styles.dropdownItem}>
+                        <Text style={styles.dropdownText}>Chưa có nguồn tiền khả dụng</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.formFieldBlock}>
@@ -788,40 +905,48 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
               </Pressable>
 
               {Platform.OS === 'ios' && showTransactionDatePicker ? (
-                <View style={[StyleSheet.absoluteFill, styles.dateModalOverlay]}>
-                  <View style={styles.dateModalCard}>
-                    <DateTimePicker
-                      value={draftTransactionDate}
-                      mode="date"
-                      display="spinner"
-                      locale="vi-VN"
-                      onChange={(event, nextDate) => {
-                        if (nextDate) {
-                          setDraftTransactionDate(nextDate);
-                        }
-                      }}
-                    />
-
-                    <View style={styles.dateModalActions}>
-                      <Pressable style={styles.dateCancelButton} onPress={() => setShowTransactionDatePicker(false)}>
-                        <Text style={styles.dateCancelText}>Hủy</Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={styles.dateDoneButton}
-                        onPress={() => {
-                          setTransactionForm((prev) => ({
-                            ...prev,
-                            dateIso: draftTransactionDate.toISOString().split('T')[0],
-                          }));
-                          setShowTransactionDatePicker(false);
+                <Modal
+                  transparent
+                  animationType="fade"
+                  visible={showTransactionDatePicker}
+                  onRequestClose={() => setShowTransactionDatePicker(false)}
+                >
+                  <View style={styles.dateModalOverlay}>
+                    <View style={styles.dateModalCard}>
+                      <DateTimePicker
+                        value={draftTransactionDate}
+                        mode="date"
+                        display="spinner"
+                        locale="vi-VN"
+                        textColor="#111111"
+                        onChange={(event, nextDate) => {
+                          if (nextDate) {
+                            setDraftTransactionDate(nextDate);
+                          }
                         }}
-                      >
-                        <Text style={styles.dateDoneText}>Chọn</Text>
-                      </Pressable>
+                      />
+
+                      <View style={styles.dateModalActions}>
+                        <Pressable style={styles.dateCancelButton} onPress={() => setShowTransactionDatePicker(false)}>
+                          <Text style={styles.dateCancelText}>Hủy</Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={styles.dateDoneButton}
+                          onPress={() => {
+                            setTransactionForm((prev) => ({
+                              ...prev,
+                              dateIso: draftTransactionDate.toISOString().split('T')[0],
+                            }));
+                            setShowTransactionDatePicker(false);
+                          }}
+                        >
+                          <Text style={styles.dateDoneText}>Chọn</Text>
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
-                </View>
+                </Modal>
               ) : null}
             </ScrollView>
           </View>
@@ -863,6 +988,41 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
+
+            {!editingItem ? (
+              <>
+                <Text style={styles.modalLabel}>Nguồn tiền ban đầu</Text>
+                <Pressable style={styles.readonlyInput} onPress={() => setShowGoalSourceList((prev) => !prev)}>
+                  <Text style={styles.readonlyText}>
+                    {sourceOptions.find((item) => item.id === form.sourceId)?.label ?? 'Chọn nguồn tiền'}
+                  </Text>
+                  <MaterialIcons name={showGoalSourceList ? 'expand-less' : 'expand-more'} size={18} color={colors.primary} />
+                </Pressable>
+
+                {showGoalSourceList ? (
+                  <View style={styles.dropdownList}>
+                    {sourceOptions.length > 0 ? (
+                      sourceOptions.map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setForm((prev) => ({ ...prev, sourceId: item.id }));
+                            setShowGoalSourceList(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownText}>{item.label}</Text>
+                        </Pressable>
+                      ))
+                    ) : (
+                      <View style={styles.dropdownItem}>
+                        <Text style={styles.dropdownText}>Chưa có nguồn tiền khả dụng</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : null}
+              </>
+            ) : null}
 
             <Text style={styles.modalLabel}>Ngày kết thúc</Text>
             <Pressable style={styles.readonlyInput} onPress={openEndDatePicker}>
@@ -907,37 +1067,45 @@ export const SavingsScreen = ({ navigation, route }: Props) => {
           </View>
 
           {Platform.OS === 'ios' && showEndDatePicker ? (
-            <View style={[StyleSheet.absoluteFill, styles.dateModalOverlay]}>
-              <View style={styles.dateModalCard}>
-                <DateTimePicker
-                  value={draftEndDate}
-                  mode="date"
-                  display="spinner"
-                  locale="vi-VN"
-                  onChange={(event, nextDate) => {
-                    if (nextDate) {
-                      setDraftEndDate(nextDate);
-                    }
-                  }}
-                />
-
-                <View style={styles.dateModalActions}>
-                  <Pressable style={styles.dateCancelButton} onPress={() => setShowEndDatePicker(false)}>
-                    <Text style={styles.dateCancelText}>Hủy</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={styles.dateDoneButton}
-                    onPress={() => {
-                      setForm((prev) => ({ ...prev, endDate: draftEndDate }));
-                      setShowEndDatePicker(false);
+            <Modal
+              transparent
+              animationType="fade"
+              visible={showEndDatePicker}
+              onRequestClose={() => setShowEndDatePicker(false)}
+            >
+              <View style={styles.dateModalOverlay}>
+                <View style={styles.dateModalCard}>
+                  <DateTimePicker
+                    value={draftEndDate}
+                    mode="date"
+                    display="spinner"
+                    locale="vi-VN"
+                    textColor="#111111"
+                    onChange={(event, nextDate) => {
+                      if (nextDate) {
+                        setDraftEndDate(nextDate);
+                      }
                     }}
-                  >
-                    <Text style={styles.dateDoneText}>Chọn</Text>
-                  </Pressable>
+                  />
+
+                  <View style={styles.dateModalActions}>
+                    <Pressable style={styles.dateCancelButton} onPress={() => setShowEndDatePicker(false)}>
+                      <Text style={styles.dateCancelText}>Hủy</Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={styles.dateDoneButton}
+                      onPress={() => {
+                        setForm((prev) => ({ ...prev, endDate: draftEndDate }));
+                        setShowEndDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.dateDoneText}>Chọn</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
-            </View>
+            </Modal>
           ) : null}
         </View>
       </Modal>
@@ -1094,6 +1262,30 @@ const styles = StyleSheet.create({
   },
   panelContent: {
     paddingBottom: 120,
+  },
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   formContent: {
     paddingBottom: 180,
@@ -1501,6 +1693,26 @@ const styles = StyleSheet.create({
     fontFamily: typography.poppins.regular,
     fontSize: 13,
   },
+  dropdownList: {
+    marginTop: 6,
+    borderRadius: 10,
+    backgroundColor: '#E6F5EC',
+    borderWidth: 1,
+    borderColor: '#D4EFE8',
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D4EFE8',
+  },
+  dropdownText: {
+    color: colors.text,
+    fontFamily: typography.poppins.regular,
+    fontSize: 13,
+  },
   iconGridWrapper: {
     maxHeight: 210,
     minHeight: 160,
@@ -1557,11 +1769,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   dateModalOverlay: {
+    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    zIndex: 10,
+    paddingVertical: 24,
   },
   dateModalCard: {
     width: '100%',

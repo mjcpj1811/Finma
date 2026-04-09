@@ -70,7 +70,7 @@ export type UpsertSavingPayload = {
 export type CreateSavingTransactionPayload = {
   goalId?: number; // Long in BE
   amount: number;
-  accountId?: number;
+  accountId: number;
   depositDate?: string;
   note?: string;
   dateIso: string;

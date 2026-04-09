@@ -7,6 +7,7 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation';
+import { categoryApi } from '../../api/categoryApi';
 import { transactionApi } from '../../api/transactionApi';
 import { savingsApi } from '../../api/savingsApi';
 import { type TransactionDetail } from '../../types/transaction';
@@ -18,6 +19,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'SavingTransactionDetail
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 const formatDate = (value: string) => new Date(value).toLocaleDateString('vi-VN');
+const normalizeText = (value?: string | null) =>
+  (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+const normalizeOptionalId = (value?: string | null) => {
+  if (!value) {
+    return '';
+  }
+  const normalized = value.trim();
+  if (!normalized || normalized === 'null' || normalized === 'undefined') {
+    return '';
+  }
+  return normalized;
+};
 
 export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
   const { transactionId, savingId } = route.params;
@@ -32,12 +49,12 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
   const [editAmount, setEditAmount] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editDate, setEditDate] = useState(new Date());
+  const [draftEditDate, setDraftEditDate] = useState(new Date());
   const [editSourceId, setEditSourceId] = useState('');
   const [editCategoryId, setEditCategoryId] = useState('');
+  const [defaultSavingCategoryId, setDefaultSavingCategoryId] = useState('');
   const [sources, setSources] = useState<Array<{ id: string; label: string }>>([]);
-  const [categories, setCategories] = useState<Array<{ id: string; label: string }>>([]);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const loadDetail = useCallback(async () => {
@@ -49,7 +66,16 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
       ]);
       setTransaction(detail);
       setSources(options.sources);
-      setCategories(options.categories.filter(c => c.type === 'finance'));
+      const categoryDashboard = await categoryApi.getDashboard();
+      const savingCategoryFromDashboard =
+        categoryDashboard.groups.financial.find((c) => c.iconKey === 'savings') ||
+        categoryDashboard.groups.financial.find((c) => normalizeText(c.name).includes('tiet kiem'));
+
+      const savingCategory =
+        (savingCategoryFromDashboard && options.categories.find((c) => c.id === savingCategoryFromDashboard.id)) ||
+        options.categories.find((c) => c.type === 'finance' && normalizeText(c.label).includes('tiet kiem')) ||
+        options.categories.find((c) => c.type === 'finance');
+      setDefaultSavingCategoryId(savingCategory?.id ?? '');
     } catch {
       setTransaction(null);
     } finally {
@@ -167,8 +193,10 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
                   setEditAmount(String(transaction.amount));
                   setEditTitle(transaction.title);
                   setEditDate(new Date(transaction.date));
-                  setEditSourceId(transaction.sourceId);
-                  setEditCategoryId(transaction.categoryId);
+                  const currentSourceId = normalizeOptionalId(transaction.sourceId);
+                  const currentCategoryId = normalizeOptionalId(transaction.categoryId);
+                  setEditSourceId(currentSourceId || sources[0]?.id || '');
+                  setEditCategoryId(defaultSavingCategoryId || currentCategoryId);
                   setShowEditModal(true);
                 }
               }}
@@ -232,6 +260,7 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
                         mode: 'date',
                       });
                     } else {
+                      setDraftEditDate(editDate);
                       setShowDatePicker(true);
                     }
                   }}
@@ -243,31 +272,10 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
 
               <View style={styles.formField}>
                 <Text style={styles.fieldLabel}>Danh mục</Text>
-                <Pressable
-                  style={styles.pickerTrigger}
-                  onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-                >
-                  <Text style={styles.pickerText}>
-                    {categories.find(c => c.id === editCategoryId)?.label || 'Chọn danh mục'}
-                  </Text>
-                  <MaterialIcons name="expand-more" size={20} color={colors.primary} />
-                </Pressable>
-                {showCategoryPicker && (
-                  <View style={styles.dropdown}>
-                    {categories.map(c => (
-                      <Pressable
-                        key={c.id}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          setEditCategoryId(c.id);
-                          setShowCategoryPicker(false);
-                        }}
-                      >
-                        <Text style={styles.dropdownItemText}>{c.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+                <View style={styles.pickerTrigger}>
+                  <Text style={styles.pickerText}>Tiết kiệm</Text>
+                  <MaterialIcons name="check-circle" size={20} color={colors.primary} />
+                </View>
               </View>
 
               <View style={styles.formField}>
@@ -305,15 +313,29 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
                 style={[styles.saveButton, saving && styles.disabledButton]}
                 onPress={async () => {
                    if (!transaction) return;
+                   const categoryId =
+                     normalizeOptionalId(defaultSavingCategoryId) ||
+                     normalizeOptionalId(editCategoryId) ||
+                     normalizeOptionalId(transaction.categoryId) ||
+                     '';
+                   const sourceId = normalizeOptionalId(editSourceId) || normalizeOptionalId(transaction.sourceId);
+                   if (!categoryId) {
+                     Alert.alert('Lỗi', 'Không tìm thấy danh mục tiết kiệm mặc định. Vui lòng thử lại sau.');
+                     return;
+                   }
+                   if (!sourceId) {
+                     Alert.alert('Lỗi', 'Không tìm thấy nguồn tiền của giao dịch. Vui lòng chọn nguồn tiền trước khi lưu.');
+                     return;
+                   }
                    setSaving(true);
                    try {
                      await transactionApi.updateTransaction(transactionId, {
                        amount: Number(editAmount),
                        title: editTitle,
                        date: editDate.toISOString(),
-                       sourceId: editSourceId,
+                        sourceId,
                        type: 'saving',
-                       categoryId: editCategoryId
+                       categoryId
                      });
                      setShowEditModal(false);
                      void loadDetail();
@@ -338,14 +360,26 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
            <View style={styles.iosDateOverlay}>
               <View style={styles.iosDateContainer}>
                  <DateTimePicker
-                   value={editDate}
+                   value={draftEditDate}
                    mode="date"
                    display="spinner"
-                   onChange={(event, date) => date && setEditDate(date)}
+                   textColor="#111111"
+                   onChange={(event, date) => date && setDraftEditDate(date)}
                  />
-                 <Pressable style={styles.iosDateDone} onPress={() => setShowDatePicker(false)}>
-                    <Text style={styles.iosDateDoneText}>Xong</Text>
-                 </Pressable>
+                 <View style={styles.iosDateActions}>
+                    <Pressable style={styles.iosDateCancel} onPress={() => setShowDatePicker(false)}>
+                      <Text style={styles.iosDateCancelText}>Hủy</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.iosDateDone}
+                      onPress={() => {
+                        setEditDate(draftEditDate);
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.iosDateDoneText}>Chọn</Text>
+                    </Pressable>
+                 </View>
               </View>
            </View>
         </Modal>
@@ -568,15 +602,40 @@ const styles = StyleSheet.create({
   },
   iosDateContainer: {
     backgroundColor: '#DFF7E2',
-    paddingBottom: 20,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingBottom: 14,
+    paddingHorizontal: 10,
+  },
+  iosDateActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 6,
+    marginTop: 4,
+  },
+  iosDateCancel: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#DFF7E2',
+    borderWidth: 1,
+    borderColor: '#B8DACC',
+  },
+  iosDateCancelText: {
+    color: colors.text,
+    fontSize: 14,
+    fontFamily: typography.poppins.medium,
   },
   iosDateDone: {
-    alignItems: 'center',
-    padding: 15,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: colors.primary,
   },
   iosDateDoneText: {
-    color: colors.primary,
-    fontSize: 18,
+    color: colors.white,
+    fontSize: 14,
     fontFamily: typography.poppins.semibold,
   },
 });

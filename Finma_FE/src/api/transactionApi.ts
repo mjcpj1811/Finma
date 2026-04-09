@@ -262,7 +262,13 @@ const buildBackendNote = (payload: CreateTransactionPayload | UpdateTransactionP
 };
 
 const fallbackIconByType = (type: TransactionType): TransactionItem['iconKey'] => {
-  return type === 'income' ? 'attach_money' : 'shopping';
+  if (type === 'income') {
+    return 'attach_money';
+  }
+  if (type === 'saving') {
+    return 'savings';
+  }
+  return 'shopping';
 };
 
 const buildCategoryIconMap = async (token?: string) => {
@@ -500,16 +506,20 @@ export const transactionApi = {
     const date = parseBackendDateTime(raw.transactionDate);
     const parsedNote = splitNote(raw.note);
     const transactionType = toFrontendType(raw.type);
+    const resolvedCategoryLabel =
+      transactionType === 'saving'
+        ? raw.categoryName ?? raw.goalName ?? 'Tiết kiệm'
+        : raw.categoryName ?? 'Khác';
 
     return {
       id: String(raw.id),
       date: date.toISOString(),
       type: transactionType,
-      categoryId: String(raw.categoryId),
-      categoryLabel: raw.categoryName ?? 'Khác',
+      categoryId: raw.categoryId != null ? String(raw.categoryId) : '',
+      categoryLabel: resolvedCategoryLabel,
       amount: Math.abs(Number(raw.amount) || 0),
-      title: parsedNote.title || raw.categoryName || 'Giao dịch',
-      sourceId: String(raw.accountId),
+      title: parsedNote.title || resolvedCategoryLabel || 'Giao dịch',
+      sourceId: raw.accountId != null ? String(raw.accountId) : '',
       sourceLabel: raw.accountName ?? 'Không xác định',
       goalId: raw.goalId ? String(raw.goalId) : undefined,
       goalName: raw.goalName,

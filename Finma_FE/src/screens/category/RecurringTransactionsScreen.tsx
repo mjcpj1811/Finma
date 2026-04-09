@@ -429,6 +429,15 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
 
       <View style={styles.mainPanel}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+          <View style={styles.listHeaderRow}>
+            <Text style={styles.monthHeader}></Text>
+            <View style={styles.listActions}>
+              <Pressable style={styles.roundAction} onPress={onOpenAddModal}>
+                <MaterialIcons name="add" size={22} color={colors.white} />
+              </Pressable>
+            </View>
+          </View>
+
           {dashboard.items.map((item) => (
             <View key={item.id} style={styles.ruleCard}>
               <View style={styles.ruleIconWrap}>
@@ -461,10 +470,6 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
               </View>
             </View>
           ))}
-
-          <Pressable style={styles.addButton} onPress={onOpenAddModal}>
-            <Text style={styles.addButtonText}>Thêm giao dịch định kỳ</Text>
-          </Pressable>
         </ScrollView>
       </View>
 
@@ -857,6 +862,29 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
     gap: 8,
   },
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ruleCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -950,21 +978,6 @@ const styles = StyleSheet.create({
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
-  },
-  addButton: {
-    alignSelf: 'center',
-    minHeight: 34,
-    borderRadius: 17,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    marginTop: 8,
-  },
-  addButtonText: {
-    color: '#0C6657',
-    fontFamily: typography.poppins.semibold,
-    fontSize: 13,
   },
 
   modalOverlay: {

@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -425,6 +437,15 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       <View style={styles.mainPanel}>
         {viewMode === 'overview' ? (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+            <View style={styles.listHeaderRow}>
+              <Text style={styles.monthHeader}></Text>
+              <View style={styles.listActions}>
+                <Pressable style={styles.roundAction} onPress={openCreateDebtModal}>
+                  <MaterialIcons name="add" size={22} color={colors.white} />
+                </Pressable>
+              </View>
+            </View>
+
             {dashboard.items.map((item) => {
               const icon = debtIconMeta[item.iconKey];
               return (
@@ -467,13 +488,22 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
                 </Pressable>
               );
             })}
-
-            <Pressable style={styles.addButton} onPress={openCreateDebtModal}>
-              <Text style={styles.addButtonText}>Thêm vay nợ</Text>
-            </Pressable>
           </ScrollView>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+            <View style={styles.listHeaderRow}>
+              <Text style={styles.monthHeader}></Text>
+              <View style={styles.listActions}>
+                <Pressable
+                  style={styles.roundAction}
+                  onPress={openCreateTransactionModal}
+                  disabled={detailLoading || !selectedDebt}
+                >
+                  <MaterialIcons name="add" size={22} color={colors.white} />
+                </Pressable>
+              </View>
+            </View>
+
             {detailLoading || !detail || !selectedDebt ? (
               <View style={styles.loaderInline}>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -538,10 +568,6 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
                     })}
                   </View>
                 ))}
-
-                <Pressable style={styles.addButton} onPress={openCreateTransactionModal}>
-                  <Text style={styles.addButtonText}>Thêm thanh toán</Text>
-                </Pressable>
               </>
             )}
           </ScrollView>
@@ -549,8 +575,18 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       </View>
 
       <Modal visible={debtModalVisible} transparent animationType="fade" onRequestClose={() => setDebtModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView
+          style={styles.modalKeyboardAvoiding}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{editingDebt ? 'Sửa vay nợ' : 'Thêm vay nợ'}</Text>
 
             <Text style={styles.modalLabel}>Tên</Text>
@@ -624,8 +660,10 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
                 <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
               </Pressable>
             </View>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -634,8 +672,18 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
         animationType="fade"
         onRequestClose={() => setTransactionModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView
+          style={styles.modalKeyboardAvoiding}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{editingTransaction ? 'Sửa giao dịch' : 'Thêm giao dịch thanh toán'}</Text>
 
             <Text style={styles.modalLabel}>Ngày</Text>
@@ -733,8 +781,10 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
                 <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
               </Pressable>
             </View>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <ScreenBottomNavigation activeTab="layers" />
@@ -822,6 +872,29 @@ const styles = StyleSheet.create({
   panelContent: {
     paddingBottom: 110,
     gap: 8,
+  },
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  monthHeader: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 18,
+  },
+  listActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   debtCard: {
     flexDirection: 'row',
@@ -1004,21 +1077,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addButton: {
-    alignSelf: 'center',
-    minHeight: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 30,
-    marginTop: 8,
-  },
-  addButtonText: {
-    color: '#0C6657',
-    fontFamily: typography.poppins.semibold,
-    fontSize: 14,
-  },
 
   loaderWrap: {
     flex: 1,
@@ -1047,6 +1105,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'center',
     paddingHorizontal: 20,
+  },
+  modalKeyboardAvoiding: {
+    flex: 1,
+  },
+  modalScroll: {
+    flexGrow: 0,
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 14,
   },
   modalCard: {
     backgroundColor: '#F1FFF3',

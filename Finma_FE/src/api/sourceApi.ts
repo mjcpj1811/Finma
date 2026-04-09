@@ -90,6 +90,8 @@ const getIconByType = (type: string) => {
       return 'credit-card';
     case 'SAVING':
       return 'savings';
+    case 'INVESTMENT':
+      return 'trending-up';
     default:
       return 'account-balance';
   }
@@ -107,6 +109,8 @@ const getColorByType = (type: string) => {
       return '#EF4444';
     case 'SAVING':
       return '#10B981';
+    case 'INVESTMENT':
+      return '#8B5CF6';
     default:
       return '#6366F1';
   }
@@ -221,7 +225,9 @@ export const sourceApi = {
     const [transactionsRaw, accountRaw, categoryIconLookups] = await Promise.all([
       requestApi<any>(SOURCE_ENDPOINTS.transactions(sourceId), { token }),
       requestApi<any>(SOURCE_ENDPOINTS.update(sourceId), { token }).catch(() => null),
-      buildCategoryIconLookups(token).catch(() => ({ byId: {}, byName: {} })),
+      buildCategoryIconLookups(token).catch(
+        (): { byId: Record<string, string>; byName: Record<string, string> } => ({ byId: {}, byName: {} }),
+      ),
     ]);
 
     const sourceRaw = accountRaw || {};
