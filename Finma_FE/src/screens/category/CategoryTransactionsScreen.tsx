@@ -24,16 +24,9 @@ import { type CategoryGroup, type CategoryItem } from '../../types/category';
 import { type TransactionDashboard, type TransactionItem, type TransactionType } from '../../types/transaction';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CategoryTransactions'>;
-
-const iconByKey: Record<TransactionItem['iconKey'], { name: keyof typeof MaterialIcons.glyphMap; bg: string }> = {
-  salary: { name: 'inventory-2', bg: '#4D9EFF' },
-  food: { name: 'restaurant-menu', bg: '#4D9EFF' },
-  rent: { name: 'home', bg: '#4D9EFF' },
-  transport: { name: 'directions-bus', bg: '#4D9EFF' },
-  other: { name: 'shopping-bag', bg: '#7A8BFF' },
-};
 
 const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
 
@@ -317,15 +310,18 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
               </View>
 
               {items.map((item) => {
-                const iconMeta = iconByKey[item.iconKey];
                 return (
                   <Pressable
                     key={item.id}
                     style={styles.itemCard}
                     onPress={() => navigation.navigate('TransactionDetail', { transactionId: item.id })}
                   >
-                    <View style={[styles.itemIconWrap, { backgroundColor: iconMeta.bg }]}>
-                      <MaterialIcons name={iconMeta.name} size={22} color={colors.white} />
+                    <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                      <MaterialIcons
+                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        size={22}
+                        color={colors.white}
+                      />
                     </View>
 
                     <View style={styles.itemInfoWrap}>

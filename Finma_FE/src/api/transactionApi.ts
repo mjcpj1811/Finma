@@ -151,18 +151,20 @@ const timeLabelFromDate = (dateIso: string) => {
 };
 
 const iconByCategoryId = (categoryId: string, type: TransactionType): TransactionItem['iconKey'] => {
-  const expenseMap: Record<string, TransactionItem['iconKey']> = {
-    food: 'food',
-    rent: 'rent',
-    transport: 'transport',
-    other: 'other',
+  const normalized = categoryId.trim().toLowerCase().replace(/-/g, '_');
+
+  const expenseMap: Record<string, string> = {
+    food: 'restaurant',
+    rent: 'home',
+    transport: 'directions_bus',
+    other: 'shopping',
   };
 
   if (type === 'income') {
-    return 'salary';
+    return 'attach_money';
   }
 
-  return expenseMap[categoryId] ?? 'other';
+  return expenseMap[normalized] ?? 'shopping';
 };
 
 const filterItems = (items: TransactionItem[], filter: TransactionFilter) => {
@@ -249,23 +251,8 @@ const buildBackendNote = (payload: CreateTransactionPayload | UpdateTransactionP
   return detail ? `${title} | ${detail}` : title;
 };
 
-const mapCategoryIconToTransactionIcon = (iconKey?: string): TransactionItem['iconKey'] => {
-  switch (iconKey) {
-    case 'attach_money':
-      return 'salary';
-    case 'restaurant':
-    case 'shopping':
-      return 'food';
-    case 'directions_bus':
-      return 'transport';
-    case 'account_balance_wallet':
-    case 'movie':
-    case 'healing':
-    case 'card_giftcard':
-      return 'other';
-    default:
-      return 'other';
-  }
+const fallbackIconByType = (type: TransactionType): TransactionItem['iconKey'] => {
+  return type === 'income' ? 'attach_money' : 'shopping';
 };
 
 const buildCategoryIconMap = async (token?: string) => {
@@ -277,7 +264,7 @@ const buildCategoryIconMap = async (token?: string) => {
   ];
 
   return allCategories.reduce<Record<string, TransactionItem['iconKey']>>((acc, category) => {
-    acc[category.id] = mapCategoryIconToTransactionIcon(category.iconKey);
+    acc[category.id] = category.iconKey;
     return acc;
   }, {});
 };
@@ -298,7 +285,7 @@ const mapBackendTransactionItem = (
     note: parsed.detail,
     amount: toFrontendType(item.type) === 'expense' ? -Math.abs(Number(item.amount) || 0) : Math.abs(Number(item.amount) || 0),
     kind: toFrontendType(item.type),
-    iconKey: categoryIconMapById[String(item.categoryId)] ?? mapCategoryIconToTransactionIcon(),
+    iconKey: categoryIconMapById[String(item.categoryId)] ?? fallbackIconByType(toFrontendType(item.type)),
   };
 };
 
@@ -501,7 +488,7 @@ export const transactionApi = {
       detail: parsedNote.detail,
       note: result.note ?? '',
       timeLabel: `${pad2(date.getHours())}:${pad2(date.getMinutes())} - ${date.toLocaleString('vi-VN', { month: 'long' })} ${pad2(date.getDate())}`,
-      iconKey: categoryIconMapById[String(result.categoryId)] ?? 'other',
+      iconKey: categoryIconMapById[String(result.categoryId)] ?? fallbackIconByType(toFrontendType(result.type)),
     } satisfies TransactionDetail;
   },
 

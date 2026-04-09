@@ -118,7 +118,7 @@ public class CategoryService {
     }
 
     private Category getCategoryOwnedByUser(Long categoryId, Long userId) {
-        return categoryRepository.findByIdAndUserId(categoryId, userId)
+        return categoryRepository.findByIdAccessibleToUser(categoryId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 

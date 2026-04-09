@@ -28,7 +28,7 @@ export type TransactionItem = {
   categoryLabel: string;
   amount: number;
   kind: TransactionKind;
-  iconKey: 'salary' | 'food' | 'rent' | 'transport' | 'other';
+  iconKey: string;
 };
 
 export type HomeDashboard = {

@@ -1,4 +1,5 @@
 import { request } from './httpClient';
+import { categoryApi } from './categoryApi';
 import { type HomeDashboard, type HomeOverview, type HomeHeaderSummary, type PeriodFilter, type TransactionItem } from '../types/home';
 import { type ReportDashboard } from '../types/report';
 
@@ -25,7 +26,12 @@ type BackendTransactionItem = {
   id: number;
   type: 'INCOME' | 'EXPENSE';
   amount: number;
-  category?: string | null;
+  categoryId?: number | null;
+  category_id?: number | null;
+  categoryID?: number | null;
+  category?: string | { id?: number | null; name?: string | null; icon?: string | null; iconKey?: string | null } | null;
+  categoryIcon?: string | null;
+  icon?: string | null;
   note?: string | null;
   date?: string | null;
   transactionDateTime?: string | null;
@@ -157,21 +163,94 @@ const formatTimeLabel = (date: Date) => {
 
 const toIconKey = (categoryLabel: string, type: 'income' | 'expense'): TransactionItem['iconKey'] => {
   if (type === 'income') {
-    return 'salary';
+    return 'attach_money';
   }
 
   const normalized = categoryLabel.toLowerCase();
   if (normalized.includes('ăn') || normalized.includes('food') || normalized.includes('thực')) {
-    return 'food';
+    return 'restaurant';
   }
   if (normalized.includes('nhà') || normalized.includes('rent') || normalized.includes('thuê')) {
-    return 'rent';
+    return 'home';
   }
   if (normalized.includes('xe') || normalized.includes('bus') || normalized.includes('đi') || normalized.includes('transport') || normalized.includes('xăng')) {
-    return 'transport';
+    return 'directions_bus';
   }
 
-  return 'other';
+  return 'shopping';
+};
+
+const normalizeCategoryLabel = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const toOptionalString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const resolveBackendCategoryId = (item: BackendTransactionItem): string => {
+  const directId = item.categoryId ?? item.category_id ?? item.categoryID;
+  if (directId != null && Number.isFinite(Number(directId))) {
+    return String(directId);
+  }
+
+  if (item.category && typeof item.category === 'object') {
+    const nestedId = item.category.id;
+    if (nestedId != null && Number.isFinite(Number(nestedId))) {
+      return String(nestedId);
+    }
+  }
+
+  return '';
+};
+
+const resolveBackendCategoryLabel = (item: BackendTransactionItem): string => {
+  if (typeof item.category === 'string') {
+    return item.category;
+  }
+
+  if (item.category && typeof item.category === 'object') {
+    return toOptionalString(item.category.name) ?? '';
+  }
+
+  return '';
+};
+
+const resolveBackendCategoryIcon = (item: BackendTransactionItem): string | undefined => {
+  if (item.category && typeof item.category === 'object') {
+    const nestedIcon = toOptionalString(item.category.iconKey) ?? toOptionalString(item.category.icon);
+    if (nestedIcon) {
+      return nestedIcon;
+    }
+  }
+
+  return toOptionalString(item.categoryIcon) ?? toOptionalString(item.icon);
+};
+
+const buildCategoryIconLookups = async (token?: string) => {
+  const dashboard = await categoryApi.getDashboard(token);
+  const allCategories = [
+    ...dashboard.groups.financial,
+    ...dashboard.groups.expense,
+    ...dashboard.groups.income,
+  ];
+
+  return allCategories.reduce<{
+    byId: Record<string, TransactionItem['iconKey']>;
+    byName: Record<string, TransactionItem['iconKey']>;
+  }>((acc, category) => {
+    acc.byId[category.id] = category.iconKey;
+    acc.byName[normalizeCategoryLabel(category.name)] = category.iconKey;
+    return acc;
+  }, { byId: {}, byName: {} });
 };
 
 const buildGreetingText = () => {
@@ -185,20 +264,34 @@ const buildGreetingText = () => {
   return 'Chào buổi tối';
 };
 
-const mapTransactionItem = (item: BackendTransactionItem): TransactionItem => {
+const mapTransactionItem = (
+  item: BackendTransactionItem,
+  categoryIconLookups: {
+    byId: Record<string, TransactionItem['iconKey']>;
+    byName: Record<string, TransactionItem['iconKey']>;
+  },
+): TransactionItem => {
   const date = parseBackendDateTime(item.transactionDateTime ?? item.date);
   const parsed = splitNote(item.note);
   const type = item.type === 'INCOME' ? 'income' : 'expense';
-  const categoryLabel = parsed.detail || item.category || '-';
+  const categoryName = resolveBackendCategoryLabel(item);
+  const categoryLabel = categoryName || parsed.detail || '-';
+  const categoryId = resolveBackendCategoryId(item);
+  const backendIcon = resolveBackendCategoryIcon(item);
+  const normalizedCategoryLabel = normalizeCategoryLabel(categoryLabel);
 
   return {
     id: String(item.id),
-    title: parsed.title || item.category || 'Giao dịch',
+    title: parsed.title || categoryName || 'Giao dịch',
     timeLabel: formatTimeLabel(date),
     categoryLabel,
     amount: type === 'expense' ? -Math.abs(Number(item.amount) || 0) : Math.abs(Number(item.amount) || 0),
     kind: type,
-    iconKey: toIconKey(item.category ?? parsed.title ?? '', type),
+    iconKey:
+      categoryIconLookups.byId[categoryId] ??
+      categoryIconLookups.byName[normalizedCategoryLabel] ??
+      backendIcon ??
+      toIconKey(categoryLabel, type),
   };
 };
 
@@ -207,7 +300,7 @@ export const homeApi = {
     const currentRange = getCurrentRange(period);
     const previousRange = getPreviousRange(period);
 
-    const [currentDashboardResponse, previousSummaryResponse, userResponse, transactionsResponse] = await Promise.all([
+    const [currentDashboardResponse, previousSummaryResponse, userResponse, transactionsResponse, categoryIconLookups] = await Promise.all([
       request<BackendReportDashboard>(`${HOME_ENDPOINTS.dashboard}?period=${period}`, { token }),
       request<ApiResponse<BackendSummary>>(
         `${HOME_ENDPOINTS.summary}?from=${encodeURIComponent(previousRange.from)}&to=${encodeURIComponent(previousRange.to)}`,
@@ -218,6 +311,7 @@ export const homeApi = {
         `${HOME_ENDPOINTS.transactions}?from=${encodeURIComponent(currentRange.from)}&to=${encodeURIComponent(currentRange.to)}`,
         { token },
       ),
+      buildCategoryIconLookups(token),
     ]);
 
     const user = userResponse.result;
@@ -237,7 +331,7 @@ export const homeApi = {
         totalIncome: Number(previousSummary.totalIncome ?? 0),
         totalExpense: Number(previousSummary.totalExpense ?? 0),
       },
-      transactions: (transactionsResponse.result ?? []).map(mapTransactionItem),
+      transactions: (transactionsResponse.result ?? []).map((item) => mapTransactionItem(item, categoryIconLookups)),
       unreadNotifications: currentDashboard.unreadNotifications,
     } satisfies HomeDashboard;
   },

@@ -48,7 +48,7 @@ public class TransactionService {
                 .type(request.getType())
                 .amount(request.getAmount())
                 .note(resolveNote(request.getNote(), request.getDetail(), request.getTitle()))
-                .imageUrl(request.getImageUrl())
+                .icon(request.getImageUrl())
                 .location(request.getLocation())
                 .transactionDate(txnDate)
                 .account(account)
@@ -89,7 +89,7 @@ public class TransactionService {
         txn.setType(request.getType());
         txn.setAmount(request.getAmount());
         txn.setNote(resolveNote(request.getNote(), request.getDetail(), request.getTitle()));
-        txn.setImageUrl(request.getImageUrl());
+        txn.setIcon(request.getImageUrl());
         txn.setLocation(request.getLocation());
         txn.setTransactionDate(txnDate);
         txn.setAccount(newAccount);
