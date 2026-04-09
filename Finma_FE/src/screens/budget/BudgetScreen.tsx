@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   mainPanel: {
     flex: 1,
     marginTop: 16,
-    backgroundColor: '#E8F5F0',
+    backgroundColor: '#F1FFF3',
     borderTopLeftRadius: 42,
     borderTopRightRadius: 42,
     overflow: 'hidden',
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: '#DFF7E2',
     borderRadius: 24,
     padding: 16,
     justifyContent: 'center',

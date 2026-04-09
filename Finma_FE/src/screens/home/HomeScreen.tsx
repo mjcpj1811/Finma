@@ -139,7 +139,6 @@ export const HomeScreen = ({ navigation }: Props) => {
           <AppScreenHeader
             title="Trang Chủ"
             onPressNotification={() => navigation.navigate('Notifications')}
-            showNotificationBadge={false}
           />
           <View style={styles.loaderWrap}>
             <ActivityIndicator size="large" color={colors.white} />
@@ -159,7 +158,6 @@ export const HomeScreen = ({ navigation }: Props) => {
           <AppScreenHeader
             title="Trang Chủ"
             onPressNotification={() => navigation.navigate('Notifications')}
-            showNotificationBadge={false}
           />
           <View style={styles.loaderWrap}>
             <Text style={styles.loaderText}>Không thể tải dữ liệu trang chủ.</Text>

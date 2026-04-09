@@ -80,7 +80,6 @@ export const BudgetCategoryListScreen = ({ navigation }: Props) => {
         title="Danh Mục Chi Tiêu"
         onPressBack={() => navigation.goBack()}
         onPressNotification={() => navigation.navigate('Notifications')}
-        showNotificationBadge={false}
       />
 
       <View style={styles.mainPanel}>

@@ -1,7 +1,10 @@
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NotificationBellButton } from './NotificationBellButton';
+import { notificationApi } from '../api/notificationApi';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 
@@ -20,6 +23,38 @@ export const AppScreenHeader = ({
   showNotificationBadge,
   notificationSize = 30,
 }: Props) => {
+  const [derivedBadgeVisible, setDerivedBadgeVisible] = useState(false);
+  const shouldUseDerivedBadge = typeof showNotificationBadge !== 'boolean';
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!shouldUseDerivedBadge) {
+        return;
+      }
+
+      let active = true;
+
+      const loadUnread = async () => {
+        try {
+          const unreadCount = await notificationApi.getUnreadCount();
+          if (active) {
+            setDerivedBadgeVisible(unreadCount > 0);
+          }
+        } catch {
+          if (active) {
+            setDerivedBadgeVisible(false);
+          }
+        }
+      };
+
+      void loadUnread();
+
+      return () => {
+        active = false;
+      };
+    }, [shouldUseDerivedBadge]),
+  );
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.headerRow}>
@@ -37,7 +72,7 @@ export const AppScreenHeader = ({
           <NotificationBellButton
             size={notificationSize}
             onPress={onPressNotification}
-            showBadge={showNotificationBadge}
+            showBadge={shouldUseDerivedBadge ? derivedBadgeVisible : showNotificationBadge}
           />
         </View>
       </View>
