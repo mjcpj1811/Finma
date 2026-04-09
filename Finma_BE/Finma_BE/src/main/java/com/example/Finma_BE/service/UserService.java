@@ -7,12 +7,15 @@ import com.example.Finma_BE.dto.request.ResetPasswordRequest;
 import com.example.Finma_BE.dto.request.UserCreationRequest;
 import com.example.Finma_BE.dto.request.UserUpdateRequest;
 import com.example.Finma_BE.dto.response.UserResponse;
+import com.example.Finma_BE.entity.Category;
 import com.example.Finma_BE.entity.PasswordResetToken;
 import com.example.Finma_BE.entity.User;
+import com.example.Finma_BE.enums.CategoryType;
 import com.example.Finma_BE.enums.NotificationType;
 import com.example.Finma_BE.exception.AppException;
 import com.example.Finma_BE.exception.ErrorCode;
 import com.example.Finma_BE.mapper.UserMapper;
+import com.example.Finma_BE.repository.CategoryRepository;
 import com.example.Finma_BE.repository.PasswordResetTokenRepository;
 import com.example.Finma_BE.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +25,11 @@ import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
 import java.util.List;
@@ -36,11 +41,16 @@ import java.util.List;
 public class UserService {
     UserRepository userRepository;
     PasswordResetTokenRepository passwordResetTokenRepository;
+    CategoryRepository categoryRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     EmailService emailService;
     NotificationService notificationService;
 
+    private static final String DEFAULT_FINANCE_COLOR = "#4DB6E6";
+    private static final String DEFAULT_INCOME_COLOR = "#66BB6A";
+
+    @Transactional
     public UserResponse createUser(UserCreationRequest request) {
 
         if(userRepository.existsByUsername(request.getUsername())){
@@ -52,15 +62,22 @@ public class UserService {
         }
         User user=userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        return userMapper.toUserResponse(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        initializeDefaultCategories(savedUser);
+        return userMapper.toUserResponse(savedUser);
     }
 
+    @Transactional
     public User processOAuth2User(String email, String fullName, String avatar) {
         if (email == null || email.isBlank()) {
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
         }
 
-        var user = userRepository.findByEmail(email).orElseGet(() -> {
+        var existingUser = userRepository.findByEmail(email);
+        User user;
+        if (existingUser.isPresent()) {
+            user = existingUser.get();
+        } else {
             String usernameBase = email.split("@", 2)[0].replaceAll("[^A-Za-z0-9]", "");
             if (usernameBase.isBlank()) {
                 usernameBase = "user";
@@ -79,11 +96,61 @@ public class UserService {
             newUser.setStatus(1);
             newUser.setCurrency("VND");
             newUser.setTimezone("Asia/Ho_Chi_Minh");
-            return newUser;
-        });
+            user = userRepository.save(newUser);
+            initializeDefaultCategories(user);
+        }
+
         user.setFullName(fullName);
         user.setAvatar(avatar);
         return userRepository.save(user);
+    }
+
+    private void initializeDefaultCategories(User user) {
+        if (user.getId() == null) {
+            return;
+        }
+
+        boolean alreadyInitialized = categoryRepository.findByUserIdOrderByIsDefaultDescNameAsc(user.getId())
+                .stream()
+                .anyMatch(category -> Boolean.TRUE.equals(category.getIsDefault()));
+
+        if (alreadyInitialized) {
+            return;
+        }
+
+        List<Category> defaults = new ArrayList<>();
+
+        defaults.add(defaultCategory(user, "Tiết Kiệm", CategoryType.FINANCE, "piggy-bank", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Định Kỳ", CategoryType.FINANCE, "calendar-sync", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Vay Nợ", CategoryType.FINANCE, "debt", DEFAULT_FINANCE_COLOR));
+
+        defaults.add(defaultCategory(user, "Thực Phẩm", CategoryType.EXPENSE, "grocery", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Ăn Uống", CategoryType.EXPENSE, "restaurant", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Quà Tặng", CategoryType.EXPENSE, "gift", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Y Tế", CategoryType.EXPENSE, "medical", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Giải Trí", CategoryType.EXPENSE, "entertainment", DEFAULT_FINANCE_COLOR));
+        defaults.add(defaultCategory(user, "Di Chuyển", CategoryType.EXPENSE, "transport", DEFAULT_FINANCE_COLOR));
+
+        defaults.add(defaultCategory(user, "Lương", CategoryType.INCOME, "salary", DEFAULT_INCOME_COLOR));
+        defaults.add(defaultCategory(user, "Trợ Cấp", CategoryType.INCOME, "subsidy", DEFAULT_INCOME_COLOR));
+
+        categoryRepository.saveAll(defaults);
+    }
+
+    private Category defaultCategory(User user,
+                                     String name,
+                                     CategoryType type,
+                                     String icon,
+                                     String color) {
+        Category category = new Category();
+        category.setUser(user);
+        category.setName(name);
+        category.setType(type);
+        category.setIcon(icon);
+        category.setColor(color);
+        category.setIsDefault(true);
+        category.setParent(null);
+        return category;
     }
 
     public List<UserResponse> getUsers() {
