@@ -1,14 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  ScrollView,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, ScrollView } from 'react-native';
 import type { SvgProps } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';

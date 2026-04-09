@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';

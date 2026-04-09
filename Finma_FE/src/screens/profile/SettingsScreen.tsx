@@ -1,11 +1,5 @@
-import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -96,7 +90,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
   },
 

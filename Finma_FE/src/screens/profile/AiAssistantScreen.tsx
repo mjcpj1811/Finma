@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
@@ -182,7 +174,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
   },
   headerRow: {
@@ -314,7 +306,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.poppins.regular,
     fontSize: 15,
-  },
+  },
+
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loaderText: { color: colors.white, fontFamily: typography.poppins.medium, fontSize: 14 },
 });

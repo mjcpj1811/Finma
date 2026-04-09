@@ -1,15 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { AppScreenHeader } from '../../components/AppScreenHeader';

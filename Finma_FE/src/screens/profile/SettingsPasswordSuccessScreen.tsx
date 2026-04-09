@@ -1,4 +1,5 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { type RootStackParamList } from '../../navigation/RootNavigator';
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    // paddingHorizontal: 24,
   },
   content: {
     alignItems: 'center',

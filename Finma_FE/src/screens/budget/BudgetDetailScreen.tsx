@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-} from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreenHeader } from '../../components/AppScreenHeader';

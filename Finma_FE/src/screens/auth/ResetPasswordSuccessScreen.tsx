@@ -1,4 +1,5 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import SuccessIcon from '../../../assets/icons/Check Progress.svg';
 import { RootStackParamList } from '../../navigation/RootNavigator';

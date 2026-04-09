@@ -142,38 +142,30 @@ public class ReportController {
         );
     }
 
-        private DateRange resolveRange(String period) {
-                LocalDate today = LocalDate.now();
-                String view = period == null ? "day" : period.trim().toLowerCase(Locale.ROOT);
+    private DateRange resolveRange(String period) {
+        LocalDate today = LocalDate.now();
+        String view = period == null ? "day" : period.trim().toLowerCase(Locale.ROOT);
 
-                return switch (view) {
-                        case "day" -> {
-                                LocalDate start = today.with(DayOfWeek.MONDAY);
-                                LocalDate end = start.plusDays(6);
-                                yield new DateRange(start.toString(), end.toString());
-                        }
-                        case "week" -> {
-                                LocalDate start = today.with(DayOfWeek.MONDAY);
-                                LocalDate end = start.plusDays(6);
-                                yield new DateRange(start.toString(), end.toString());
-                        }
-                        case "month" -> {
-                                LocalDate start = today.withDayOfMonth(1);
-                                LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
-                                yield new DateRange(start.toString(), end.toString());
-                        }
-                        case "year" -> {
-                                LocalDate start = today.withDayOfYear(1);
-                                LocalDate end = today.withDayOfYear(today.lengthOfYear());
-                                yield new DateRange(start.toString(), end.toString());
-                        }
-                        default -> {
-                                LocalDate start = today.with(DayOfWeek.MONDAY);
-                                LocalDate end = start.plusDays(6);
-                                yield new DateRange(start.toString(), end.toString());
-                        }
-                };
-        }
+        return switch (view) {
+            case "day" -> new DateRange(today.toString(), today.toString());
+            case "week" -> {
+                LocalDate start = today.with(DayOfWeek.MONDAY);
+                LocalDate end = start.plusDays(6);
+                yield new DateRange(start.toString(), end.toString());
+            }
+            case "month" -> {
+                LocalDate start = today.withDayOfMonth(1);
+                LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
+                yield new DateRange(start.toString(), end.toString());
+            }
+            case "year" -> {
+                LocalDate start = today.withDayOfYear(1);
+                LocalDate end = today.withDayOfYear(today.lengthOfYear());
+                yield new DateRange(start.toString(), end.toString());
+            }
+            default -> new DateRange(today.toString(), today.toString());
+        };
+    }
 
     @GetMapping("/search/options")
     public ApiResponse<SearchOptionsVm> searchOptions() {

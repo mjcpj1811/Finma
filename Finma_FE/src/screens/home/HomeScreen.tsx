@@ -1,13 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreenHeader } from '../../components/AppScreenHeader';
 import { BalanceSummaryCard } from '../../components/BalanceSummaryCard';
@@ -15,13 +9,15 @@ import { ScreenBottomNavigation } from '../../components/ScreenBottomNavigation'
 import { homeApi } from '../../api/homeApi';
 import * as budgetApi from '../../api/budgetApi';
 import CategoryIcon from '../../../assets/icons/Category.svg';
-import HomeIcon from '../../../assets/icons/Home.svg';
+import IncomeIcon from '../../../assets/icons/Income.svg';
+import ExpensesIcon from '../../../assets/icons/Expenses.svg';
 import TransactionsIcon from '../../../assets/icons/Transactions.svg';
 import AccountIcon from '../../../assets/icons/account.svg';
 import { type HomeDashboard, type PeriodFilter } from '../../types/home';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+import { resolveTransactionIconBg, resolveTransactionIconName } from '../../utils/transactionIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -34,9 +30,9 @@ const periodOptions: Array<{ key: PeriodFilter; label: string }> = [
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 
 const periodHeaderLabel: Record<PeriodFilter, string> = {
-  day: 'hôm qua',
-  week: 'tuần trước',
-  month: 'tháng trước',
+  day: 'hôm nay',
+  week: 'tuần này',
+  month: 'tháng này',
 };
 
 const HomeSkeleton = () => {
@@ -200,7 +196,7 @@ export const HomeScreen = ({ navigation }: Props) => {
 
             <View style={styles.snapshotContent}>
               <View style={styles.snapshotItem}>
-                <HomeIcon width={20} height={20} color={colors.white} />
+                <IncomeIcon width={20} height={20} color={colors.black} />
                 <View>
                   <Text style={styles.snapshotLabel}>Tổng thu {periodHeaderLabel[period]}</Text>
                   <Text style={styles.snapshotValue}>{formatCurrency(activeDashboard.headerSummary.totalIncome)}</Text>
@@ -210,7 +206,7 @@ export const HomeScreen = ({ navigation }: Props) => {
               <View style={styles.snapshotDivider} />
 
               <View style={styles.snapshotItem}>
-                <TransactionsIcon width={20} height={20} color={colors.white} />
+                <ExpensesIcon width={20} height={20} color={colors.black} />
                 <View>
                   <Text style={styles.snapshotLabel}>Tổng chi {periodHeaderLabel[period]}</Text>
                   <Text style={[styles.snapshotValue, styles.expenseText]}>-{formatCurrency(activeDashboard.headerSummary.totalExpense)}</Text>
@@ -245,12 +241,12 @@ export const HomeScreen = ({ navigation }: Props) => {
             ) : (
               activeDashboard.transactions.map((item) => (
                 <View key={item.id} style={styles.transactionItem}>
-                  <View style={styles.transactionIconWrap}>
-                    {item.kind === 'income' ? (
-                      <HomeIcon width={24} height={24} color={colors.white} />
-                    ) : (
-                      <TransactionsIcon width={24} height={24} color={colors.white} />
-                    )}
+                  <View style={[styles.transactionIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                    <MaterialIcons
+                      name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                      size={24}
+                      color={colors.white}
+                    />
                   </View>
 
                   <View style={styles.transactionInfo}>
