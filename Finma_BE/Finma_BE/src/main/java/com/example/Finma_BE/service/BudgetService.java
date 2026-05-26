@@ -125,9 +125,12 @@ public class BudgetService {
     }
 
     // ===================== APIs =====================
-
+ 
     /**
-     * Lấy danh sách tất cả category (EXPENSE) có thể dùng để tạo budget
+     * Lấy danh sách tất cả các danh mục chi tiêu (EXPENSE) khả dụng của người dùng.
+     * Dùng để hiển thị trên giao diện khi người dùng lựa chọn danh mục để thiết lập ngân sách.
+     *
+     * @return danh sách các danh mục chi tiêu của người dùng
      */
     public List<CategoryResponse> getAvailableCategories() {
         User user = getCurrentUser();
@@ -145,18 +148,24 @@ public class BudgetService {
                         .build())
                 .collect(Collectors.toList());
     }
-
+ 
     /**
-     * Tạo budget mới từ một category có sẵn.
-     * Nếu isRecurring=true, hệ thống tự gán startDate=ngày 1 tháng hiện tại,
-     * endDate=ngày cuối tháng; scheduler sẽ tự sinh lại vào đầu mỗi tháng.
+     * Tạo một ngân sách (Budget) mới cho một danh mục chi tiêu cụ thể.
+     * Nếu chọn thuộc tính lặp lại (isRecurring = true), hệ thống tự động gán ngày bắt đầu 
+     * là ngày 1 đầu tháng hiện tại, ngày kết thúc là ngày cuối cùng của tháng.
+     * Scheduler sẽ tự động tái sinh ngân sách này vào mỗi đầu tháng mới.
+     * Hệ thống đồng thời kiểm tra tránh việc tạo các ngân sách trùng lặp danh mục và đè lên khoảng thời gian hiện tại.
+     *
+     * @param request thông tin chi tiết ngân sách cần tạo
+     * @return phản hồi thông tin ngân sách vừa tạo
+     * @throws AppException nếu danh mục không tồn tại hoặc ngân sách của danh mục đó trong khoảng thời gian đã tồn tại
      */
     @Transactional
     public BudgetResponse createBudget(BudgetRequest request) {
         User user = getCurrentUser();
-
+ 
         boolean recurring = Boolean.TRUE.equals(request.getIsRecurring());
-
+ 
         // Tự tính startDate / endDate nếu recurring
         LocalDate startDate;
         LocalDate endDate;
@@ -174,12 +183,12 @@ public class BudgetService {
             startDate = request.getStartDate();
             endDate   = request.getEndDate();
         }
-
-        // Lấy category và kiểm tra quyền truy cập
+ 
+        // Lấy category và kiểm tra quyền truy cập của người dùng
         Category category = categoryRepository
                 .findByIdAccessibleToUser(request.getCategoryId(), user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-
+ 
         // Kiểm tra trùng lặp budget cho category trong cùng khoảng thời gian
         boolean overlapping = budgetRepository.existsOverlappingBudget(
                 user.getId(),
@@ -191,7 +200,7 @@ public class BudgetService {
         if (overlapping) {
             throw new AppException(ErrorCode.BUDGET_ALREADY_EXISTS);
         }
-
+ 
         Budget budget = Budget.builder()
                 .amountLimit(request.getAmountLimit())
                 .periodType(request.getPeriodType())
@@ -202,15 +211,18 @@ public class BudgetService {
                 .user(user)
                 .category(category)
                 .build();
-
+ 
         Budget saved = budgetRepository.save(budget);
         log.info("Created budget id={} recurring={} for user={}, category={}",
                 saved.getId(), recurring, user.getUsername(), category.getName());
         return mapToResponse(saved, user.getId());
     }
-
+ 
     /**
-     * Lấy tất cả budget của user kèm thông tin theo dõi % sử dụng
+     * Lấy danh sách toàn bộ ngân sách đã tạo của người dùng hiện tại.
+     * Đi kèm là tính toán chi phí đã dùng, số tiền còn lại và tỷ lệ phần trăm sử dụng.
+     *
+     * @return danh sách các ngân sách của người dùng
      */
     public List<BudgetResponse> getAllBudgets() {
         User user = getCurrentUser();
@@ -219,9 +231,11 @@ public class BudgetService {
                 .map(b -> mapToResponse(b, user.getId()))
                 .collect(Collectors.toList());
     }
-
+ 
     /**
-     * Lấy các budget đang active (ngày hiện tại trong kỳ)
+     * Lấy các ngân sách đang trong thời gian có hiệu lực (ngày hiện tại nằm trong kỳ của ngân sách).
+     *
+     * @return danh sách ngân sách đang hoạt động
      */
     public List<BudgetResponse> getActiveBudgets() {
         User user = getCurrentUser();
@@ -230,9 +244,13 @@ public class BudgetService {
                 .map(b -> mapToResponse(b, user.getId()))
                 .collect(Collectors.toList());
     }
-
+ 
     /**
-     * Lấy thông tin chi tiết một budget
+     * Lấy thông tin chi tiết một ngân sách theo ID của ngân sách và ID người dùng hiện tại.
+     *
+     * @param budgetId ID của ngân sách cần xem
+     * @return thông tin chi tiết của ngân sách
+     * @throws AppException nếu không tìm thấy ngân sách hoặc không có quyền truy cập
      */
     public BudgetResponse getBudget(Long budgetId) {
         User user = getCurrentUser();
@@ -240,19 +258,25 @@ public class BudgetService {
                 .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND));
         return mapToResponse(budget, user.getId());
     }
-
+ 
     /**
-     * Cập nhật thông tin budget (hạn mức, kỳ, ngày, isRecurring)
+     * Cập nhật thông tin của ngân sách hiện tại (hạn mức, kỳ hạn, ngày bắt đầu/kết thúc, tính lặp lại).
+     * Kiểm tra thời gian cập nhật để tránh chồng lấn thời gian của danh mục đó với ngân sách khác.
+     *
+     * @param budgetId ID của ngân sách cần cập nhật
+     * @param request thông tin mới
+     * @return thông tin ngân sách sau khi cập nhật thành công
+     * @throws AppException nếu không tìm thấy ngân sách hoặc trùng lặp khoảng thời gian
      */
     @Transactional
     public BudgetResponse updateBudget(Long budgetId, BudgetRequest request) {
         User user = getCurrentUser();
-
+ 
         Budget budget = budgetRepository.findByIdAndUserId(budgetId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND));
-
+ 
         boolean recurring = Boolean.TRUE.equals(request.getIsRecurring());
-
+ 
         LocalDate startDate;
         LocalDate endDate;
         if (recurring) {
@@ -269,13 +293,13 @@ public class BudgetService {
             startDate = request.getStartDate();
             endDate   = request.getEndDate();
         }
-
-        // Lấy category mới nếu thay đổi
+ 
+        // Lấy category mới nếu thay đổi và kiểm tra quyền
         Category category = categoryRepository
                 .findByIdAccessibleToUser(request.getCategoryId(), user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-
-        // Kiểm tra trùng lặp (loại trừ chính budget đang sửa)
+ 
+        // Kiểm tra trùng lặp (loại trừ chính ngân sách đang sửa đổi)
         boolean overlapping = budgetRepository.existsOverlappingBudget(
                 user.getId(),
                 category.getId(),
@@ -286,21 +310,24 @@ public class BudgetService {
         if (overlapping) {
             throw new AppException(ErrorCode.BUDGET_ALREADY_EXISTS);
         }
-
+ 
         budget.setAmountLimit(request.getAmountLimit());
         budget.setPeriodType(request.getPeriodType());
         budget.setStartDate(startDate);
         budget.setEndDate(endDate);
         budget.setIsRecurring(recurring);
         budget.setCategory(category);
-
+ 
         Budget updated = budgetRepository.save(budget);
         log.info("Updated budget id={} recurring={} for user={}", budgetId, recurring, user.getUsername());
         return mapToResponse(updated, user.getId());
     }
-
+ 
     /**
-     * Xoá budget
+     * Xóa một ngân sách của người dùng theo ID ngân sách.
+     *
+     * @param budgetId ID của ngân sách cần xóa
+     * @throws AppException nếu không tìm thấy ngân sách
      */
     @Transactional
     public void deleteBudget(Long budgetId) {
@@ -310,6 +337,13 @@ public class BudgetService {
         budgetRepository.delete(budget);
         log.info("Deleted budget id={} for user={}", budgetId, user.getUsername());
     }
+ 
+    /**
+     * Truy vấn tất cả ngân sách của một người dùng theo ID (phục vụ mục đích nội bộ hoặc thống kê).
+     *
+     * @param userId ID của người dùng
+     * @return danh sách thực thể ngân sách
+     */
     public List<Budget> getBudgetsByUserId(Long userId) {
         return budgetRepository.findAllByUserId(userId);
     }

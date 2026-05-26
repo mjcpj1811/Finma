@@ -143,15 +143,22 @@ public class GoalService {
     }
 
     // ===================== GOAL CRUD =====================
-
+ 
+    /**
+     * Tạo mới một mục tiêu tiết kiệm (Goal).
+     *
+     * @param request thông tin chi tiết mục tiêu (tên, mô tả, số tiền đích, ngày bắt đầu, ngày kết thúc)
+     * @return thông tin chi tiết mục tiêu vừa được tạo
+     * @throws IllegalArgumentException nếu ngày kết thúc không sau ngày bắt đầu
+     */
     @Transactional
     public GoalResponse createGoal(GoalRequest request) {
         User user = getCurrentUser();
-
+ 
         if (!request.getEndDate().isAfter(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after start date");
         }
-
+ 
         Goal goal = Goal.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -163,50 +170,79 @@ public class GoalService {
                 .color(request.getColor())
                 .user(user)
                 .build();
-
+ 
         Goal saved = goalRepository.save(goal);
         log.info("Created goal id={} '{}' for user={}", saved.getId(), saved.getName(), user.getUsername());
         return mapToResponse(saved);
     }
-
+ 
+    /**
+     * Lấy danh sách tất cả các mục tiêu tiết kiệm của người dùng hiện tại, sắp xếp theo thời gian tạo mới nhất.
+     *
+     * @return danh sách các mục tiêu tiết kiệm dưới dạng GoalResponse
+     */
     public List<GoalResponse> getAllGoals() {
         User user = getCurrentUser();
         return goalRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
-
+ 
+    /**
+     * Lọc danh sách mục tiêu tiết kiệm của người dùng hiện tại theo trạng thái cụ thể.
+     *
+     * @param status trạng thái cần lọc (IN_PROGRESS, COMPLETED, CANCELLED)
+     * @return danh sách các mục tiêu thỏa mãn điều kiện
+     */
     public List<GoalResponse> getGoalsByStatus(GoalStatus status) {
         User user = getCurrentUser();
         return goalRepository.findByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), status)
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
-
+ 
+    /**
+     * Lấy thông tin chi tiết của một mục tiêu tiết kiệm cụ thể theo ID.
+     *
+     * @param goalId ID của mục tiêu tiết kiệm
+     * @return thông tin chi tiết mục tiêu
+     * @throws AppException nếu mục tiêu không tồn tại hoặc không thuộc quyền sở hữu của người dùng
+     */
     public GoalResponse getGoal(Long goalId) {
         User user = getCurrentUser();
         Goal goal = goalRepository.findByIdAndUserId(goalId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND));
         return mapToResponse(goal);
     }
-
+ 
+    /**
+     * Cập nhật thông tin của mục tiêu tiết kiệm hiện tại.
+     * Chỉ cho phép cập nhật khi mục tiêu đang trong trạng thái IN_PROGRESS.
+     * Đồng thời không cho phép hạ số tiền mục tiêu thấp hơn số tiền thực tế đã tích lũy hiện tại.
+     *
+     * @param goalId ID của mục tiêu cần sửa đổi
+     * @param request thông tin mới cần cập nhật
+     * @return chi tiết mục tiêu sau khi cập nhật thành công
+     * @throws AppException nếu mục tiêu đã hoàn thành/hủy bỏ, hoặc không tìm thấy mục tiêu
+     * @throws IllegalArgumentException nếu ngày kết thúc không sau ngày bắt đầu, hoặc hạn mức đích nhỏ hơn số tiền tích lũy hiện tại
+     */
     @Transactional
     public GoalResponse updateGoal(Long goalId, GoalRequest request) {
         User user = getCurrentUser();
         Goal goal = goalRepository.findByIdAndUserId(goalId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND));
-
+ 
         if (goal.getStatus() != GoalStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.GOAL_ALREADY_COMPLETED);
         }
         if (!request.getEndDate().isAfter(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after start date");
         }
-
+ 
         BigDecimal current = queryCurrentAmount(goalId);
         if (request.getTargetAmount().compareTo(current) < 0) {
             throw new IllegalArgumentException(
                     "New target amount cannot be less than current saved amount (" + current + ")");
         }
-
+ 
         goal.setName(request.getName());
         goal.setDescription(request.getDescription());
         goal.setTargetAmount(request.getTargetAmount());
@@ -214,24 +250,37 @@ public class GoalService {
         goal.setEndDate(request.getEndDate());
         goal.setIcon(request.getIcon());
         goal.setColor(request.getColor());
-
+ 
         return mapToResponse(goalRepository.save(goal));
     }
-
+ 
+    /**
+     * Hủy thực hiện một mục tiêu tiết kiệm (chuyển trạng thái sang CANCELLED).
+     *
+     * @param goalId ID của mục tiêu cần hủy
+     * @return chi tiết mục tiêu sau khi cập nhật trạng thái
+     * @throws AppException nếu mục tiêu không tồn tại hoặc đã hoàn thành/hủy từ trước
+     */
     @Transactional
     public GoalResponse cancelGoal(Long goalId) {
         User user = getCurrentUser();
         Goal goal = goalRepository.findByIdAndUserId(goalId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND));
-
+ 
         if (goal.getStatus() != GoalStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.GOAL_ALREADY_COMPLETED);
         }
-
+ 
         goal.setStatus(GoalStatus.CANCELLED);
         return mapToResponse(goalRepository.save(goal));
     }
-
+ 
+    /**
+     * Xóa hoàn toàn một mục tiêu tiết kiệm và toàn bộ lịch sử các lần nạp tiền tích lũy liên quan.
+     *
+     * @param goalId ID của mục tiêu tiết kiệm cần xóa
+     * @throws AppException nếu không tìm thấy mục tiêu
+     */
     @Transactional
     public void deleteGoal(Long goalId) {
         User user = getCurrentUser();
@@ -244,33 +293,41 @@ public class GoalService {
         goalRepository.delete(goal);
         log.info("Deleted goal id={} for user={}", goalId, user.getUsername());
     }
-
+ 
     // ===================== DEPOSITS (via Transaction) =====================
-
+ 
     /**
-     * Nạp tiền vào mục tiêu → tạo Transaction SAVING.
-     * Sau khi lưu, query lại tổng để cập nhật status COMPLETED nếu đủ.
+     * Nạp tiền tích lũy vào mục tiêu tiết kiệm.
+     * Sẽ tạo một giao dịch loại SAVING, trừ số dư tài khoản thanh toán được chọn (nếu có).
+     * Sau khi lưu giao dịch, hệ thống tính toán lại tổng tiền tích lũy thực tế:
+     * - Nếu tổng tích lũy đạt hoặc vượt số tiền đích của mục tiêu, trạng thái mục tiêu tự động
+     *   chuyển thành COMPLETED, cập nhật ngày hoàn thành và gửi thông báo chúc mừng.
+     * - Ngược lại, cập nhật thông tin và gửi thông báo nạp tiền thành công kèm tiến độ %.
+     *
+     * @param request thông tin chi tiết nạp tiền (ID mục tiêu, số tiền, tài khoản nguồn, ngày nạp, ghi chú)
+     * @return chi tiết phản hồi giao dịch nạp tiền vừa tạo
+     * @throws AppException nếu không tìm thấy mục tiêu hoặc mục tiêu đã hoàn thành từ trước
      */
     @Transactional
     public GoalDepositResponse addDeposit(GoalDepositRequest request) {
         User user = getCurrentUser();
         Goal goal = goalRepository.findByIdAndUserId(request.getGoalId(), user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND));
-
+ 
         if (goal.getStatus() != GoalStatus.IN_PROGRESS) {
             throw new AppException(ErrorCode.GOAL_ALREADY_COMPLETED);
         }
-
+ 
         // Lấy account nếu có
         Account account = null;
         if (request.getAccountId() != null) {
             account = accountRepository.findById(request.getAccountId()).orElse(null);
         }
-
+ 
         LocalDateTime depositDateTime = request.getDepositDate() != null
                 ? request.getDepositDate()
                 : LocalDateTime.now();
-
+ 
         Transaction transaction = Transaction.builder()
                 .type(TransactionType.SAVING)
                 .amount(request.getAmount())
@@ -280,12 +337,12 @@ public class GoalService {
                 .account(account)
                 .goal(goal)
                 .build();
-
+ 
         Transaction saved = transactionRepository.save(transaction);
-
+ 
         // Tính lại currentAmount từ DB sau khi lưu transaction mới
         BigDecimal newTotal = queryCurrentAmount(goal.getId());
-
+ 
         // Tự động chuyển COMPLETED nếu đạt target
         if (newTotal.compareTo(goal.getTargetAmount()) >= 0) {
             goal.setStatus(GoalStatus.COMPLETED);
@@ -314,49 +371,59 @@ public class GoalService {
                     goal.getId(), "GOAL"
             );
         }
-
+ 
         log.info("Deposit amount={} → goal id={} for user={}", request.getAmount(), goal.getId(), user.getUsername());
         return mapDepositResponse(saved, newTotal);
     }
-
+ 
     /**
-     * Lấy lịch sử nạp tiền (Transaction SAVING) của một mục tiêu.
+     * Lấy danh sách lịch sử nạp tiền (dưới dạng các giao dịch SAVING) của một mục tiêu cụ thể.
+     * Để tránh lỗi truy vấn N+1, tổng số tích lũy được truy vấn trước một lần và truyền vào hàm map.
+     *
+     * @param goalId ID của mục tiêu tiết kiệm
+     * @return danh sách chi tiết các lần nạp tiền tích lũy
+     * @throws AppException nếu không tìm thấy mục tiêu
      */
     public List<GoalDepositResponse> getDeposits(Long goalId) {
         User user = getCurrentUser();
         goalRepository.findByIdAndUserId(goalId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND));
-
+ 
         // Tính currentAmount 1 lần cho tất cả deposits trong list (tránh N+1)
         BigDecimal currentAmount = queryCurrentAmount(goalId);
-
+ 
         return transactionRepository.findSavingsByGoalId(goalId)
                 .stream()
                 .map(t -> mapDepositResponse(t, currentAmount))
                 .collect(Collectors.toList());
     }
-
+ 
     /**
-     * Xoá (hoàn tác) một lần nạp tiền.
-     * Query lại tổng sau khi xoá, nếu chưa đủ target → về IN_PROGRESS.
+     * Xóa (hoàn tác) một giao dịch nạp tiền tiết kiệm cụ thể theo ID giao dịch.
+     * Hoàn trả lại số tiền về tài khoản nguồn. Tính toán lại tổng tiền tích lũy thực tế sau khi xóa.
+     * Nếu mục tiêu trước đó đã hoàn thành (COMPLETED) nhưng do xóa giao dịch dẫn đến tổng tiền hụt dưới mức đích,
+     * trạng thái mục tiêu sẽ tự động được chuyển ngược lại thành IN_PROGRESS và xóa ngày hoàn thành.
+     *
+     * @param transactionId ID của giao dịch nạp tiền cần xóa
+     * @throws AppException nếu giao dịch nạp tiền không tồn tại hoặc không thuộc quyền sở hữu của người dùng
      */
     @Transactional
     public void deleteDeposit(Long transactionId) {
         User user = getCurrentUser();
         Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_DEPOSIT_NOT_FOUND));
-
+ 
         if (transaction.getType() != TransactionType.SAVING || transaction.getGoal() == null) {
             throw new AppException(ErrorCode.GOAL_DEPOSIT_NOT_FOUND);
         }
-
+ 
         Goal goal = transaction.getGoal();
         transactionRepository.delete(transaction);
         transactionRepository.flush();
-
+ 
         // Tính lại tổng sau khi xoá
         BigDecimal newTotal = queryCurrentAmount(goal.getId());
-
+ 
         // Nếu goal COMPLETED mà giờ chưa đủ → về IN_PROGRESS
         if (goal.getStatus() == GoalStatus.COMPLETED
                 && newTotal.compareTo(goal.getTargetAmount()) < 0) {
@@ -364,9 +431,16 @@ public class GoalService {
             goal.setCompletedAt(null);
             goalRepository.save(goal);
         }
-
+ 
         log.info("Deleted deposit id={} from goal id={} for user={}", transactionId, goal.getId(), user.getUsername());
     }
+ 
+    /**
+     * Lấy danh sách các mục tiêu tiết kiệm đang hoạt động (IN_PROGRESS) của người dùng.
+     *
+     * @param userId ID của người dùng
+     * @return danh sách thực thể các mục tiêu đang hoạt động
+     */
     public List<Goal> getActiveGoalsByUserId(Long userId) {
         return goalRepository.findAllByUserIdAndStatus(userId, GoalStatus.IN_PROGRESS);
     }
