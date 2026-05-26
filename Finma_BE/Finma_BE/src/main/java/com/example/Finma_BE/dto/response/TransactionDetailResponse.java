@@ -21,4 +21,6 @@ public class TransactionDetailResponse {
     private String location;
     /** yyyy-MM-dd HH:mm:ss */
     private String transactionDate;
+    /** yyyy-MM-dd HH:mm:ss */
+    private String createdAt;
 }

@@ -356,58 +356,60 @@ export const CategoryTransactionsScreen = ({ navigation, route }: Props) => {
       <Modal visible={showCategoryModal} transparent animationType="fade" onRequestClose={closeEditCategoryModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Sửa Danh Mục</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>Sửa Danh Mục</Text>
 
-            <Text style={styles.modalLabel}>Tên danh mục</Text>
-            <TextInput
-              value={categoryForm.name}
-              onChangeText={(value) => setCategoryForm((prev) => ({ ...prev, name: value }))}
-              placeholder="Ví dụ: Mua sắm"
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-            />
+              <Text style={styles.modalLabel}>Tên danh mục</Text>
+              <TextInput
+                value={categoryForm.name}
+                onChangeText={(value) => setCategoryForm((prev) => ({ ...prev, name: value }))}
+                placeholder="Ví dụ: Mua sắm"
+                placeholderTextColor={colors.textMuted}
+                style={styles.input}
+              />
 
-            <Text style={styles.modalLabel}>Nhóm danh mục</Text>
-            <View style={styles.groupRow}>
-              {categorySectionMeta.map((section) => {
-                const selected = categoryForm.group === section.key;
-                return (
-                  <Pressable
-                    key={section.key}
-                    style={[styles.groupChip, selected && styles.groupChipActive]}
-                    onPress={() => setCategoryForm((prev) => ({ ...prev, group: section.key }))}
-                  >
-                    <Text style={[styles.groupChipText, selected && styles.groupChipTextActive]}>{section.title}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+              <Text style={styles.modalLabel}>Nhóm danh mục</Text>
+              <View style={styles.groupRow}>
+                {categorySectionMeta.map((section) => {
+                  const selected = categoryForm.group === section.key;
+                  return (
+                    <Pressable
+                      key={section.key}
+                      style={[styles.groupChip, selected && styles.groupChipActive]}
+                      onPress={() => setCategoryForm((prev) => ({ ...prev, group: section.key }))}
+                    >
+                      <Text style={[styles.groupChipText, selected && styles.groupChipTextActive]}>{section.title}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-            <Text style={styles.modalLabel}>Biểu tượng</Text>
-            <View style={styles.iconGrid}>
-              {(Object.keys(categoryIconMeta) as CategoryItem['iconKey'][]).map((key) => {
-                const selected = categoryForm.iconKey === key;
-                return (
-                  <Pressable
-                    key={key}
-                    style={[styles.iconOption, selected && styles.iconOptionActive]}
-                    onPress={() => setCategoryForm((prev) => ({ ...prev, iconKey: key }))}
-                  >
-                    <MaterialIcons name={categoryIconMeta[key].name} size={20} color={selected ? colors.white : colors.text} />
-                  </Pressable>
-                );
-              })}
-            </View>
+              <Text style={styles.modalLabel}>Biểu tượng</Text>
+              <View style={styles.iconGrid}>
+                {(Object.keys(categoryIconMeta) as CategoryItem['iconKey'][]).map((key) => {
+                  const selected = categoryForm.iconKey === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      style={[styles.iconOption, selected && styles.iconOptionActive]}
+                      onPress={() => setCategoryForm((prev) => ({ ...prev, iconKey: key }))}
+                    >
+                      <MaterialIcons name={categoryIconMeta[key].name} size={20} color={selected ? colors.white : colors.text} />
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-            <View style={styles.modalActions}>
-              <Pressable style={styles.cancelBtn} onPress={closeEditCategoryModal}>
-                <Text style={styles.cancelText}>Hủy</Text>
-              </Pressable>
+              <View style={styles.modalActions}>
+                <Pressable style={styles.cancelBtn} onPress={closeEditCategoryModal}>
+                  <Text style={styles.cancelText}>Hủy</Text>
+                </Pressable>
 
-              <Pressable style={styles.saveBtn} onPress={onSaveCategory} disabled={savingCategory}>
-                <Text style={styles.saveText}>{savingCategory ? 'Đang lưu...' : 'Cập nhật'}</Text>
-              </Pressable>
-            </View>
+                <Pressable style={styles.saveBtn} onPress={onSaveCategory} disabled={savingCategory}>
+                  <Text style={styles.saveText}>{savingCategory ? 'Đang lưu...' : 'Cập nhật'}</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -639,6 +641,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.white,
     borderRadius: 16,
+    maxHeight: '85%',
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 12,

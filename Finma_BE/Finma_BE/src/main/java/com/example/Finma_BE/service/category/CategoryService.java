@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Dich vu xu ly danh muc: tao, cap nhat, xoa va tra ve danh muc theo user.
+ */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
@@ -28,6 +31,9 @@ public class CategoryService {
     UserRepository userRepository;
     CategoryMapper categoryMapper;
 
+    /**
+     * Lay danh muc theo user va loc theo type neu co.
+     */
     @Transactional(readOnly = true)
     public List<CategoryResponse> getCategoriesByUser(CategoryType type) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -40,6 +46,9 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lay chi tiet danh muc theo id (co bao gom con).
+     */
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long categoryId) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -47,16 +56,15 @@ public class CategoryService {
         return toResponseWithChildren(category);
     }
 
+    /**
+     * Tao danh muc moi cho user dang dang nhap.
+     */
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
         User user = getUserById(userId);
 
-        // Kiểm tra tên trùng trong cùng scope (user + type + parent)
-        if (categoryRepository.existsByUserIdAndTypeAndNameAndParentId(
-                userId, request.getType(), request.getName(), request.getParentId())) {
-            throw new AppException(ErrorCode.CATEGORY_NAME_EXISTED);
-        }
+        ensureUniqueName(userId, null, request);
 
         Category parent = resolveParent(request.getParentId(), userId);
 
@@ -67,6 +75,9 @@ public class CategoryService {
         return categoryMapper.toResponse(categoryRepository.save(category));
     }
 
+    /**
+     * Cap nhat danh muc (khong cho sua danh muc mac dinh).
+     */
     @Transactional
     public CategoryResponse updateCategory(Long categoryId, CategoryRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -76,14 +87,7 @@ public class CategoryService {
             throw new AppException(ErrorCode.CANNOT_MODIFY_DEFAULT_CATEGORY);
         }
 
-        // Kiểm tra tên trùng (loại trừ chính nó)
-        boolean nameConflict = categoryRepository
-                .existsByUserIdAndTypeAndNameAndParentId(
-                        userId, request.getType(), request.getName(), request.getParentId())
-                && !category.getName().equals(request.getName());
-        if (nameConflict) {
-            throw new AppException(ErrorCode.CATEGORY_NAME_EXISTED);
-        }
+        ensureUniqueName(userId, categoryId, request);
 
         // Ngăn set parent là chính nó hoặc con của nó (tránh vòng lặp)
         if (request.getParentId() != null) {
@@ -101,6 +105,9 @@ public class CategoryService {
         return toResponseWithChildren(categoryRepository.save(category));
     }
 
+    /**
+     * Xoa danh muc neu khong phai mac dinh va khong co giao dich lien quan.
+     */
     @Transactional
     public void deleteCategory(Long categoryId) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -117,12 +124,17 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
+    /**
+     * Lay danh muc hop le cua user, neu khong ton tai thi bao loi.
+     */
     private Category getCategoryOwnedByUser(Long categoryId, Long userId) {
         return categoryRepository.findByIdAccessibleToUser(categoryId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 
-
+    /**
+     * Map entity sang response va nap danh sach con theo dang cay.
+     */
     private CategoryResponse toResponseWithChildren(Category category) {
         CategoryResponse response = categoryMapper.toResponse(category);
 
@@ -137,6 +149,9 @@ public class CategoryService {
         return response;
     }
 
+    /**
+     * Kiem tra de tranh tao vong lap parent-child (duyet de quy).
+     */
     private void validateNotDescendant(Long sourceId, Long targetParentId) {
         List<Category> children =
                 categoryRepository.findByParentIdOrderByNameAsc(sourceId);
@@ -148,14 +163,33 @@ public class CategoryService {
         }
     }
 
+    /**
+     * Lay parent neu co, neu khong ton tai thi bao loi.
+     */
     private Category resolveParent(Long parentId, Long userId) {
         if (parentId == null) return null;
         return categoryRepository.findByIdAndUserId(parentId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.PARENT_CATEGORY_NOT_FOUND));
     }
 
+    /**
+     * Lay user, neu khong ton tai thi bao loi.
+     */
     private User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    /**
+     * Kiem tra trung ten trong cung scope (user + type + parent).
+     */
+    private void ensureUniqueName(Long userId, Long currentId, CategoryRequest request) {
+        categoryRepository
+                .findByUserIdAndTypeAndNameAndParentId(
+                        userId, request.getType(), request.getName(), request.getParentId())
+                .filter(existing -> currentId == null || !existing.getId().equals(currentId))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CATEGORY_NAME_EXISTED);
+                });
     }
 }

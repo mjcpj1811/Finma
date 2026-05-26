@@ -60,11 +60,24 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
   const loadDetail = useCallback(async () => {
     setLoading(true);
     try {
-      const [detail, options] = await Promise.all([
+      const [detail, options, savingTransactions] = await Promise.all([
         transactionApi.getTransactionDetail(transactionId),
-        transactionApi.getFormOptions()
+        transactionApi.getFormOptions(),
+        savingsApi.getSavingTransactions(savingId),
       ]);
-      setTransaction(detail);
+
+      const savingTransaction = savingTransactions.items.find((item) => item.id === transactionId);
+      const mergedDetail = savingTransaction
+        ? {
+            ...detail,
+            date: savingTransaction.dateIso,
+            title: savingTransaction.title || detail.title,
+            note: savingTransaction.note || detail.note,
+            amount: Math.abs(savingTransaction.amount),
+          }
+        : detail;
+
+      setTransaction(mergedDetail);
       setSources(options.sources);
       const categoryDashboard = await categoryApi.getDashboard();
       const savingCategoryFromDashboard =
@@ -81,7 +94,7 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
     } finally {
       setLoading(false);
     }
-  }, [transactionId]);
+  }, [savingId, transactionId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -154,7 +167,7 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentWrap}>
           <View style={styles.heroCard}>
             <View style={[styles.heroIconWrap, { backgroundColor: '#4D9EFF' }]}>
-              <MaterialIcons name="account-balance-wallet" size={26} color={colors.white} />
+              <MaterialIcons name="savings" size={26} color={colors.white} />
             </View>
             <Text style={styles.heroTitle}>Tiền tiết kiệm</Text>
             <Text style={styles.heroAmount}>
@@ -168,7 +181,7 @@ export const SavingTransactionDetailScreen = ({ navigation, route }: Props) => {
               <Text style={styles.infoValue}>{formatDate(transaction.date)}</Text>
             </View>
             <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Quỹ mục tiêu</Text>
+              <Text style={styles.infoLabel}>Mục tiêu tiết kiệm</Text>
                 <Text style={styles.infoValue}>{transaction.categoryLabel}</Text>
             </View>
             <View style={styles.infoRow}>

@@ -31,6 +31,33 @@ const toTimeLabel = (dateIso: string) => {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')} - ${month} ${day}`;
 };
 
+const toLocalDateStart = (value?: string) => {
+  const base = value ? new Date(value) : new Date();
+  const date = Number.isNaN(base.getTime()) ? new Date() : base;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}T00:00:00`;
+};
+
+const normalizeDateIso = (value: string | undefined) => {
+  if (!value) {
+    return new Date().toISOString();
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    // Keep date-only values in local time to avoid fixed UTC offset displays on mobile.
+    return `${value}T00:00:00`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toISOString();
+  }
+
+  return parsed.toISOString();
+};
+
 export const savingsApi = {
   getDashboard: async (token?: string) => {
     const response = await request<{ result: any[] }>(SAVINGS_ENDPOINTS.dashboard, { token });
@@ -105,22 +132,27 @@ export const savingsApi = {
       monthlySavingNeeded: parseFloat(goal.monthlySavingNeeded || 0),
     };
 
-    const items: SavingTransactionItem[] = deposits.map((deposit: any) => ({
-      id: deposit.id.toString(),
-      savingId: deposit.goalId?.toString() ?? saving.id.toString(),
-      dateIso: deposit.depositDate || deposit.createdAt,
-      monthLabel: toMonthLabel(deposit.depositDate || deposit.createdAt),
-      title: deposit.goalName || saving.name,
-      timeLabel: toTimeLabel(deposit.depositDate || deposit.createdAt),
-      note: deposit.note || '',
-      amount: parseFloat(deposit.amount ?? '0'),
-      kind: 'deposit',
-      goalName: deposit.goalName,
-      depositDate: deposit.depositDate,
-      goalCurrentAmount: parseFloat(deposit.goalCurrentAmount || 0),
-      goalTargetAmount: parseFloat(deposit.goalTargetAmount || 0),
-      progressPercentage: deposit.progressPercentage,
-    }));
+    const items: SavingTransactionItem[] = deposits.map((deposit: any) => {
+      // Prefer createdAt so both savings-related screens display creation time consistently.
+      const dateIso = normalizeDateIso(deposit.createdAt || deposit.depositDate);
+
+      return {
+        id: deposit.id.toString(),
+        savingId: deposit.goalId?.toString() ?? saving.id.toString(),
+        dateIso,
+        monthLabel: toMonthLabel(dateIso),
+        title: deposit.goalName || saving.name,
+        timeLabel: toTimeLabel(dateIso),
+        note: deposit.note || '',
+        amount: parseFloat(deposit.amount ?? '0'),
+        kind: 'deposit',
+        goalName: deposit.goalName,
+        depositDate: deposit.depositDate,
+        goalCurrentAmount: parseFloat(deposit.goalCurrentAmount || 0),
+        goalTargetAmount: parseFloat(deposit.goalTargetAmount || 0),
+        progressPercentage: deposit.progressPercentage,
+      };
+    });
 
     const totalInflow = items.reduce((sum, item) => sum + Math.abs(item.amount), 0);
     const totalOutflow = 0; // BE only has deposits
@@ -145,6 +177,12 @@ export const savingsApi = {
   },
 
   createSaving: async (payload: UpsertSavingPayload, token?: string) => {
+    const initialAmount = Number(payload.currentAmount ?? 0);
+    const normalizedAccountId = payload.sourceId ? Number(payload.sourceId) : undefined;
+    if (initialAmount > 0 && (normalizedAccountId == null || Number.isNaN(normalizedAccountId))) {
+      throw new Error('Nguồn tiền không hợp lệ để ghi nhận số tiền tiết kiệm ban đầu.');
+    }
+
     const body = {
       name: payload.name,
       targetAmount: payload.targetAmount,
@@ -153,6 +191,8 @@ export const savingsApi = {
       description: payload.description,
       icon: payload.iconKey,
       color: payload.color,
+      currentAmount: initialAmount > 0 ? initialAmount : undefined,
+      accountId: initialAmount > 0 ? normalizedAccountId : undefined,
     };
 
     const response = await request<{ result: any }>(SAVINGS_ENDPOINTS.create, {
@@ -194,12 +234,21 @@ export const savingsApi = {
   },
 
   createSavingTransaction: async (savingId: string, payload: CreateSavingTransactionPayload, token?: string) => {
+    const rawDepositDate = payload.depositDate || payload.dateIso;
+    const normalizedDepositDate = toLocalDateStart(rawDepositDate);
+
+    const normalizedTitle = payload.title?.trim();
+    const normalizedNote = payload.note?.trim();
+
     const body = {
       goalId: parseInt(savingId),
       amount: payload.amount,
       accountId: payload.accountId,
-      depositDate: payload.depositDate || payload.dateIso || new Date().toISOString(),
-      note: payload.title ? `${payload.title} - ${payload.note}` : payload.note,
+      depositDate: normalizedDepositDate,
+      note:
+        normalizedTitle && normalizedNote
+          ? `${normalizedTitle} | ${normalizedNote}`
+          : (normalizedTitle || normalizedNote || undefined),
     };
 
     const response = await request<{ result: any }>(SAVINGS_ENDPOINTS.deposits, {

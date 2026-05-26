@@ -123,14 +123,18 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
               <Text style={styles.monthLabel}>{monthLabel}</Text>
 
               {items.map((item) => {
+                const isSaving = item.isSaving === true;
                 const absoluteAmount = Math.abs(item.amount);
                 const roundedAbsoluteAmount = toRoundedMoney(absoluteAmount);
-                const amountSign = roundedAbsoluteAmount > 0 ? (item.kind === 'expense' ? '-' : '+') : '';
+                const amountSign =
+                  roundedAbsoluteAmount > 0
+                    ? (isSaving ? '' : (item.kind === 'expense' ? '-' : '+'))
+                    : '';
                 return (
                   <View key={item.id} style={styles.itemCard}>
-                    <View style={[styles.itemIconWrap, { backgroundColor: resolveTransactionIconBg(item.kind) }]}>
+                    <View style={[styles.itemIconWrap, { backgroundColor: isSaving ? '#4D9EFF' : resolveTransactionIconBg(item.kind) }]}>
                       <MaterialIcons
-                        name={resolveTransactionIconName(item.iconKey, item.kind) as keyof typeof MaterialIcons.glyphMap}
+                        name={(isSaving ? 'savings' : resolveTransactionIconName(item.iconKey, item.kind)) as keyof typeof MaterialIcons.glyphMap}
                         size={22}
                         color={colors.white}
                       />
@@ -143,7 +147,14 @@ export const SourceTransactionsScreen = ({ navigation, route }: Props) => {
 
                     <View style={styles.itemRightWrap}>
                       <Text style={styles.itemNote}>{item.note}</Text>
-                      <Text style={[styles.itemAmount, item.kind === 'expense' ? styles.expenseAmountText : styles.incomeAmountText]}>
+                      <Text
+                        style={[
+                          styles.itemAmount,
+                          isSaving
+                            ? styles.savingAmountText
+                            : (item.kind === 'expense' ? styles.expenseAmountText : styles.incomeAmountText),
+                        ]}
+                      >
                         {amountSign}
                         {formatCurrency(roundedAbsoluteAmount)}
                       </Text>
@@ -326,6 +337,9 @@ const styles = StyleSheet.create({
   },
   incomeAmountText: {
     color: colors.primary,
+  },
+  savingAmountText: {
+    color: colors.black,
   },
   addButton: {
     minHeight: 40,

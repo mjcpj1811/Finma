@@ -12,12 +12,14 @@ import com.example.Finma_BE.util.SecurityUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * API quan ly vay no.
+ */
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -26,6 +28,9 @@ public class DebtController {
 
    DebtService debtService;
 
+    /**
+     * Thong ke tong hop vay no.
+     */
     @GetMapping("/stats")
     ApiResponse<DebtStatsResponse> getStats(){
         Long userId = SecurityUtils.getCurrentUserId();
@@ -35,6 +40,9 @@ public class DebtController {
                 .build();
     }
 
+    /**
+     * Lay danh sach khoan no theo type neu co.
+     */
     @GetMapping
     ApiResponse<List<DebtSumaryResponse>> getAllDebts(@RequestParam(required = false) DebtType type){
         Long userId = SecurityUtils.getCurrentUserId();
@@ -43,6 +51,9 @@ public class DebtController {
                 .build();
     }
 
+    /**
+     * Lay chi tiet khoan no.
+     */
     @GetMapping("/{id}")
     ApiResponse<DebtResponse> getDebtById(@PathVariable Long id){
         Long userId = SecurityUtils.getCurrentUserId();
@@ -51,6 +62,9 @@ public class DebtController {
                 .build();
     }
 
+    /**
+     * Tao khoan no moi.
+     */
     @PostMapping
     ApiResponse<DebtResponse> createDebt(@Valid @RequestBody DebtCreateRequest request){
         Long userId = SecurityUtils.getCurrentUserId();
@@ -59,6 +73,9 @@ public class DebtController {
                 .build();
     }
 
+    /**
+     * Cap nhat khoan no.
+     */
     @PutMapping("/{id}")
     ApiResponse<DebtResponse> updateDebtById(@PathVariable Long id, @Valid @RequestBody DebtUpdateRequest request){
         Long userId = SecurityUtils.getCurrentUserId();
@@ -67,6 +84,9 @@ public class DebtController {
                 .build();
     }
 
+    /**
+     * Xoa khoan no.
+     */
     @DeleteMapping("/{id}")
     ApiResponse<Void> deleteDebt(@PathVariable Long id){
         Long userId = SecurityUtils.getCurrentUserId();

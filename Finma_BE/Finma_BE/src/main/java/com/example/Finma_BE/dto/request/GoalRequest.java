@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -35,4 +36,9 @@ public class GoalRequest {
 
     String icon;
     String color;
+
+    @PositiveOrZero(message = "Current amount must be zero or positive")
+    BigDecimal currentAmount;
+
+    Long accountId;
 }

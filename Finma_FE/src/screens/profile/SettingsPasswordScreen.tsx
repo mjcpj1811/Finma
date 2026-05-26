@@ -50,7 +50,11 @@ export const SettingsPasswordScreen = ({ navigation }: Props) => {
       />
 
       <View style={styles.mainPanel}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.panelContent}
+        >
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Mật Khẩu Hiện Tại</Text>
             <TextInput

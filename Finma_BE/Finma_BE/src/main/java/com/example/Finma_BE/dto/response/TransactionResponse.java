@@ -20,5 +20,6 @@ public class TransactionResponse {
     String imageUrl;
     String location;
     LocalDateTime transactionDate;
+    LocalDateTime createdAt;
     String category;
 }

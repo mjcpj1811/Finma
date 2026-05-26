@@ -6,6 +6,9 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Entity giao dich thanh toan cho khoan no.
+ */
 @Entity
 @Table(name = "debt_payments")
 @Getter

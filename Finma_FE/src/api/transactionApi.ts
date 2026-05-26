@@ -57,6 +57,7 @@ type BackendTransactionDetail = {
   goalName?: string;
   note: string | null;
   transactionDate: string | null;
+  createdAt?: string | null;
 };
 
 type BackendAccount = {
@@ -503,7 +504,7 @@ export const transactionApi = {
     ]);
 
     const raw = response.result;
-    const date = parseBackendDateTime(raw.transactionDate);
+    const date = parseBackendDateTime(raw.createdAt ?? raw.transactionDate);
     const parsedNote = splitNote(raw.note);
     const transactionType = toFrontendType(raw.type);
     const resolvedCategoryLabel =

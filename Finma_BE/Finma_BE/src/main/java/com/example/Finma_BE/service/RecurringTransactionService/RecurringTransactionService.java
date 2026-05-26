@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Dich vu quan ly giao dich dinh ky.
+ */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
@@ -37,6 +40,9 @@ public class RecurringTransactionService {
     CategoryRepository categoryRepository;
     RecurringTransactionMapper  recurringTransactionMapper;
 
+    /**
+     * Thong ke so giao dich dang ACTIVE va tong chi tieu uoc tinh theo thang.
+     */
     @Transactional(readOnly = true)
     public RecurringTransactionStatsResponse getStats(Long userId) {
         int totalActive = recurringTransactionRepository.countByUserIdAndStatusAndIsActive(
@@ -48,6 +54,9 @@ public class RecurringTransactionService {
                 .build();
     }
 
+    /**
+     * Lay danh sach giao dich dinh ky theo status neu co.
+     */
     @Transactional(readOnly = true)
     public List<RecurringTransactionSummaryResponse> getAll(Long userId, RecurringStatus status) {
         List<RecurringTransaction> list = (status != null)
@@ -57,11 +66,17 @@ public class RecurringTransactionService {
         return recurringTransactionMapper.toSummaryList(list);
     }
 
+    /**
+     * Lay chi tiet giao dich dinh ky theo id.
+     */
     @Transactional(readOnly = true)
     public RecurringTransactionResponse getById(Long id, Long userId) {
         return recurringTransactionMapper.toResponse(findOfUser(id, userId));
     }
 
+    /**
+     * Tao giao dich dinh ky.
+     */
     @Transactional
     public RecurringTransactionResponse create(Long userId, RecurringTransactionCreateRequest request) {
         User user = userRepository.findById(userId)
@@ -85,6 +100,9 @@ public class RecurringTransactionService {
                 recurringTransactionRepository.save(recurringTransaction));
     }
 
+    /**
+     * Cap nhat giao dich dinh ky.
+     */
     @Transactional
     public RecurringTransactionResponse update(Long id, Long userId,
                                                RecurringTransactionUpdateRequest request) {
@@ -111,10 +129,6 @@ public class RecurringTransactionService {
 
         validateFrequency(frequency, dayOfMonth, dayOfWeek);
 
-        if (request.getReminderDaysBefore() != null) {
-            recurringTransaction.setReminderDaysBefore(request.getReminderDaysBefore());
-        }
-
         if (request.getStatus() != null) {
             recurringTransaction.setStatus(request.getStatus());
             recurringTransaction.setIsActive(request.getStatus() == RecurringStatus.ACTIVE);
@@ -133,6 +147,9 @@ public class RecurringTransactionService {
                 recurringTransactionRepository.save(recurringTransaction));
     }
 
+    /**
+     * Bat/tat giao dich dinh ky.
+     */
     @Transactional
     public RecurringTransactionResponse toggle(Long id, Long userId,
                                                RecurringTransactionToggleRequest request) {
@@ -153,6 +170,9 @@ public class RecurringTransactionService {
                 recurringTransactionRepository.save(recurringTransaction));
     }
 
+    /**
+     * Huy giao dich dinh ky (chuyen trang thai CANCELLED).
+     */
     @Transactional
     public void delete(Long id, Long userId) {
         RecurringTransaction recurringTransaction =
@@ -164,11 +184,17 @@ public class RecurringTransactionService {
         recurringTransactionRepository.save(recurringTransaction);
     }
 
+    /**
+     * Tim giao dich dinh ky theo user (bao loi neu khong ton tai).
+     */
     private RecurringTransaction findOfUser(Long id, Long userId) {
         return recurringTransactionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.RECURRING_NOT_FOUND));
     }
 
+    /**
+     * Kiem tra thong tin tan suat (ngay trong thang/thu trong tuan).
+     */
     private void validateFrequency(
             Frequency frequency,
             Integer dayOfMonth,
@@ -192,12 +218,18 @@ public class RecurringTransactionService {
         }
     }
 
+    /**
+     * Tim tai khoan theo user.
+     */
     private Account resolveAccount(Long accountId, Long userId) {
         if (accountId == null) return null;
         return accountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
     }
 
+    /**
+     * Tim danh muc theo user.
+     */
     private Category resolveCategory(Long categoryId, Long userId) {
         if (categoryId == null) return null;
         return categoryRepository.findByIdAndUserId(categoryId, userId)

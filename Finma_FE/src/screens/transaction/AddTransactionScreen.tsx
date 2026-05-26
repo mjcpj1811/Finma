@@ -291,7 +291,11 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentWrap}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.contentWrap}
+          >
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Ngày</Text>
               <View style={styles.selectField}>

@@ -8,6 +8,9 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Entity giao dich dinh ky.
+ */
 @Entity
 @Table(name = "recurring_transactions")
 @Getter

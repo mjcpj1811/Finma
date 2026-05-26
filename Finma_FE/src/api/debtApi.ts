@@ -146,7 +146,8 @@ const normalizeDateIso = (value: string | undefined): string => {
   }
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return `${value}T00:00:00.000Z`;
+    // Keep date-only values in local time to avoid fixed UTC offset displays on mobile.
+    return `${value}T00:00:00`;
   }
 
   const parsed = new Date(value);
@@ -188,7 +189,8 @@ const mapDebtPaymentToTransaction = (
   personName: string,
   payment: BackendDebtPayment,
 ): DebtTransactionItem => {
-  const dateIso = normalizeDateIso(payment.paymentDate ?? payment.createdAt);
+  // Prefer createdAt to display the actual creation time in UI (same behavior users expect from transaction screen).
+  const dateIso = normalizeDateIso(payment.createdAt ?? payment.updatedAt ?? payment.paymentDate);
   const fallbackCounterparty = debtType === 'LEND' ? 'Thu nợ' : 'Trả nợ';
 
   return {

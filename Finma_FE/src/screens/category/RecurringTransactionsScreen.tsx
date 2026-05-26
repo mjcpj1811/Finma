@@ -478,301 +478,303 @@ export const RecurringTransactionsScreen = ({ navigation }: Props) => {
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{editingRuleId ? 'Cập nhật giao dịch định kỳ' : 'Thêm giao dịch định kỳ'}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>{editingRuleId ? 'Cập nhật giao dịch định kỳ' : 'Thêm giao dịch định kỳ'}</Text>
 
-            <Text style={styles.modalLabel}>Chu kỳ</Text>
-            <Pressable
-              style={styles.selectField}
-              onPress={() => {
-                setShowCycleList((prev) => !prev);
-                setShowWeekdayList(false);
-                setShowYearMonthList(false);
-                setShowCategoryList(false);
-                setShowSourceList(false);
-              }}
-            >
-              <Text style={styles.fieldText}>{selectedCycleLabel}</Text>
-              <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
-            </Pressable>
-            {showCycleList ? (
-              <View style={styles.dropdownList}>
-                {cycleOptions.map((item) => (
-                  <Pressable
-                    key={item.value}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setForm((prev) => ({
-                        ...prev,
-                        cycle: item.value,
-                        dayOfMonth: item.value === 'weekly' || item.value === 'daily' ? '' : prev.dayOfMonth,
-                        dayOfWeek: item.value === 'weekly' ? prev.dayOfWeek : '',
-                        startDate:
-                          item.value === 'yearly' && !prev.startDate
-                            ? new Date().toISOString()
-                            : prev.startDate,
-                      }));
-                      setShowCycleList(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownText}>{item.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            <Text style={styles.modalLabel}>Ngày bắt đầu</Text>
-            <AppDatePickerField
-              valueIso={form.startDate}
-              onOpen={() => {
-                setShowCycleList(false);
-                setShowWeekdayList(false);
-                setShowYearMonthList(false);
-                setShowCategoryList(false);
-                setShowSourceList(false);
-              }}
-              onChangeIso={(nextIso) => {
-                const nextDate = new Date(nextIso);
-                setForm((prev) => ({
-                  ...prev,
-                  startDate: nextIso,
-                  dayOfMonth:
-                    prev.cycle === 'monthly' || prev.cycle === 'yearly'
-                      ? String(nextDate.getDate())
-                      : prev.dayOfMonth,
-                  dayOfWeek: prev.cycle === 'weekly' ? String(nextDate.getDay()) : prev.dayOfWeek,
-                }));
-              }}
-              fieldStyle={styles.selectField}
-              textStyle={styles.fieldText}
-              pickerWrapStyle={styles.datePickerWrap}
-              pickerActionsStyle={styles.datePickerActions}
-              cancelButtonStyle={styles.cancelBtn}
-              cancelTextStyle={styles.cancelText}
-              confirmButtonStyle={styles.saveBtn}
-              confirmTextStyle={styles.saveText}
-            />
-
-            {form.cycle === 'weekly' ? (
-              <>
-                <Text style={styles.modalLabel}>Thứ thực hiện</Text>
-                <Pressable
-                  style={styles.selectField}
-                  onPress={() => {
-                    setShowWeekdayList((prev) => !prev);
-                    setShowCycleList(false);
-                    setShowYearMonthList(false);
-                    setShowCategoryList(false);
-                    setShowSourceList(false);
-                  }}
-                >
-                  <Text style={styles.fieldText}>{selectedWeekdayLabel}</Text>
-                  <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
-                </Pressable>
-                {showWeekdayList ? (
-                  <View style={styles.dropdownList}>
-                    {weekdayOptions.map((item) => (
-                      <Pressable
-                        key={item.value}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          setForm((prev) => ({ ...prev, dayOfWeek: item.value }));
-                          setShowWeekdayList(false);
-                        }}
-                      >
-                        <Text style={styles.dropdownText}>{item.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-              </>
-            ) : form.cycle === 'yearly' ? (
-              <>
-                <Text style={styles.modalLabel}>Tháng thực hiện</Text>
-                <Pressable
-                  style={styles.selectField}
-                  onPress={() => {
-                    setShowYearMonthList((prev) => !prev);
-                    setShowCycleList(false);
-                    setShowWeekdayList(false);
-                    setShowCategoryList(false);
-                    setShowSourceList(false);
-                  }}
-                >
-                  <Text style={styles.fieldText}>{selectedYearMonthLabel}</Text>
-                  <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
-                </Pressable>
-                {showYearMonthList ? (
-                  <View style={styles.dropdownList}>
-                    {monthOptions.map((item) => (
-                      <Pressable
-                        key={item.value}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          setForm((prev) => {
-                            const parts = getDateParts(prev.startDate);
-                            const nextMonth = Number(item.value);
-                            const typedDay = Number(prev.dayOfMonth.replace(/[^\d]/g, ''));
-                            const maxDay = getMaxDayOfMonth(parts.year, nextMonth);
-                            const safeDay = typedDay > 0 ? Math.min(typedDay, maxDay) : Math.min(parts.day, maxDay);
-
-                            return {
-                              ...prev,
-                              startDate: toDateOnly(parts.year, nextMonth, safeDay),
-                              dayOfMonth: typedDay > 0 ? String(safeDay) : prev.dayOfMonth,
-                            };
-                          });
-                          setShowYearMonthList(false);
-                        }}
-                      >
-                        <Text style={styles.dropdownText}>{item.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-
-                <Text style={styles.modalLabel}>Ngày thực hiện</Text>
-                <TextInput
-                  value={form.dayOfMonth}
-                  onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
-                  placeholder="15"
-                  keyboardType="numeric"
-                  style={styles.input}
-                  placeholderTextColor={colors.textMuted}
-                />
-              </>
-            ) : form.cycle === 'monthly' ? (
-              <>
-                <Text style={styles.modalLabel}>Ngày thực hiện</Text>
-                <TextInput
-                  value={form.dayOfMonth}
-                  onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
-                  placeholder="15"
-                  keyboardType="numeric"
-                  style={styles.input}
-                  placeholderTextColor={colors.textMuted}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalLabel}>Ngày thực hiện</Text>
-                <View style={styles.readonlyInput}>
-                  <Text style={styles.readonlyText}>Tự động mỗi ngày</Text>
-                  <MaterialIcons name="event-repeat" size={18} color={colors.primary} />
-                </View>
-              </>
-            )}
-
-            <Text style={styles.modalLabel}>Danh mục chi tiêu</Text>
-            <Pressable
-              style={styles.selectField}
-              onPress={() => {
-                setShowCategoryList((prev) => !prev);
-                setShowCycleList(false);
-                setShowWeekdayList(false);
-                setShowYearMonthList(false);
-                setShowSourceList(false);
-              }}
-            >
-              <Text style={styles.fieldText}>{selectedCategoryLabel}</Text>
-              <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
-            </Pressable>
-            {showCategoryList ? (
-              <View style={styles.dropdownList}>
-                {options.categories.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setForm((prev) => ({ ...prev, categoryId: item.id }));
-                      setShowCategoryList(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownText}>{item.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            <Text style={styles.modalLabel}>Nguồn tiền</Text>
-            <Pressable
-              style={styles.selectField}
-              onPress={() => {
-                setShowSourceList((prev) => !prev);
-                setShowCycleList(false);
-                setShowWeekdayList(false);
-                setShowYearMonthList(false);
-                setShowCategoryList(false);
-              }}
-            >
-              <Text style={styles.fieldText}>{selectedSourceLabel}</Text>
-              <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
-            </Pressable>
-            {showSourceList ? (
-              <View style={styles.dropdownList}>
-                {options.sources.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setForm((prev) => ({ ...prev, sourceId: item.id }));
-                      setShowSourceList(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownText}>{item.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            <Text style={styles.modalLabel}>Tiêu đề</Text>
-            <TextInput
-              value={form.title}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, title: value }))}
-              placeholder="Gia Hạn Gói Mạng"
-              style={styles.input}
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <Text style={styles.modalLabel}>Số tiền (vnd)</Text>
-            <TextInput
-              value={form.amount}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, amount: value }))}
-              placeholder="300000"
-              keyboardType="numeric"
-              style={styles.input}
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <Text style={styles.modalLabel}>Mô tả</Text>
-            <TextInput
-              value={form.note}
-              onChangeText={(value) => setForm((prev) => ({ ...prev, note: value }))}
-              placeholder="Mô tả"
-              style={[styles.input, styles.noteInput]}
-              multiline
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <View style={styles.modalActionRow}>
+              <Text style={styles.modalLabel}>Chu kỳ</Text>
               <Pressable
-                style={styles.cancelBtn}
+                style={styles.selectField}
                 onPress={() => {
-                  setShowModal(false);
-                  setEditingRuleId(null);
-                  setShowCycleList(false);
+                  setShowCycleList((prev) => !prev);
                   setShowWeekdayList(false);
                   setShowYearMonthList(false);
                   setShowCategoryList(false);
                   setShowSourceList(false);
                 }}
               >
-                <Text style={styles.cancelText}>Hủy</Text>
+                <Text style={styles.fieldText}>{selectedCycleLabel}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
               </Pressable>
+              {showCycleList ? (
+                <View style={styles.dropdownList}>
+                  {cycleOptions.map((item) => (
+                    <Pressable
+                      key={item.value}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          cycle: item.value,
+                          dayOfMonth: item.value === 'weekly' || item.value === 'daily' ? '' : prev.dayOfMonth,
+                          dayOfWeek: item.value === 'weekly' ? prev.dayOfWeek : '',
+                          startDate:
+                            item.value === 'yearly' && !prev.startDate
+                              ? new Date().toISOString()
+                              : prev.startDate,
+                        }));
+                        setShowCycleList(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownText}>{item.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
 
-              <Pressable style={styles.saveBtn} onPress={onSubmit} disabled={saving || modalLoading}>
-                <Text style={styles.saveText}>{saving ? 'Đang lưu...' : editingRuleId ? 'Cập nhật' : 'Lưu'}</Text>
+              <Text style={styles.modalLabel}>Ngày bắt đầu</Text>
+              <AppDatePickerField
+                valueIso={form.startDate}
+                onOpen={() => {
+                  setShowCycleList(false);
+                  setShowWeekdayList(false);
+                  setShowYearMonthList(false);
+                  setShowCategoryList(false);
+                  setShowSourceList(false);
+                }}
+                onChangeIso={(nextIso) => {
+                  const nextDate = new Date(nextIso);
+                  setForm((prev) => ({
+                    ...prev,
+                    startDate: nextIso,
+                    dayOfMonth:
+                      prev.cycle === 'monthly' || prev.cycle === 'yearly'
+                        ? String(nextDate.getDate())
+                        : prev.dayOfMonth,
+                    dayOfWeek: prev.cycle === 'weekly' ? String(nextDate.getDay()) : prev.dayOfWeek,
+                  }));
+                }}
+                fieldStyle={styles.selectField}
+                textStyle={styles.fieldText}
+                pickerWrapStyle={styles.datePickerWrap}
+                pickerActionsStyle={styles.datePickerActions}
+                cancelButtonStyle={styles.cancelBtn}
+                cancelTextStyle={styles.cancelText}
+                confirmButtonStyle={styles.saveBtn}
+                confirmTextStyle={styles.saveText}
+              />
+
+              {form.cycle === 'weekly' ? (
+                <>
+                  <Text style={styles.modalLabel}>Thứ thực hiện</Text>
+                  <Pressable
+                    style={styles.selectField}
+                    onPress={() => {
+                      setShowWeekdayList((prev) => !prev);
+                      setShowCycleList(false);
+                      setShowYearMonthList(false);
+                      setShowCategoryList(false);
+                      setShowSourceList(false);
+                    }}
+                  >
+                    <Text style={styles.fieldText}>{selectedWeekdayLabel}</Text>
+                    <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+                  </Pressable>
+                  {showWeekdayList ? (
+                    <View style={styles.dropdownList}>
+                      {weekdayOptions.map((item) => (
+                        <Pressable
+                          key={item.value}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setForm((prev) => ({ ...prev, dayOfWeek: item.value }));
+                            setShowWeekdayList(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownText}>{item.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              ) : form.cycle === 'yearly' ? (
+                <>
+                  <Text style={styles.modalLabel}>Tháng thực hiện</Text>
+                  <Pressable
+                    style={styles.selectField}
+                    onPress={() => {
+                      setShowYearMonthList((prev) => !prev);
+                      setShowCycleList(false);
+                      setShowWeekdayList(false);
+                      setShowCategoryList(false);
+                      setShowSourceList(false);
+                    }}
+                  >
+                    <Text style={styles.fieldText}>{selectedYearMonthLabel}</Text>
+                    <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+                  </Pressable>
+                  {showYearMonthList ? (
+                    <View style={styles.dropdownList}>
+                      {monthOptions.map((item) => (
+                        <Pressable
+                          key={item.value}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setForm((prev) => {
+                              const parts = getDateParts(prev.startDate);
+                              const nextMonth = Number(item.value);
+                              const typedDay = Number(prev.dayOfMonth.replace(/[^\d]/g, ''));
+                              const maxDay = getMaxDayOfMonth(parts.year, nextMonth);
+                              const safeDay = typedDay > 0 ? Math.min(typedDay, maxDay) : Math.min(parts.day, maxDay);
+
+                              return {
+                                ...prev,
+                                startDate: toDateOnly(parts.year, nextMonth, safeDay),
+                                dayOfMonth: typedDay > 0 ? String(safeDay) : prev.dayOfMonth,
+                              };
+                            });
+                            setShowYearMonthList(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownText}>{item.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+
+                  <Text style={styles.modalLabel}>Ngày thực hiện</Text>
+                  <TextInput
+                    value={form.dayOfMonth}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
+                    placeholder="15"
+                    keyboardType="numeric"
+                    style={styles.input}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </>
+              ) : form.cycle === 'monthly' ? (
+                <>
+                  <Text style={styles.modalLabel}>Ngày thực hiện</Text>
+                  <TextInput
+                    value={form.dayOfMonth}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, dayOfMonth: value }))}
+                    placeholder="15"
+                    keyboardType="numeric"
+                    style={styles.input}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.modalLabel}>Ngày thực hiện</Text>
+                  <View style={styles.readonlyInput}>
+                    <Text style={styles.readonlyText}>Tự động mỗi ngày</Text>
+                    <MaterialIcons name="event-repeat" size={18} color={colors.primary} />
+                  </View>
+                </>
+              )}
+
+              <Text style={styles.modalLabel}>Danh mục chi tiêu</Text>
+              <Pressable
+                style={styles.selectField}
+                onPress={() => {
+                  setShowCategoryList((prev) => !prev);
+                  setShowCycleList(false);
+                  setShowWeekdayList(false);
+                  setShowYearMonthList(false);
+                  setShowSourceList(false);
+                }}
+              >
+                <Text style={styles.fieldText}>{selectedCategoryLabel}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
               </Pressable>
-            </View>
+              {showCategoryList ? (
+                <View style={styles.dropdownList}>
+                  {options.categories.map((item) => (
+                    <Pressable
+                      key={item.id}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setForm((prev) => ({ ...prev, categoryId: item.id }));
+                        setShowCategoryList(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownText}>{item.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+
+              <Text style={styles.modalLabel}>Nguồn tiền</Text>
+              <Pressable
+                style={styles.selectField}
+                onPress={() => {
+                  setShowSourceList((prev) => !prev);
+                  setShowCycleList(false);
+                  setShowWeekdayList(false);
+                  setShowYearMonthList(false);
+                  setShowCategoryList(false);
+                }}
+              >
+                <Text style={styles.fieldText}>{selectedSourceLabel}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={18} color={colors.primary} />
+              </Pressable>
+              {showSourceList ? (
+                <View style={styles.dropdownList}>
+                  {options.sources.map((item) => (
+                    <Pressable
+                      key={item.id}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setForm((prev) => ({ ...prev, sourceId: item.id }));
+                        setShowSourceList(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownText}>{item.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+
+              <Text style={styles.modalLabel}>Tiêu đề</Text>
+              <TextInput
+                value={form.title}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, title: value }))}
+                placeholder="Gia Hạn Gói Mạng"
+                style={styles.input}
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.modalLabel}>Số tiền (vnd)</Text>
+              <TextInput
+                value={form.amount}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, amount: value }))}
+                placeholder="300000"
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.modalLabel}>Mô tả</Text>
+              <TextInput
+                value={form.note}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, note: value }))}
+                placeholder="Mô tả"
+                style={[styles.input, styles.noteInput]}
+                multiline
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <View style={styles.modalActionRow}>
+                <Pressable
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    setShowModal(false);
+                    setEditingRuleId(null);
+                    setShowCycleList(false);
+                    setShowWeekdayList(false);
+                    setShowYearMonthList(false);
+                    setShowCategoryList(false);
+                    setShowSourceList(false);
+                  }}
+                >
+                  <Text style={styles.cancelText}>Hủy</Text>
+                </Pressable>
+
+                <Pressable style={styles.saveBtn} onPress={onSubmit} disabled={saving || modalLoading}>
+                  <Text style={styles.saveText}>{saving ? 'Đang lưu...' : editingRuleId ? 'Cập nhật' : 'Lưu'}</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -989,6 +991,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: '#F1FFF3',
     borderRadius: 16,
+    maxHeight: '88%',
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 12,

@@ -61,13 +61,13 @@ const defaultDebtForm: DebtFormState = {
   iconKey: 'payments',
 };
 
-const defaultDebtTransactionForm: DebtTransactionFormState = {
+const createDefaultDebtTransactionForm = (): DebtTransactionFormState => ({
   dateIso: new Date().toISOString(),
   title: '',
   counterparty: '',
   amount: '',
   kind: 'borrow',
-};
+});
 
 const formatCurrency = (value: number) => Math.round(value).toLocaleString('vi-VN');
 
@@ -111,7 +111,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
 
   const [transactionModalVisible, setTransactionModalVisible] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<DebtTransactionItem | null>(null);
-  const [transactionForm, setTransactionForm] = useState<DebtTransactionFormState>(defaultDebtTransactionForm);
+  const [transactionForm, setTransactionForm] = useState<DebtTransactionFormState>(() => createDefaultDebtTransactionForm());
 
   const selectedDebt = useMemo(
     () => dashboard?.items.find((item) => item.id === selectedDebtId) ?? null,
@@ -168,8 +168,11 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
     }
   };
 
-  const loadDashboard = async (preferredId?: string | null) => {
-    setLoading(true);
+  const loadDashboard = async (preferredId?: string | null, options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const response = await debtApi.getDashboard();
       setDashboard(response);
@@ -185,7 +188,9 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
       setDashboard(null);
       setSelectedDebtId(null);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -312,7 +317,7 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
 
     setEditingTransaction(null);
     setTransactionForm({
-      ...defaultDebtTransactionForm,
+      ...createDefaultDebtTransactionForm(),
       title: selectedDebt.name,
       counterparty: selectedDebt.direction === 'lend' ? 'Thu nợ' : 'Trả nợ',
       kind: selectedDebt.direction === 'lend' ? 'borrow' : 'repay',
@@ -362,11 +367,14 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
         await debtApi.createDebtTransaction(selectedDebtId, payload);
       }
 
-      await loadDashboard(selectedDebtId);
-      await loadDetail(selectedDebtId);
       setTransactionModalVisible(false);
       setEditingTransaction(null);
-      setTransactionForm(defaultDebtTransactionForm);
+      setTransactionForm(createDefaultDebtTransactionForm());
+
+      await Promise.all([
+        loadDashboard(selectedDebtId, { silent: true }),
+        loadDetail(selectedDebtId),
+      ]);
     } catch (error) {
       Alert.alert('Không thể lưu giao dịch', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
     } finally {
@@ -387,8 +395,10 @@ export const DebtsScreen = ({ navigation, route }: Props) => {
         onPress: async () => {
           try {
             await debtApi.deleteDebtTransaction(selectedDebtId, item.id);
-            await loadDashboard(selectedDebtId);
-            await loadDetail(selectedDebtId);
+            await Promise.all([
+              loadDashboard(selectedDebtId, { silent: true }),
+              loadDetail(selectedDebtId),
+            ]);
           } catch (error) {
             Alert.alert('Không thể xóa giao dịch', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
           }

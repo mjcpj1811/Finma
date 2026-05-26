@@ -132,6 +132,7 @@ public class AccountService {
                 .imageUrl(transaction.getIcon())
                 .location(transaction.getLocation())
                 .transactionDate(transaction.getTransactionDate())
+                .createdAt(transaction.getCreatedAt())
                 .category(transaction.getCategory() != null ? transaction.getCategory().getName() : null)
                 .build();
     }

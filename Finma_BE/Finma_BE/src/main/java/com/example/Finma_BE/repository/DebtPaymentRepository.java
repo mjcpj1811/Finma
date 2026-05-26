@@ -9,6 +9,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository truy van thanh toan no.
+ */
 public interface DebtPaymentRepository extends JpaRepository<DebtPayment,Long> {
     List<DebtPayment> findByDebtIdOrderByPaymentDateDesc(Long debtId);
 
