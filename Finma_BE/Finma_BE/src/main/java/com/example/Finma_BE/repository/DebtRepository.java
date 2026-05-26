@@ -12,9 +12,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import com.example.Finma_BE.enums.DebtStatus;
-import java.util.List;
-
+/**
+ * Repository truy van khoan vay/no.
+ */
 public interface DebtRepository extends JpaRepository<Debt,Long> {
     List<Debt> findAllByUserIdAndStatus(Long userId, DebtStatus status);
     // Lấy tất cả debt của user, kèm payments

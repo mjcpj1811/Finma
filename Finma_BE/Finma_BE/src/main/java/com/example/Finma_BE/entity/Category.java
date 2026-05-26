@@ -4,6 +4,9 @@ import com.example.Finma_BE.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * Entity danh muc (co the la mac dinh hoac tuy chinh theo user).
+ */
 @Entity
 @Table(name = "categories")
 @Getter
@@ -32,7 +35,7 @@ public class Category extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    // self reference
+    // Tu tham chieu danh muc cha
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Category parent;

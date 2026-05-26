@@ -9,6 +9,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Entity khoan vay/no.
+ */
 @Entity
 @Table(name = "debts")
 @Getter

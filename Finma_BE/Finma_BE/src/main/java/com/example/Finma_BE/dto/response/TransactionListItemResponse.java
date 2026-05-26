@@ -22,4 +22,6 @@ public class TransactionListItemResponse {
     private String date;
     /** yyyy-MM-dd HH:mm:ss */
     private String transactionDateTime;
+    /** yyyy-MM-dd HH:mm:ss */
+    private String createdAt;
 }

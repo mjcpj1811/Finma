@@ -1,0 +1,60 @@
+@startuml SoDoLop_QuanLyVayNo
+title Sơ đồ lớp - Quản lý vay nợ
+
+class BaseEntity {
+	createdAt: LocalDateTime
+	updatedAt: LocalDateTime
+}
+
+class User {
+	id: Long
+	username: String
+	email: String
+	phone: String
+	password: String
+	fullName: String
+	avatar: String
+	dob: LocalDate
+	job: String
+	currency: String
+	timezone: String
+	status: Integer
+}
+
+class Debt {
+	id: Long
+	personName: String
+	type: DebtType
+	totalAmount: BigDecimal
+	interestRate: BigDecimal
+	startDate: LocalDate
+	dueDate: LocalDate
+	note: String
+	status: DebtStatus
+	payments: List<DebtPayment>
+	user: User
+}
+
+class DebtPayment {
+	id: Long
+	amount: BigDecimal
+	paymentDate: LocalDate
+	title: String
+	counterparty: String
+	debt: Debt
+}
+
+enum DebtType
+enum DebtStatus
+
+Debt --|> BaseEntity
+DebtPayment --|> BaseEntity
+User --|> BaseEntity
+
+Debt "1" <-- "0..*" DebtPayment : payments
+DebtPayment "0..*" --> "1" Debt : debt
+Debt "0..*" --> "1" User : user
+Debt --> DebtType
+Debt --> DebtStatus
+
+@enduml

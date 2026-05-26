@@ -1,6 +1,5 @@
 package com.example.Finma_BE.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
@@ -23,12 +22,15 @@ public class GoalDepositRequest {
     @Positive(message = "Amount must be positive")
     BigDecimal amount;
 
-    /** Tài khoản lấy tiền ra (tuỳ chọn) */
+    /** Tài khoản lấy tiền ra (bắt buộc để trừ số dư khả dụng) */
+    @NotNull(message = "Account ID is required")
     Long accountId;
 
     /** Nếu không truyền sẽ dùng ngày hiện tại */
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     LocalDateTime depositDate;
+
+    /** DEPOSIT hoặc WITHDRAW, mặc định DEPOSIT nếu bỏ trống */
+    String kind;
 
     String note;
 }

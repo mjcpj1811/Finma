@@ -1,0 +1,44 @@
+@startuml SoDoLop_QuanLyDanhMuc
+title Sơ đồ lớp - Quản lý danh mục
+
+class BaseEntity {
+	createdAt: LocalDateTime
+	updatedAt: LocalDateTime
+}
+
+class User {
+	id: Long
+	username: String
+	email: String
+	phone: String
+	password: String
+	fullName: String
+	avatar: String
+	dob: LocalDate
+	job: String
+	currency: String
+	timezone: String
+	status: Integer
+}
+
+class Category {
+	id: Long
+	name: String
+	type: CategoryType
+	icon: String
+	color: String
+	isDefault: Boolean
+	user: User
+	parent: Category
+}
+
+enum CategoryType
+
+Category --|> BaseEntity
+User --|> BaseEntity
+
+Category "0..*" --> "1" User : user
+Category "0..1" <-- "0..*" Category : parent
+Category --> CategoryType
+
+@enduml

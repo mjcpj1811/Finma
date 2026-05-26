@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * API quan ly danh muc.
+ */
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -21,6 +24,9 @@ public class CategoryController {
 
     CategoryService categoryService;
 
+    /**
+     * Lay danh sach danh muc theo type neu co.
+     */
     @GetMapping
     ApiResponse<List<CategoryResponse>> getCategories(
             @RequestParam(required = false) CategoryType type) {
@@ -30,6 +36,9 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Lay chi tiet danh muc theo id.
+     */
     @GetMapping("/{id}")
     ApiResponse<CategoryResponse> getCategoryById(@PathVariable Long id) {
         CategoryResponse categoryResponse = categoryService.getCategoryById(id);
@@ -38,6 +47,9 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Tao danh muc moi.
+     */
     @PostMapping
     ApiResponse<CategoryResponse> createCategory(@RequestBody @Valid CategoryRequest categoryRequest){
         CategoryResponse categoryResponse = categoryService.createCategory(categoryRequest);
@@ -46,6 +58,9 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Cap nhat danh muc theo id.
+     */
     @PutMapping("/{id}")
     ApiResponse<CategoryResponse> updateCategory(@PathVariable Long id
             , @RequestBody @Valid CategoryRequest categoryRequest){
@@ -55,6 +70,9 @@ public class CategoryController {
                 .build();
     }
 
+    /**
+     * Xoa danh muc theo id.
+     */
     @DeleteMapping("/{id}")
     ApiResponse<Void> deleteCategory(@PathVariable Long id){
         categoryService.deleteCategory(id);

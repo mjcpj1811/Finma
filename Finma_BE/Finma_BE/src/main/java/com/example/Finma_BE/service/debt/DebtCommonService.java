@@ -8,12 +8,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
+/**
+ * Dich vu dung chung cho module vay no.
+ */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class DebtCommonService {
     private final DebtRepository debtRepository;
 
+    /**
+     * Lay khoan no theo id va user, neu khong co thi bao loi.
+     */
     public Debt findDebtOfUser(Long id, Long userId) {
         return debtRepository
                 .findByIdAndUserId(id, userId)

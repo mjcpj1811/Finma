@@ -11,9 +11,15 @@ import org.mapstruct.*;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Mapper cho giao dich dinh ky.
+ */
 @Mapper(componentModel = "spring"
         , nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface RecurringTransactionMapper {
+        /**
+         * Map entity sang response chi tiet.
+         */
         @Mapping(target = "frequencyLabel", expression = "java(toFrequencyLabel(recurringTransaction.getFrequency()))")
         @Mapping(target = "executionLabel", expression = "java(toExecutionLabel(recurringTransaction))")
         @Mapping(target = "accountId", source = "account.id")
@@ -24,14 +30,23 @@ public interface RecurringTransactionMapper {
         @Mapping(target = "categoryColor", source = "category.color")
     RecurringTransactionResponse toResponse(RecurringTransaction recurringTransaction);
 
+        /**
+         * Map entity sang response tong quan.
+         */
         @Mapping(target = "frequencyLabel", expression = "java(toFrequencyLabel(recurringTransaction.getFrequency()))")
         @Mapping(target = "executionLabel", expression = "java(toExecutionLabel(recurringTransaction))")
         @Mapping(target = "categoryIcon", source = "category.icon")
         @Mapping(target = "categoryColor", source = "category.color")
         RecurringTransactionSummaryResponse toSummary(RecurringTransaction recurringTransaction);
 
-    List<RecurringTransactionSummaryResponse> toSummaryList(List<RecurringTransaction> list);
+        /**
+         * Map danh sach entity sang danh sach response tong quan.
+         */
+        List<RecurringTransactionSummaryResponse> toSummaryList(List<RecurringTransaction> list);
 
+    /**
+     * Map request tao moi sang entity.
+     */
     @Mapping(
             target = "reminderDaysBefore",
             defaultValue = "1"
@@ -39,7 +54,10 @@ public interface RecurringTransactionMapper {
     RecurringTransaction toRecurringTransaction(
             RecurringTransactionCreateRequest recurringTransactionCreateRequest);
 
-    @Mapping(target = "id", ignore = true)
+        /**
+         * Cap nhat entity tu request (bo qua cac field quan tri).
+         */
+        @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "user", ignore = true)
@@ -48,6 +66,9 @@ public interface RecurringTransactionMapper {
     void updateRecurringTransaction(@MappingTarget RecurringTransaction recurringTransaction
             , RecurringTransactionUpdateRequest recurringTransactionUpdateRequest);
 
+        /**
+         * Doi tan suat sang nhan hien thi.
+         */
         default String toFrequencyLabel(Frequency frequency) {
                 if (frequency == null) {
                         return null;
@@ -60,6 +81,9 @@ public interface RecurringTransactionMapper {
                 };
         }
 
+        /**
+         * Tao nhan mo ta ngay thuc thi tu thong tin giao dich dinh ky.
+         */
         default String toExecutionLabel(RecurringTransaction recurringTransaction) {
                 if (recurringTransaction == null || recurringTransaction.getFrequency() == null) {
                         return null;
@@ -87,6 +111,9 @@ public interface RecurringTransactionMapper {
                 };
         }
 
+        /**
+         * Xac dinh ngay trong thang (uu tien dayOfMonth, fallback startDate).
+         */
         default Integer resolveDayOfMonth(RecurringTransaction recurringTransaction) {
                 if (recurringTransaction.getDayOfMonth() != null) {
                         return recurringTransaction.getDayOfMonth();
@@ -95,6 +122,9 @@ public interface RecurringTransactionMapper {
                 return startDate != null ? startDate.getDayOfMonth() : null;
         }
 
+        /**
+         * Doi so thu trong tuan sang nhan hien thi.
+         */
         default String toWeekdayLabel(Integer dayOfWeek) {
                 if (dayOfWeek == null) {
                         return null;

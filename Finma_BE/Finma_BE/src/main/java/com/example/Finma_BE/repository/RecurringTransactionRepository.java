@@ -11,6 +11,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository truy van giao dich dinh ky.
+ */
 public interface RecurringTransactionRepository extends JpaRepository<RecurringTransaction,Long> {
 
     // Danh sách tất cả (trừ CANCELLED), kèm JOIN category & account tránh N+1

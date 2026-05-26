@@ -1,0 +1,82 @@
+@startuml SoDoLop_QuanLyDinhKy
+title Sơ đồ lớp - Quản lý giao dịch định kỳ
+
+class BaseEntity {
+	createdAt: LocalDateTime
+	updatedAt: LocalDateTime
+}
+
+class User {
+	id: Long
+	username: String
+	email: String
+	phone: String
+	password: String
+	fullName: String
+	avatar: String
+	dob: LocalDate
+	job: String
+	currency: String
+	timezone: String
+	status: Integer
+}
+
+class Account {
+	id: Long
+	name: String
+	type: AccountType
+	balance: BigDecimal
+	icon: String
+	color: String
+	user: User
+}
+
+class Category {
+	id: Long
+	name: String
+	type: CategoryType
+	icon: String
+	color: String
+	isDefault: Boolean
+	user: User
+	parent: Category
+}
+
+class RecurringTransaction {
+	id: Long
+	amount: BigDecimal
+	title: String
+	note: String
+	frequency: Frequency
+	dayOfMonth: Integer
+	dayOfWeek: Integer
+	startDate: LocalDate
+	reminderDaysBefore: Integer
+	isActive: Boolean
+	status: RecurringStatus
+	user: User
+	account: Account
+	category: Category
+}
+
+enum Frequency
+enum RecurringStatus
+enum AccountType
+enum CategoryType
+
+RecurringTransaction --|> BaseEntity
+Account --|> BaseEntity
+Category --|> BaseEntity
+User --|> BaseEntity
+
+RecurringTransaction "0..*" --> "1" User : user
+RecurringTransaction "0..*" --> "1" Account : account
+RecurringTransaction "0..*" --> "1" Category : category
+RecurringTransaction --> Frequency
+RecurringTransaction --> RecurringStatus
+
+Account --> AccountType
+Category --> CategoryType
+Category "0..1" <-- "0..*" Category : parent
+
+@enduml

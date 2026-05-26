@@ -9,7 +9,6 @@ import com.example.Finma_BE.dto.response.recurringTransaction.RecurringTransacti
 import com.example.Finma_BE.dto.response.recurringTransaction.RecurringTransactionStatsResponse;
 import com.example.Finma_BE.dto.response.recurringTransaction.RecurringTransactionSummaryResponse;
 import com.example.Finma_BE.enums.RecurringStatus;
-import com.example.Finma_BE.repository.RecurringTransactionRepository;
 import com.example.Finma_BE.service.RecurringTransactionService.RecurringTransactionService;
 import com.example.Finma_BE.util.SecurityUtils;
 import jakarta.validation.Valid;
@@ -20,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * API quan ly giao dich dinh ky.
+ */
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -28,57 +30,85 @@ public class RecurringTransactionController {
 
     RecurringTransactionService recurringTransactionService;
 
-    @GetMapping("/stats")
+        /**
+         * Thong ke dinh ky.
+         */
+        @GetMapping("/stats")
     ApiResponse<RecurringTransactionStatsResponse> getStats() {
+                Long userId = SecurityUtils.getCurrentUserId();
         return ApiResponse.<RecurringTransactionStatsResponse>builder()
-                .result(recurringTransactionService.getStats(SecurityUtils.getCurrentUserId()))
+                                .result(recurringTransactionService.getStats(userId))
                 .build();
     }
 
-    @GetMapping
+        /**
+         * Lay danh sach giao dich dinh ky theo trang thai neu co.
+         */
+        @GetMapping
     ApiResponse<List<RecurringTransactionSummaryResponse>> getAll(
             @RequestParam(required = false) RecurringStatus status) {
+                Long userId = SecurityUtils.getCurrentUserId();
         return ApiResponse.<List<RecurringTransactionSummaryResponse>>builder()
-                .result(recurringTransactionService.getAll(SecurityUtils.getCurrentUserId(), status))
+                                .result(recurringTransactionService.getAll(userId, status))
                 .build();
     }
 
-    @GetMapping("/{id}")
+        /**
+         * Lay chi tiet giao dich dinh ky.
+         */
+        @GetMapping("/{id}")
     ApiResponse<RecurringTransactionResponse> getById(@PathVariable Long id) {
+                Long userId = SecurityUtils.getCurrentUserId();
         return ApiResponse.<RecurringTransactionResponse>builder()
-                .result(recurringTransactionService.getById(id, SecurityUtils.getCurrentUserId()))
+                                .result(recurringTransactionService.getById(id, userId))
                 .build();
     }
 
-    @PostMapping
+        /**
+         * Tao giao dich dinh ky.
+         */
+        @PostMapping
     ApiResponse<RecurringTransactionResponse> create(
             @Valid @RequestBody RecurringTransactionCreateRequest request) {
+                Long userId = SecurityUtils.getCurrentUserId();
         return ApiResponse.<RecurringTransactionResponse>builder()
-                .result(recurringTransactionService.create(SecurityUtils.getCurrentUserId(), request))
+                                .result(recurringTransactionService.create(userId, request))
                 .build();
     }
 
-    @PutMapping("/{id}")
+        /**
+         * Cap nhat giao dich dinh ky.
+         */
+        @PutMapping("/{id}")
     ApiResponse<RecurringTransactionResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody RecurringTransactionUpdateRequest request) {
+                Long userId = SecurityUtils.getCurrentUserId();
         return ApiResponse.<RecurringTransactionResponse>builder()
-                .result(recurringTransactionService.update(id, SecurityUtils.getCurrentUserId(), request))
+                                .result(recurringTransactionService.update(id, userId, request))
                 .build();
     }
 
-    @PatchMapping("/{id}/toggle")
+        /**
+         * Bat/tat giao dich dinh ky.
+         */
+        @PatchMapping("/{id}/toggle")
     ApiResponse<RecurringTransactionResponse> toggle(
             @PathVariable Long id,
             @Valid @RequestBody RecurringTransactionToggleRequest request) {
+                Long userId = SecurityUtils.getCurrentUserId();
         return ApiResponse.<RecurringTransactionResponse>builder()
-                .result(recurringTransactionService.toggle(id, SecurityUtils.getCurrentUserId(), request))
+                                .result(recurringTransactionService.toggle(id, userId, request))
                 .build();
     }
 
-    @DeleteMapping("/{id}")
+        /**
+         * Huy giao dich dinh ky (khong xoa vat ly).
+         */
+        @DeleteMapping("/{id}")
     ApiResponse<Void> delete(@PathVariable Long id) {
-            recurringTransactionService.delete(id, SecurityUtils.getCurrentUserId());
+                Long userId = SecurityUtils.getCurrentUserId();
+                recurringTransactionService.delete(id, userId);
         return ApiResponse.<Void>builder().build();
     }
 }

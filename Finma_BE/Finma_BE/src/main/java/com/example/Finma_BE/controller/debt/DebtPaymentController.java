@@ -10,11 +10,13 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * API quan ly cac lan thanh toan cua khoan no.
+ */
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -23,6 +25,9 @@ public class DebtPaymentController {
 
     DebtPaymentService debtPaymentService;
 
+    /**
+     * Lay danh sach thanh toan theo khoan no.
+     */
     @GetMapping
     ApiResponse<List<DebtPaymentResponse>> getDebtPayments(@PathVariable Long debtId) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -31,6 +36,9 @@ public class DebtPaymentController {
                 .build();
     }
 
+    /**
+     * Tao thanh toan moi cho khoan no.
+     */
     @PostMapping
     ApiResponse<DebtPaymentResponse> createDebtPayment(@Valid @RequestBody DebtPaymentCreateRequest request
             , @PathVariable Long debtId) {
@@ -40,6 +48,9 @@ public class DebtPaymentController {
                 .build();
     }
 
+    /**
+     * Cap nhat thanh toan.
+     */
     @PutMapping("/{debtPaymentId}")
     ApiResponse<DebtPaymentResponse> updateDebtPayment(@Valid @RequestBody DebtPaymentUpdateRequest request
             , @PathVariable Long debtPaymentId
@@ -50,6 +61,9 @@ public class DebtPaymentController {
                 .build();
     }
 
+    /**
+     * Xoa thanh toan.
+     */
     @DeleteMapping("/{debtPaymentId}")
     ApiResponse<Void> deleteDebtPayment(@PathVariable Long debtPaymentId, @PathVariable Long debtId) {
         Long userId = SecurityUtils.getCurrentUserId();
