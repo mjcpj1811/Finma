@@ -20,6 +20,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AddTransaction'>;
 const formatDate = (value: Date) => value.toLocaleDateString('vi-VN');
 const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// Lưới lịch dùng chung cho bộ chọn ngày fallback trên web.
 const buildCalendarDays = (year: number, monthIndex: number) => {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const firstDayNative = new Date(year, monthIndex, 1).getDay();
@@ -69,6 +70,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
 
+  // Native dùng date picker của hệ điều hành; web dùng lưới lịch trong app.
   const openDatePicker = () => {
     setShowTypeList(false);
     setShowCategoryList(false);
@@ -131,6 +133,8 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Chế độ sửa tải song song chi tiết giao dịch và option form để cùng
+        // một màn hình có thể nạp đủ dữ liệu trước khi render form.
         const [formOptions, transactionDetail] = await Promise.all([
           transactionApi.getFormOptions(),
           editingTransactionId ? transactionApi.getTransactionDetail(editingTransactionId) : Promise.resolve(null),
@@ -183,6 +187,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
       return;
     }
 
+    // Giữ danh mục đang chọn tương thích với loại giao dịch đang chọn.
     const categoryStillValid = options.categories.some((item) => {
       if (item.id === categoryId) {
         if (type === 'saving') {
@@ -252,6 +257,7 @@ export const AddTransactionScreen = ({ navigation, route }: Props) => {
 
     setSaving(true);
     try {
+      // Lớp API chuyển shape của FE sang các trường enum/date/note của backend.
       const payload = {
         date: date.toISOString(),
         type,

@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * Số tiền chi tiêu được nhóm theo danh mục cho view phân bổ chi tiêu.
+ */
 @Data
 @Builder
 public class ReportPieItemResponse {

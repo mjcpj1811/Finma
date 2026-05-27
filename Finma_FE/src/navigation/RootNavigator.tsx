@@ -76,9 +76,11 @@ export type RootStackParamList = {
   SettingsDeleteAccount: undefined;
   ManageSources: undefined;
   SourceTransactions: { sourceId: string };
+  // Personal report routes: analysis dashboard, transaction search, and calendar.
   Report: undefined;
   ReportSearch: undefined;
   ReportCalendar: undefined;
+  // Personal transaction routes: list, add/edit, and detail.
   Transactions: undefined;
   AddTransaction:
   | {

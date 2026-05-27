@@ -6,6 +6,9 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * Payload giao dịch đầy đủ dùng cho màn hình chi tiết và nạp dữ liệu chế độ sửa.
+ */
 @Data
 @Builder
 public class TransactionDetailResponse {

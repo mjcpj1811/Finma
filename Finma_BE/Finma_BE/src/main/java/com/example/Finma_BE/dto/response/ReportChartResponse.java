@@ -6,6 +6,12 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Dữ liệu trả về của biểu đồ thu nhập/chi tiêu.
+ *
+ * <p>`labels`, `income` và `expense` là các mảng song song: cùng một index
+ * biểu diễn cùng một bucket ngày/tuần/tháng/năm.</p>
+ */
 @Data
 @Builder
 public class ReportChartResponse {

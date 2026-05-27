@@ -35,18 +35,28 @@ public class TransactionController {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DAY_FMT = DateTimeFormatter.ofPattern("MMMM dd");
 
+    /**
+     * Tạo giao dịch cho user đã xác thực.
+     *
+     * <p>Lớp service chịu trách nhiệm kiểm tra quyền sở hữu account/category,
+     * tính tương thích category/type, parse ngày và cập nhật số dư tài khoản.</p>
+     */
     @PostMapping
-        public ApiResponse<CreateTransactionResultVm> create(@Valid @RequestBody CreateTransactionRequest request) {
+    public ApiResponse<CreateTransactionResultVm> create(@Valid @RequestBody CreateTransactionRequest request) {
         var user = authContext.requireCurrentUser();
         var created = transactionService.create(user, request);
-                return ApiResponse.<CreateTransactionResultVm>builder()
-                                .message("Created")
-                                .result(new CreateTransactionResultVm(created.getId()))
-                                .build();
+        return ApiResponse.<CreateTransactionResultVm>builder()
+                .message("Created")
+                .result(new CreateTransactionResultVm(created.getId()))
+                .build();
     }
 
+    /**
+     * Trả về giao dịch thuộc user hiện tại với các bộ lọc tùy chọn dùng cho
+     * danh sách giao dịch, tìm kiếm báo cáo và màn hình drill-down.
+     */
     @GetMapping
-        public ApiResponse<List<TransactionListItemResponse>> list(
+    public ApiResponse<List<TransactionListItemResponse>> list(
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long accountId,
@@ -62,16 +72,23 @@ public class TransactionController {
                 .build();
     }
 
+    /**
+     * Tải chi tiết một giao dịch cho màn hình chi tiết/sửa.
+     */
     @GetMapping("/{id}")
     public ApiResponse<TransactionDetailResponse> getById(@PathVariable Long id) {
         var user = authContext.requireCurrentUser();
         var txn = transactionService.getById(user, id);
         return ApiResponse.<TransactionDetailResponse>builder()
                 .message("OK")
-                                .result(txn)
+                .result(txn)
                 .build();
     }
 
+    /**
+     * Cập nhật giao dịch; service hoàn tác tác động số dư cũ và áp dụng tác
+     * động mới trong cùng một transaction.
+     */
     @PutMapping("/{id}")
     public ApiResponse<Void> update(
             @PathVariable Long id,
@@ -84,6 +101,9 @@ public class TransactionController {
                 .build();
     }
 
+    /**
+     * Xóa giao dịch và khôi phục số dư tài khoản bị ảnh hưởng.
+     */
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         var user = authContext.requireCurrentUser();
@@ -93,6 +113,12 @@ public class TransactionController {
                 .build();
     }
 
+    /**
+     * API dashboard dành cho màn hình giao dịch mobile.
+     *
+     * <p>Amount lưu trong database luôn dương; amount chi tiêu chỉ được đổi dấu
+     * âm trong view model dashboard để hiển thị.</p>
+     */
     @GetMapping("/dashboard")
     public TransactionDashboardVm dashboard(@RequestParam(defaultValue = "all") String filter) {
         var user = authContext.requireCurrentUser();
@@ -124,6 +150,9 @@ public class TransactionController {
         );
     }
 
+    /**
+     * Cung cấp danh mục và tài khoản cho form thêm/sửa giao dịch.
+     */
     @GetMapping("/form-options")
     public TransactionFormOptionsVm formOptions() {
         var user = authContext.requireCurrentUser();
@@ -140,6 +169,9 @@ public class TransactionController {
         return new TransactionFormOptionsVm(categories, sources);
     }
 
+    /**
+     * Map DTO danh sách sang model card rút gọn mà dashboard mobile cần.
+     */
     private TransactionDashboardItemVm toDashboardItem(TransactionListItemResponse t) {
         String kind = t.getType() == TransactionType.INCOME ? "income" : "expense";
         BigDecimal amount = t.getType() == TransactionType.EXPENSE ? t.getAmount().negate() : t.getAmount();
@@ -160,6 +192,9 @@ public class TransactionController {
         );
     }
 
+    /**
+     * Chọn icon key ổn định cho bản ghi cũ có thể chưa lưu icon danh mục.
+     */
         private String resolveIconKey(TransactionListItemResponse t) {
                 if (t.getCategoryIcon() != null && !t.getCategoryIcon().isBlank()) {
                         return t.getCategoryIcon();
@@ -174,6 +209,10 @@ public class TransactionController {
         return "other";
     }
 
+    /**
+     * Chấp nhận cả datetime đầy đủ của API và trường chỉ có ngày từ mapping
+     * mobile cũ.
+     */
         private LocalDateTime parseTransactionDateTime(String dateTime, String date) {
                 try {
                         if (dateTime != null && !dateTime.isBlank()) {

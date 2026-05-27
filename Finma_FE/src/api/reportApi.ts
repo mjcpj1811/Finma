@@ -36,6 +36,10 @@ const mockDashboard: ReportDashboard = {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const reportApi = {
+  /**
+   * Tải dashboard báo cáo theo kỳ được chọn. Backend trả về điểm biểu đồ, tổng
+   * thu/chi và các trường tổng hợp ngữ cảnh liên quan.
+   */
   getDashboard: async (period: ReportFilter = 'day', token?: string) => {
     if (REPORT_API_USE_MOCK) {
       await sleep(250);

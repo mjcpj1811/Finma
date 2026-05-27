@@ -8,6 +8,12 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Application user and ownership root for accounts, categories, and transactions.
+ *
+ * <p>Transaction and report queries are scoped to the current user to prevent
+ * cross-user reads or writes.</p>
+ */
 @Entity
 @Table(name = "users")
 @Getter

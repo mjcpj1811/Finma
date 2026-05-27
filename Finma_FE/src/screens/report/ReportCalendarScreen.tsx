@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
@@ -59,6 +59,7 @@ const makeSemiSectorPath = (
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
 };
 
+// Vẽ tỷ trọng danh mục chi tiêu thành biểu đồ nửa tròn cho tab lịch.
 const SemiPieChart = ({ slices }: { slices: CalendarCategorySlice[] }) => {
   const width = 280;
   const height = 170;
@@ -79,7 +80,7 @@ const SemiPieChart = ({ slices }: { slices: CalendarCategorySlice[] }) => {
         start = end;
 
         return (
-          <>
+          <Fragment key={slice.id}>
             <Path key={`path-${slice.id}`} d={path} fill={slice.color} />
             <SvgText
               key={`text-${slice.id}`}
@@ -92,13 +93,14 @@ const SemiPieChart = ({ slices }: { slices: CalendarCategorySlice[] }) => {
             >
               {`${slice.percent}%`}
             </SvgText>
-          </>
+          </Fragment>
         );
       })}
     </Svg>
   );
 };
 
+// Tạo lưới bắt đầu từ thứ Hai để ngày được chọn map trực tiếp sang tham số API.
 const buildCalendarDays = (year: number, monthIndex: number) => {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const firstDayNative = new Date(year, monthIndex, 1).getDay();
@@ -143,6 +145,7 @@ export const ReportCalendarScreen = ({ navigation }: Props) => {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Hai tab dùng chung trạng thái tháng/năm/ngày nhưng gọi endpoint báo cáo khác nhau.
         if (activeTab === 'transactions') {
           const response = await calendarApi.getTransactions({ month: month + 1, year, day: selectedDay });
           setTransactions(response.items);
@@ -500,6 +503,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#6BBAFF',
   },
   txInfo: {
+    flex: 1,
+  },
+  txTitle: {
+    color: colors.text,
+    fontFamily: typography.poppins.semibold,
+    fontSize: 14,
   },
   txTime: {
     color: '#3B82F6',

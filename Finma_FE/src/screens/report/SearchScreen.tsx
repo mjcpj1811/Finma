@@ -16,6 +16,8 @@ import { resolveTransactionIconBg, resolveTransactionIconName } from '../../util
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportSearch'>;
 
 const formatDateValue = (date: Date) => date.toLocaleDateString('vi-VN');
+
+// Tìm kiếm backend nhận bộ lọc chỉ gồm ngày theo định dạng yyyy-MM-dd.
 const toApiDate = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -24,6 +26,7 @@ const toApiDate = (date: Date) => {
 };
 const weekdayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// Lịch fallback trên web mô phỏng cách chọn ngày của date picker mobile.
 const buildCalendarDays = (year: number, monthIndex: number) => {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const firstDayNative = new Date(year, monthIndex, 1).getDay();
@@ -87,6 +90,7 @@ export const SearchScreen = ({ navigation }: Props) => {
     const loadOptions = async () => {
       setLoadingOptions(true);
       try {
+        // Thêm option "all" ở phía client nhưng giữ nguyên category id từ backend.
         const response = await searchApi.getOptions();
         setCategories([
           { id: 'all', label: 'Tất cả danh mục' },
@@ -136,6 +140,7 @@ export const SearchScreen = ({ navigation }: Props) => {
   const onSearch = async () => {
     setLoadingSearch(true);
     try {
+      // API map các bộ lọc UI này sang tham số tìm kiếm của ReportController.
       const response = await searchApi.searchReport({
         keyword,
         categoryId,

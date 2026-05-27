@@ -8,6 +8,12 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/**
+ * Nguồn tiền thuộc sở hữu của một user.
+ *
+ * <p>Balance được thay đổi bởi các thao tác tạo/cập nhật/xóa giao dịch, vì vậy
+ * service giao dịch phải kiểm tra quyền sở hữu trước khi cập nhật.</p>
+ */
 @Entity
 @Table(name = "accounts")
 @Getter

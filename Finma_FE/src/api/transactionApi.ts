@@ -7,6 +7,7 @@ import {
   type TransactionDetail,
   type TransactionDashboard,
   type TransactionFilter,
+  type TransactionKind,
   type TransactionFormOptions,
   type TransactionItem,
   type TransactionType,
@@ -15,6 +16,7 @@ import {
 
 const TRANSACTION_API_USE_MOCK = false;
 
+// Gom tên endpoint để phần mapping FE/BE dễ đối chiếu trong báo cáo kỹ thuật.
 const TRANSACTION_ENDPOINTS = {
   list: '/transactions',
   accounts: '/accounts',
@@ -199,13 +201,19 @@ const buildMockDetail = (item: TransactionItem): TransactionDetail => {
   };
 };
 
+/**
+ * Chuyển loại giao dịch chữ thường của mobile sang giá trị enum của backend.
+ */
 const toBackendType = (type: TransactionType): BackendTransactionType => {
   if (type === 'income') return 'INCOME';
   if (type === 'saving') return 'SAVING';
   return 'EXPENSE';
 };
 
-const toFrontendType = (type: BackendTransactionType): TransactionType => {
+/**
+ * Chuyển giá trị enum của backend sang loại chữ thường dùng trong state UI.
+ */
+const toFrontendType = (type: BackendTransactionType): TransactionKind => {
   if (type === 'INCOME') return 'income';
   if (type === 'SAVING') return 'saving';
   return 'expense';
@@ -213,6 +221,10 @@ const toFrontendType = (type: BackendTransactionType): TransactionType => {
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 
+/**
+ * API giao dịch của backend nhận `yyyy-MM-dd HH:mm:ss`, còn date picker React
+ * Native làm việc tự nhiên với chuỗi ISO.
+ */
 const toBackendDateTime = (dateIso: string) => {
   const date = new Date(dateIso);
   if (Number.isNaN(date.getTime())) {
@@ -222,6 +234,9 @@ const toBackendDateTime = (dateIso: string) => {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
 };
 
+/**
+ * Chuyển giá trị ngày giờ từ backend thành Date cục bộ cho nhãn và chế độ sửa.
+ */
 const parseBackendDateTime = (value?: string | null) => {
   if (!value) {
     return new Date();
@@ -238,6 +253,10 @@ const parseBackendDateTime = (value?: string | null) => {
   return new Date(year, month - 1, day, hour, minute, second);
 };
 
+/**
+ * Backend lưu một trường `note`; form mobile hiển thị thành title/detail bằng
+ * mẫu `title | detail` khi có delimiter.
+ */
 const splitNote = (rawNote?: string | null) => {
   const note = (rawNote ?? '').trim();
   if (!note) {
@@ -256,6 +275,9 @@ const splitNote = (rawNote?: string | null) => {
   };
 };
 
+/**
+ * Ghép lại title/detail thành một trường note của backend mà không đổi contract API.
+ */
 const buildBackendNote = (payload: CreateTransactionPayload | UpdateTransactionPayload) => {
   const title = payload.title.trim();
   const detail = payload.detail?.trim() ?? '';
@@ -272,6 +294,16 @@ const fallbackIconByType = (type: TransactionType): TransactionItem['iconKey'] =
   return 'shopping';
 };
 
+const toTransactionKind = (type: TransactionType): TransactionKind => {
+  if (type === 'income' || type === 'saving') {
+    return type;
+  }
+  return 'expense';
+};
+
+/**
+ * Tải icon danh mục một lần rồi tái sử dụng khi map các dòng giao dịch.
+ */
 const buildCategoryIconMap = async (token?: string) => {
   const dashboard = await categoryApi.getDashboard(token);
   const allCategories = [
@@ -286,6 +318,10 @@ const buildCategoryIconMap = async (token?: string) => {
   }, {});
 };
 
+/**
+ * Ánh xạ dòng danh sách giao dịch từ backend sang card UI có dấu âm/dương. Số tiền
+ * backend vẫn dương; dòng chi tiêu chỉ đổi sang âm khi hiển thị.
+ */
 const mapBackendTransactionItem = (
   item: BackendTransactionItem,
   categoryIconMapById: Record<string, TransactionItem['iconKey']>,
@@ -307,6 +343,10 @@ const mapBackendTransactionItem = (
 };
 
 export const transactionApi = {
+  /**
+   * Tải dashboard giao dịch bằng cách kết hợp dòng giao dịch, số dư tài khoản và
+   * icon danh mục.
+   */
   getDashboard: async (filter: TransactionFilter = 'all', token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(220);
@@ -357,6 +397,9 @@ export const transactionApi = {
     } satisfies TransactionDashboard;
   },
 
+  /**
+   * Tạo option form thêm/sửa từ API danh mục và tài khoản.
+   */
   getFormOptions: async (token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(120);
@@ -397,7 +440,7 @@ export const transactionApi = {
           };
         }
       } catch {
-        // Keep fallback mock options if live options cannot be loaded.
+        // Giữ option mock fallback nếu không tải được dữ liệu thật.
       }
 
       return mockFormOptions;
@@ -433,6 +476,9 @@ export const transactionApi = {
     } satisfies TransactionFormOptions;
   },
 
+  /**
+   * Kiểm tra id phía FE, chuẩn hóa trường date/note và tạo giao dịch.
+   */
   createTransaction: async (payload: CreateTransactionPayload, token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(180);
@@ -446,7 +492,7 @@ export const transactionApi = {
           timeLabel: timeLabelFromDate(payload.date),
           note: payload.detail || 'Giao dịch mới',
           amount: payload.type === 'expense' ? -Math.abs(payload.amount) : Math.abs(payload.amount),
-          kind: payload.type,
+          kind: toTransactionKind(payload.type),
           iconKey: iconByCategoryId(payload.categoryId, payload.type),
         },
         ...mockItems,
@@ -487,6 +533,9 @@ export const transactionApi = {
     } satisfies CreateTransactionResponse;
   },
 
+  /**
+   * Tải dữ liệu chi tiết và map ngược về shape của form thêm/sửa.
+   */
   getTransactionDetail: async (transactionId: string, token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(140);
@@ -531,6 +580,9 @@ export const transactionApi = {
     } satisfies TransactionDetail;
   },
 
+  /**
+   * Gửi cùng shape payload đã chuẩn hóa như create, nhưng gắn với id hiện có.
+   */
   updateTransaction: async (transactionId: string, payload: UpdateTransactionPayload, token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(180);
@@ -548,7 +600,7 @@ export const transactionApi = {
           title: payload.title,
           note: payload.detail || item.note,
           amount: nextAmount,
-          kind: payload.type,
+          kind: toTransactionKind(payload.type),
           iconKey: iconByCategoryId(payload.categoryId, payload.type),
         };
       });
@@ -582,6 +634,9 @@ export const transactionApi = {
     return { success: true } satisfies TransactionActionResponse;
   },
 
+  /**
+   * Xóa giao dịch; service backend hoàn lại số dư tài khoản.
+   */
   deleteTransaction: async (transactionId: string, token?: string) => {
     if (TRANSACTION_API_USE_MOCK) {
       await sleep(150);

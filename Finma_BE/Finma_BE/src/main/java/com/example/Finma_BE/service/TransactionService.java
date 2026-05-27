@@ -39,6 +39,13 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final GoalRepository goalRepository;
 
+    /**
+     * Tạo giao dịch cho một user và áp dụng tác động lên số dư.
+     *
+     * <p>Các rule quan trọng được đặt ở service thay vì controller: amount phải
+     * dương, account/category phải thuộc user và category type phải khớp với
+     * transaction type.</p>
+     */
     @Transactional
     @SuppressWarnings("null")
     public Transaction create(User user, CreateTransactionRequest request) {
@@ -65,16 +72,29 @@ public class TransactionService {
         return Objects.requireNonNull(transactionRepository.save(txn));
     }
 
+    /**
+     * Trả về các entity giao dịch mới nhất để tổng hợp dashboard nội bộ.
+     */
     public List<Transaction> getRecentTransactionsByUserId(Long userId, int limit) {
         return transactionRepository.findAllByUserIdOrderByCreatedAtDesc(userId)
                 .stream().limit(limit).collect(Collectors.toList());
     }
 
+    /**
+     * Tải chi tiết giao dịch sau khi kiểm tra quyền sở hữu của user.
+     */
     public TransactionDetailResponse getById(User user, Long id) {
         Transaction txn = loadTransactionOwnedByUser(id, user);
         return toDetail(txn);
     }
 
+    /**
+     * Cập nhật giao dịch mà vẫn giữ nhất quán số dư tài khoản.
+     *
+     * <p>Hệ thống hoàn tác tác động của giao dịch cũ trước, sau đó lưu trạng thái
+     * mới và áp dụng tác động mới. Cách này giúp chỉnh sửa account, type, amount,
+     * category hoặc date vẫn an toàn.</p>
+     */
     @Transactional
     public Transaction update(User user, Long id, UpdateTransactionRequest request) {
         validateAmount(request.getAmount());
@@ -108,6 +128,9 @@ public class TransactionService {
         return txn;
     }
 
+    /**
+     * Xóa giao dịch sau khi hoàn tác tác động lên tài khoản liên kết.
+     */
     @Transactional
     public void delete(User user, Long id) {
         Transaction txn = loadTransactionOwnedByUser(id, user);
@@ -120,6 +143,9 @@ public class TransactionService {
         syncGoalStatus(txn.getGoal());
     }
 
+    /**
+     * Tính lại trạng thái hoàn thành mục tiêu khi giao dịch SAVING bị sửa hoặc xóa.
+     */
     private void syncGoalStatus(Goal goal) {
         if (goal == null) return;
         BigDecimal current = transactionRepository.sumSavingByGoalId(goal.getId());
@@ -140,6 +166,10 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Liệt kê giao dịch của user hiện tại với các bộ lọc tùy chọn theo type,
+     * category, account, keyword và khoảng ngày.
+     */
     public List<TransactionListItemResponse> list(
             User user,
             TransactionType type,
@@ -149,6 +179,7 @@ public class TransactionService {
             String from,
             String to
     ) {
+        // Mọi truy vấn giao dịch/báo cáo đều bắt đầu bằng phạm vi user đã xác thực.
         Specification<Transaction> spec = (root, query, cb) -> cb.equal(root.get("user"), user);
 
         if (type != null) {
@@ -191,6 +222,9 @@ public class TransactionService {
                 .toList();
     }
 
+    /**
+     * Trả về giao dịch thô để tổng hợp report/dashboard nội bộ.
+     */
     public List<Transaction> listRaw(User user, TransactionType type) {
         Specification<Transaction> spec = (root, query, cb) -> cb.equal(root.get("user"), user);
         if (type != null) {
@@ -201,6 +235,9 @@ public class TransactionService {
                 .toList();
     }
 
+    /**
+     * Bảo vệ invariant chung của create/update trước khi thay đổi số dư.
+     */
     private void validateAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "amount must be > 0");
@@ -208,7 +245,9 @@ public class TransactionService {
     }
 
     /**
-     * @param apply true = ap dung giao dich (tao moi / sau khi sua), false = hoan tac (truoc khi sua / xoa)
+     * Áp dụng hoặc hoàn tác tác động của giao dịch lên số dư.
+     *
+     * @param apply true để áp dụng tác động tạo/cập nhật, false để hoàn tác trước khi cập nhật/xóa
      */
     private void applyBalanceEffect(Account account, TransactionType type, BigDecimal amount, boolean apply) {
         if (account == null || type == null || amount == null) {
@@ -224,6 +263,10 @@ public class TransactionService {
         accountRepository.save(account);
     }
 
+    /**
+     * INCOME làm tăng số dư; EXPENSE và SAVING làm giảm số dư. Khi hoàn tác
+     * giao dịch, hệ thống áp dụng phần chênh lệch ngược lại.
+     */
     private BigDecimal balanceDelta(TransactionType type, BigDecimal amount, boolean apply) {
         BigDecimal a = amount.abs();
         return switch (type) {
@@ -232,6 +275,10 @@ public class TransactionService {
         };
     }
 
+    /**
+     * Tải lại entity account trước khi thay đổi số dư để JPA ghi trên bản ghi
+     * account mới nhất đã lưu.
+     */
     @SuppressWarnings("null")
     private Account resolveAccountForBalance(Account ref) {
         if (ref == null || ref.getId() == null) {
@@ -241,6 +288,9 @@ public class TransactionService {
         return accountRepository.findById(accountId).orElse(null);
     }
 
+    /**
+     * Đảm bảo giao dịch không bị đọc hoặc thay đổi chéo giữa các user.
+     */
     private Transaction loadTransactionOwnedByUser(Long id, User user) {
         Long transactionId = Objects.requireNonNull(id, "transaction id is required");
         Transaction txn = transactionRepository.findById(transactionId)
@@ -251,6 +301,9 @@ public class TransactionService {
         return txn;
     }
 
+    /**
+     * Đảm bảo nguồn tiền được chọn thuộc user đã xác thực.
+     */
     private Account loadAccountOwnedByUser(Long accountId, User user) {
         if (accountId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "accountId is required");
@@ -263,6 +316,9 @@ public class TransactionService {
         return account;
     }
 
+    /**
+     * Đảm bảo danh mục được chọn thuộc user đã xác thực.
+     */
     private Category loadCategoryOwnedByUser(Long categoryId, User user) {
         if (categoryId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "categoryId is required");
@@ -272,6 +328,10 @@ public class TransactionService {
         return category;
     }
 
+    /**
+     * Ngăn tổ hợp transaction/category không khớp có thể làm sai tổng báo cáo,
+     * ví dụ dùng danh mục thu nhập cho giao dịch chi tiêu.
+     */
     private void validateCategoryMatchesTransactionType(TransactionType txnType, Category category) {
         CategoryType ct = category.getType();
         if (ct == null) {
@@ -296,6 +356,10 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Parse định dạng datetime của mobile API và chấp nhận ISO offset datetime
+     * từ client gửi dữ liệu Date native.
+     */
     private LocalDateTime parseTransactionDate(String raw) {
         if (raw == null || raw.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "transactionDate is required");
@@ -311,6 +375,10 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Giữ tương thích ngược với payload mobile từng dùng `sourceId` trước khi
+     * backend chuẩn hóa sang `accountId`.
+     */
     private Long resolveAccountId(Long accountId, String sourceId) {
         if (accountId != null) {
             return accountId;
@@ -325,6 +393,9 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Giữ tương thích ngược với payload mobile từng dùng `date`.
+     */
     private String resolveTransactionDate(String transactionDate, String date) {
         if (transactionDate != null && !transactionDate.isBlank()) {
             return transactionDate;
@@ -332,6 +403,9 @@ public class TransactionService {
         return date;
     }
 
+    /**
+     * Chuyển các trường title/detail của mobile thành một trường note ở backend.
+     */
     private String resolveNote(String note, String detail, String title) {
         if (detail != null && !detail.isBlank()) {
             return detail;
@@ -342,6 +416,9 @@ public class TransactionService {
         return title;
     }
 
+    /**
+     * Chuyển đổi biên ngày của report/search thành khoảng trọn ngày khi chỉ truyền ngày.
+     */
     private LocalDateTime parseDateBound(String dateOrDateTime, boolean isStart) {
         try {
             if (dateOrDateTime.trim().length() == 10) {
@@ -354,6 +431,10 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Ánh xạ entity sang DTO danh sách rút gọn dùng cho danh sách giao dịch và
+     * tìm kiếm báo cáo.
+     */
     private TransactionListItemResponse toListItem(Transaction txn) {
         return TransactionListItemResponse.builder()
                 .id(txn.getId())
@@ -369,6 +450,9 @@ public class TransactionService {
                 .build();
     }
 
+    /**
+     * Ánh xạ entity sang DTO chi tiết dùng để nạp dữ liệu màn hình chi tiết/sửa.
+     */
     private TransactionDetailResponse toDetail(Transaction txn) {
         return TransactionDetailResponse.builder()
                 .id(txn.getId())

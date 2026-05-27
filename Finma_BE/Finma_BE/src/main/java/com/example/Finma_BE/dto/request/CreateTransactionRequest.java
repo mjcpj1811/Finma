@@ -8,6 +8,12 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * Phần thân request để tạo giao dịch.
+ *
+ * <p>`sourceId`, `detail`, `title` và `date` được chấp nhận như alias từ
+ * mobile client để backend giữ một luồng tạo cho cả payload cũ và mới.</p>
+ */
 @Data
 public class CreateTransactionRequest {
     @NotNull
@@ -32,7 +38,7 @@ public class CreateTransactionRequest {
     private String imageUrl;
     private String location;
 
-    // Format: yyyy-MM-dd HH:mm:ss (Asia/Ho_Chi_Minh)
+    // Định dạng: yyyy-MM-dd HH:mm:ss (Asia/Ho_Chi_Minh)
     private String transactionDate;
     @JsonAlias("date")
     private String date;

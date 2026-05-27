@@ -8,6 +8,12 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * Phần thân request để cập nhật giao dịch.
+ *
+ * <p>Shape này giống create để form thêm/sửa trên mobile có thể gửi cùng một
+ * payload ở cả hai chế độ.</p>
+ */
 @Data
 public class UpdateTransactionRequest {
     @NotNull

@@ -24,6 +24,7 @@ export const ReportIncomeExpenseChart = ({
   chartHeight = 124,
   maxValue,
 }: Props) => {
+  // Giữ thang đo khác 0 để báo cáo rỗng vẫn vẽ trục và cột ổn định.
   const safeMax = Math.max(maxValue ?? Math.max(...data.map((item) => Math.max(item.income, item.expense)), 1), 1);
   const tickValues = [safeMax, safeMax * 0.66, safeMax * 0.33, 0];
 
@@ -40,6 +41,8 @@ export const ReportIncomeExpenseChart = ({
 
         <View style={styles.columnsRow}>
           {data.map((item) => {
+            // Chiều cao tối thiểu giúp giá trị 0/thấp vẫn dễ nhìn mà không đổi
+            // tổng số liệu đang hiển thị ở nơi khác.
             const incomeHeight = Math.max(8, (item.income / safeMax) * chartHeight);
             const expenseHeight = Math.max(8, (item.expense / safeMax) * chartHeight);
 

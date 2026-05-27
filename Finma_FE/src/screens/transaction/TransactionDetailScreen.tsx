@@ -27,6 +27,7 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Tải lại khi focus để quay về từ chế độ sửa sẽ thấy dữ liệu mới nhất.
   const loadDetail = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
@@ -47,6 +48,7 @@ export const TransactionDetailScreen = ({ navigation, route }: Props) => {
     }, [loadDetail]),
   );
 
+  // Web không dùng được React Native Alert nên luồng xác nhận/xóa tách theo nền tảng.
   const onDelete = () => {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('Bạn có chắc muốn xóa giao dịch này?');

@@ -70,6 +70,8 @@ export const ReportScreen = ({ navigation }: Props) => {
     const loadReport = async () => {
       setLoading(true);
       try {
+        // Kỳ được chọn điều khiển biểu đồ; dữ liệu tháng giúp phần tổng hợp
+        // ngữ cảnh so sánh được với dữ liệu đang hoạt động hiện tại.
         const [response, monthlyDashboard, activeBudgets] = await Promise.all([
           reportApi.getDashboard(period),
           period === 'month'

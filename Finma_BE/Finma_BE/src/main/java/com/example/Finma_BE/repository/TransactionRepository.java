@@ -4,7 +4,6 @@ import com.example.Finma_BE.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
@@ -18,6 +17,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
         JpaSpecificationExecutor<Transaction>{
 
     // Tính tổng số tiền chi tiêu (EXPENSE) của user theo category trong khoảng thời gian budget
+    /**
+     * Tính tổng giao dịch chi tiêu theo một danh mục và khoảng thời gian. Phần
+     * tổng hợp liên quan dùng giá trị này làm ngữ cảnh chi tiêu.
+     */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.user.id = :userId " +
            "AND t.category.id = :categoryId " +
@@ -30,12 +33,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
                                              @Param("endDate") LocalDateTime endDate);
 
     // Tính tổng tiền đã nạp vào một goal (type = SAVING)
+    /**
+     * Tính tổng giao dịch SAVING của một mục tiêu.
+     */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.goal.id = :goalId " +
            "AND t.type = com.example.Finma_BE.enums.TransactionType.SAVING")
     BigDecimal sumSavingByGoalId(@Param("goalId") Long goalId);
 
     // Lịch sử nạp tiền của một goal, mới nhất trước
+    /**
+     * Trả về các giao dịch SAVING liên kết với một mục tiêu, mới nhất trước.
+     */
     @Query("SELECT t FROM Transaction t " +
            "WHERE t.goal.id = :goalId " +
            "AND t.type = com.example.Finma_BE.enums.TransactionType.SAVING " +
@@ -51,6 +60,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     void deleteAllByAccountId(Long accountId);
     void deleteAllByGoalId(Long goalId);
 
+    /**
+     * Kiểm tra user có giao dịch nào trong khoảng ngày nửa mở hay không.
+     */
     @Query("SELECT COUNT(t) > 0 FROM Transaction t WHERE t.user.id = :userId " +
            "AND t.transactionDate >= :start " +
            "AND t.transactionDate < :end")
@@ -58,6 +70,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
                                   @Param("start") java.time.LocalDateTime start, 
                                   @Param("end") java.time.LocalDateTime end);
 
+    /**
+     * Hàm nạp chồng tiện dụng cho một ngày lịch đầy đủ.
+     */
     default boolean existsByUserIdAndDate(Long userId, java.time.LocalDate date) {
         java.time.LocalDateTime start = date.atStartOfDay();
         java.time.LocalDateTime end = date.plusDays(1).atStartOfDay();

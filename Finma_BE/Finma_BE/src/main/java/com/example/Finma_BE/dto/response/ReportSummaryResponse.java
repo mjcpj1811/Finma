@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * Các tổng số liệu cho khoảng lọc báo cáo.
+ */
 @Data
 @Builder
 public class ReportSummaryResponse {

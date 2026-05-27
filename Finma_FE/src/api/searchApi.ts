@@ -48,6 +48,10 @@ const MONTH_EN_TO_VI: Record<string, string> = {
   december: 'Tháng 12',
 };
 
+/**
+ * Nhãn tìm kiếm từ backend có thể chứa tên tháng tiếng Anh; UI báo cáo mobile
+ * nội địa hóa nhãn mà không đổi contract response của API.
+ */
 const localizeDateLabel = (value?: string | null) => {
   const raw = (value ?? '').trim();
   if (!raw) {
@@ -89,6 +93,10 @@ const mockItems: SearchResultItem[] = [
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Tạo bảng tra icon theo id để kết quả tìm kiếm dùng cùng icon với danh sách
+ * giao dịch.
+ */
 const buildCategoryIconMap = async (token?: string) => {
   const dashboard = await categoryApi.getDashboard(token);
   const allCategories = [
@@ -104,6 +112,9 @@ const buildCategoryIconMap = async (token?: string) => {
 };
 
 export const searchApi = {
+  /**
+   * Tải danh sách danh mục cho bộ lọc tìm kiếm báo cáo.
+   */
   getOptions: async (token?: string) => {
     if (SEARCH_API_USE_MOCK) {
       await sleep(120);
@@ -114,6 +125,9 @@ export const searchApi = {
     return response.result ?? mockOptions;
   },
 
+  /**
+   * Tìm kiếm giao dịch thu nhập hoặc chi tiêu theo từ khóa, danh mục và ngày.
+   */
   searchReport: async (filters: SearchFilters, token?: string) => {
     if (SEARCH_API_USE_MOCK) {
       await sleep(160);

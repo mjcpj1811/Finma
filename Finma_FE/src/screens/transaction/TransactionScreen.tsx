@@ -61,9 +61,11 @@ export const TransactionScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<TransactionDashboard | null>(null);
 
+  // Tải lại khi màn hình được focus để phản ánh ngay thao tác thêm/sửa/xóa.
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      // Làm mới các dòng giao dịch đã sinh trước khi tính tổng.
       await recurringApi.syncDueTransactions();
       const response = await transactionApi.getDashboard(selectedType);
       setDashboard(response);
@@ -80,6 +82,7 @@ export const TransactionScreen = ({ navigation }: Props) => {
     }, [loadData]),
   );
 
+  // Backend trả về danh sách phẳng; màn hình nhóm các dòng theo tháng để hiển thị.
   const groupedItems = useMemo(() => {
     const groups: Record<string, TransactionItem[]> = {};
     dashboard?.items.forEach((item) => {

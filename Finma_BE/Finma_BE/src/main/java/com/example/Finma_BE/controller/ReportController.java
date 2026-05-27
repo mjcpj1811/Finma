@@ -44,6 +44,9 @@ public class ReportController {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DAY_FMT = DateTimeFormatter.ofPattern("MMMM dd", Locale.ENGLISH);
 
+    /**
+     * Trả về tổng thu nhập, tổng chi tiêu và số dư ròng cho khoảng lọc.
+     */
     @GetMapping("/summary")
     public ApiResponse<ReportSummaryResponse> summary(
             @RequestParam(required = false) String from,
@@ -59,6 +62,9 @@ public class ReportController {
                 .build();
     }
 
+    /**
+     * Trả về chuỗi thu nhập/chi tiêu theo cặp cho biểu đồ ngày, tuần, tháng hoặc năm.
+     */
     @GetMapping("/chart")
     public ApiResponse<ReportChartResponse> chart(
             @RequestParam(required = false) String view,
@@ -75,6 +81,9 @@ public class ReportController {
                 .build();
     }
 
+    /**
+     * Trả về phân bổ chi tiêu theo danh mục cho view biểu đồ tròn.
+     */
     @GetMapping("/pie")
     public ApiResponse<List<ReportPieItemResponse>> pie(
             @RequestParam(required = false) String from,
@@ -90,6 +99,12 @@ public class ReportController {
                 .build();
     }
 
+    /**
+     * API dashboard dùng cho màn hình báo cáo mobile.
+     *
+     * <p>Các số liệu báo cáo chính được tính từ giao dịch. Giá trị ngữ cảnh liên
+     * quan chỉ được đưa vào phần tổng hợp dashboard.</p>
+     */
     @GetMapping("/dashboard")
     public ReportDashboardVm dashboard(@RequestParam(required = false, defaultValue = "day") String period) {
         var user = authContext.requireCurrentUser();
@@ -102,7 +117,7 @@ public class ReportController {
                 .map(a -> a.getBalance() == null ? BigDecimal.ZERO : a.getBalance())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate budget percentage from active budgets
+        // Tính tỷ lệ sử dụng từ dữ liệu ngữ cảnh đang hoạt động.
         LocalDate today = LocalDate.now();
         var activeBudgets = budgetRepository.findActiveBudgetsByUser(user.getId(), today);
         BigDecimal totalBudgetLimit = activeBudgets.stream()
@@ -142,6 +157,11 @@ public class ReportController {
         );
     }
 
+    /**
+     * Chuyển kỳ báo cáo được chọn thành khoảng ngày gửi sang {@link ReportService}.
+     * Day và week cùng dùng tuần hiện tại từ thứ Hai đến Chủ nhật vì nhãn biểu đồ
+     * là các ngày trong tuần.
+     */
     private DateRange resolveRange(String period) {
         LocalDate today = LocalDate.now();
         String view = period == null ? "day" : period.trim().toLowerCase(Locale.ROOT);
@@ -171,6 +191,9 @@ public class ReportController {
         };
     }
 
+    /**
+     * Cung cấp option danh mục cho form tìm kiếm báo cáo.
+     */
     @GetMapping("/search/options")
     public ApiResponse<SearchOptionsVm> searchOptions() {
         var user = authContext.requireCurrentUser();
@@ -183,6 +206,10 @@ public class ReportController {
                 .build();
     }
 
+    /**
+     * Tìm kiếm giao dịch thu nhập hoặc chi tiêu trong một ngày, theo danh mục
+     * tùy chọn và từ khóa ghi chú tùy chọn.
+     */
     @PostMapping("/search")
     public ApiResponse<SearchResultVm> search(@RequestBody SearchRequestVm request) {
         var user = authContext.requireCurrentUser();
@@ -204,6 +231,9 @@ public class ReportController {
                 .build();
     }
 
+    /**
+     * Trả về giao dịch theo tháng/năm lịch được chọn và ngày tùy chọn.
+     */
     @GetMapping("/calendar/transactions")
     public CalendarTransactionsVm calendarTransactions(
             @RequestParam int month,
@@ -218,6 +248,9 @@ public class ReportController {
         return new CalendarTransactionsVm(unread, data);
     }
 
+    /**
+     * Trả về tỷ trọng danh mục chi tiêu cho kỳ lịch được chọn.
+     */
     @GetMapping("/calendar/categories")
     public CalendarCategoriesVm calendarCategories(
             @RequestParam int month,
@@ -232,6 +265,9 @@ public class ReportController {
         return new CalendarCategoriesVm(unread, slices);
         }
 
+    /**
+     * Tổng hợp nhỏ dùng cho widget home/report của tuần đầy đủ liền trước.
+     */
     @GetMapping("/weekly-snapshot")
     public WeeklySnapshotVm weeklySnapshot() {
         var user = authContext.requireCurrentUser();
@@ -242,16 +278,16 @@ public class ReportController {
         String fromStr = previousWeekStart.toString();
         String toStr = previousWeekEnd.toString();
 
-        // Previous full calendar week (Sunday -> Saturday)
+        // Tuần lịch đầy đủ liền trước (Chủ nhật -> Thứ Bảy)
         var transactions = transactionService.list(user, null, null, null, null, fromStr, toStr);
 
-        // Calculate total income
+        // Tính tổng thu nhập.
         BigDecimal totalIncome = transactions.stream()
                 .filter(txn -> txn.getType() == TransactionType.INCOME)
                 .map(txn -> txn.getAmount() == null ? BigDecimal.ZERO : txn.getAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate food/drink expenses
+        // Tính chi tiêu ăn uống.
         BigDecimal foodExpense = transactions.stream()
                 .filter(txn -> txn.getType() == TransactionType.EXPENSE)
                 .filter(txn -> {
@@ -269,6 +305,10 @@ public class ReportController {
         return new WeeklySnapshotVm(totalIncome, foodExpense);
     }
 
+    /**
+     * Làm phẳng response biểu đồ thành model điểm rút gọn mà component biểu đồ
+     * dashboard FE cần.
+     */
     private List<ChartPointVm> buildChartPoints(ReportChartResponse chart) {
         return java.util.stream.IntStream.range(0, chart.getLabels().size())
                 .mapToObj(i -> new ChartPointVm(
@@ -280,6 +320,9 @@ public class ReportController {
                 .toList();
     }
 
+    /**
+     * Chuyển entity giao dịch sang model card danh sách lịch.
+     */
     private CalendarTransactionItemVm toCalendarTransaction(Transaction t) {
         String kind = t.getType() == TransactionType.INCOME ? "income" : "expense";
         BigDecimal amount = t.getType() == TransactionType.EXPENSE ? t.getAmount().negate() : t.getAmount();
@@ -298,6 +341,9 @@ public class ReportController {
         );
     }
 
+    /**
+     * Chuẩn hóa chuỗi ngày/datetime đầu vào về định dạng tìm kiếm yyyy-MM-dd.
+     */
     private String normalizeDate(String input) {
         if (input == null || input.isBlank()) {
             return null;
@@ -309,6 +355,9 @@ public class ReportController {
         return value;
     }
 
+    /**
+     * Tạo nhãn hiển thị rút gọn từ datetime giao dịch của backend.
+     */
     private String toTimeLabel(String txnDateTime) {
         if (txnDateTime == null || txnDateTime.isBlank()) {
             return "";
@@ -319,6 +368,9 @@ public class ReportController {
         return txnDateTime;
     }
 
+    /**
+     * Xem giá trị category rỗng và `all` như không lọc theo danh mục.
+     */
     private Long parseNullableLong(String value) {
         if (value == null || value.isBlank() || "all".equalsIgnoreCase(value)) {
             return null;

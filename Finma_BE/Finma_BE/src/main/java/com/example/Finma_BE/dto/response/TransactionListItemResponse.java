@@ -6,6 +6,12 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * Dòng giao dịch rút gọn dùng cho luồng danh sách, dashboard và tìm kiếm.
+ *
+ * <p>Nhãn category/account được phi chuẩn hóa tại đây để UI mobile không cần
+ * lookup bổ sung cho từng dòng.</p>
+ */
 @Data
 @Builder
 public class TransactionListItemResponse {
@@ -18,7 +24,7 @@ public class TransactionListItemResponse {
     private Long accountId;
     private String account;
     private String note;
-    // Format: yyyy-MM-dd
+    // Định dạng: yyyy-MM-dd
     private String date;
     /** yyyy-MM-dd HH:mm:ss */
     private String transactionDateTime;

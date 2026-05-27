@@ -32,9 +32,9 @@ const CATEGORY_ICON_NAME_MAP: Record<string, string> = {
 
 export const resolveTransactionIconName = (
   iconKey?: string,
-  kind: 'income' | 'expense' = 'expense',
+  kind: 'income' | 'expense' | 'saving' | 'finance' = 'expense',
 ): string => {
-  const fallback = kind === 'income' ? 'attach-money' : 'shopping-bag';
+  const fallback = kind === 'income' ? 'attach-money' : kind === 'saving' || kind === 'finance' ? 'savings' : 'shopping-bag';
 
   if (!iconKey) {
     return fallback;
@@ -48,6 +48,12 @@ export const resolveTransactionIconName = (
   return CATEGORY_ICON_NAME_MAP[normalized] ?? fallback;
 };
 
-export const resolveTransactionIconBg = (kind: 'income' | 'expense' = 'expense'): string => {
-  return kind === 'income' ? '#6AA8FF' : '#4D9EFF';
+export const resolveTransactionIconBg = (kind: 'income' | 'expense' | 'saving' | 'finance' = 'expense'): string => {
+  if (kind === 'income') {
+    return '#6AA8FF';
+  }
+  if (kind === 'saving' || kind === 'finance') {
+    return '#60A5FA';
+  }
+  return '#4D9EFF';
 };

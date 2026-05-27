@@ -1,5 +1,6 @@
 export type TransactionFilter = 'all' | 'income' | 'expense' | 'saving';
 export type TransactionType = 'income' | 'expense' | 'saving' | 'finance';
+export type TransactionKind = Extract<TransactionType, 'income' | 'expense' | 'saving'>;
 
 export type TransactionOverview = {
   totalBalance: number;
@@ -17,7 +18,12 @@ export type TransactionItem = {
   timeLabel: string;
   note: string;
   amount: number;
-  kind: 'income' | 'expense';
+  /**
+   * Hướng hiển thị trên UI được suy ra từ TransactionType của backend. Saving
+   * vẫn được giữ vì lớp mapper API đã xử lý bản ghi SAVING, dù màn hình chính
+   * của phần Minh tập trung vào thu nhập và chi tiêu.
+   */
+  kind: TransactionKind;
   iconKey: string;
 };
 
@@ -43,6 +49,7 @@ export type TransactionFormOptions = {
 };
 
 export type CreateTransactionPayload = {
+  /** Ngày ISO từ bộ chọn ngày mobile; mapper API chuyển sang định dạng backend. */
   date: string;
   type: TransactionType;
   categoryId: string;
@@ -59,6 +66,7 @@ export type CreateTransactionResponse = {
 
 export type TransactionDetail = {
   id: string;
+  /** Chuỗi ngày ISO dùng để nạp dữ liệu cho form chỉnh sửa. */
   date: string;
   type: TransactionType;
   categoryId: string;

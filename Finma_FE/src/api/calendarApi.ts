@@ -48,6 +48,10 @@ const MONTH_EN_TO_VI: Record<string, string> = {
   december: 'Tháng 12',
 };
 
+/**
+ * Chuyển nhãn lịch từ backend có tên tháng tiếng Anh sang nhãn tiếng Việt dùng
+ * trên màn hình lịch báo cáo.
+ */
 const localizeDateLabel = (value?: string | null) => {
   const raw = (value ?? '').trim();
   if (!raw) {
@@ -59,6 +63,10 @@ const localizeDateLabel = (value?: string | null) => {
   });
 };
 
+/**
+ * Tên danh mục đã chuẩn hóa giúp tra icon ngay cả khi backend gửi nhãn thay vì
+ * category id.
+ */
 const normalizeCategoryLabel = (value: string) =>
   value
     .normalize('NFD')
@@ -66,6 +74,9 @@ const normalizeCategoryLabel = (value: string) =>
     .toLowerCase()
     .trim();
 
+/**
+ * Tạo bảng tra icon theo id và theo tên cho các dòng lịch.
+ */
 const buildCategoryIconLookups = async (token?: string) => {
   const dashboard = await categoryApi.getDashboard(token);
   const allCategories = [
@@ -116,6 +127,10 @@ const mockCategories: CalendarCategoryResponse = {
 };
 
 export const calendarApi = {
+  /**
+   * Tải giao dịch theo tháng/năm và ngày tùy chọn, rồi map dữ liệu backend sang
+   * card lịch có dấu âm/dương.
+   */
   getTransactions: async (query: CalendarQuery, token?: string) => {
     if (CALENDAR_API_USE_MOCK) {
       await sleep(180);
@@ -162,6 +177,9 @@ export const calendarApi = {
     } satisfies CalendarTransactionsResponse;
   },
 
+  /**
+   * Tải tỷ trọng danh mục chi tiêu cho khoảng lịch được chọn.
+   */
   getCategories: async (query: CalendarQuery, token?: string) => {
     if (CALENDAR_API_USE_MOCK) {
       await sleep(180);

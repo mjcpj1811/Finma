@@ -30,6 +30,10 @@ public class ReportService {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
 
+    /**
+     * Tính tổng thu nhập, tổng chi tiêu và số dư ròng từ các giao dịch thuộc
+     * một user, có áp dụng bộ lọc tùy chọn.
+     */
     public ReportSummaryResponse summary(User user, String from, String to, Long categoryId, Long accountId) {
         var txns = queryUserTransactions(user, from, to, null, categoryId, accountId);
         var income = sumByType(txns, TransactionType.INCOME);
@@ -41,6 +45,10 @@ public class ReportService {
                 .build();
     }
 
+    /**
+     * Tạo biểu đồ thu nhập/chi tiêu trong đó labels, income và expense dùng cùng
+     * thứ tự index.
+     */
     public ReportChartResponse chart(User user, String view, String from, String to, Long categoryId, Long accountId) {
         String v = normalizeView(view);
         ChartWindow chartWindow = resolveChartWindow(v, from, to);
@@ -75,6 +83,9 @@ public class ReportService {
                 .build();
     }
 
+    /**
+     * Nhóm giao dịch chi tiêu theo danh mục cho view phân bổ chi tiêu.
+     */
     public List<ReportPieItemResponse> pie(User user, String from, String to, Long categoryId, Long accountId) {
         var txns = queryUserTransactions(user, from, to, TransactionType.EXPENSE, categoryId, accountId);
         Map<String, BigDecimal> byCategory = new HashMap<>();
@@ -88,6 +99,10 @@ public class ReportService {
                 .toList();
     }
 
+    /**
+     * Truy vấn báo cáo trung tâm: luôn giới hạn theo user, sau đó lọc tùy chọn
+     * theo type, category, account và biên ngày.
+     */
     private List<Transaction> queryUserTransactions(
             User user,
             String from,
@@ -119,6 +134,9 @@ public class ReportService {
         return transactionRepository.findAll(spec);
     }
 
+    /**
+     * Chuyển đổi bộ lọc ngày. Giá trị chỉ có ngày sẽ mở rộng thành đầu/cuối ngày đó.
+     */
     private LocalDateTime parseDateBound(String dateOrDateTime, boolean isStart) {
         if (dateOrDateTime == null || dateOrDateTime.isBlank()) return null;
         try {
@@ -132,11 +150,17 @@ public class ReportService {
         }
     }
 
+    /**
+     * Mặc định về view day để dashboard tải được khi không truyền period.
+     */
     private String normalizeView(String view) {
         if (view == null) return "day";
         return view.trim().toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Tính tổng amount giao dịch theo một transaction type.
+     */
     private BigDecimal sumByType(List<Transaction> txns, TransactionType type) {
         return txns.stream()
                 .filter(t -> t.getType() == type)
@@ -153,6 +177,9 @@ public class ReportService {
         return values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    /**
+     * Gom giao dịch vào bucket nhãn mà view được chọn yêu cầu.
+     */
     private Map<String, BigDecimal> aggregate(List<Transaction> txns, String view, TransactionType type) {
         Map<String, BigDecimal> map = new HashMap<>();
         for (Transaction t : txns) {
@@ -170,6 +197,9 @@ public class ReportService {
         return map;
     }
 
+    /**
+     * Giữ nhãn thứ trong tuần khớp với nhãn biểu đồ mobile.
+     */
     private String dayLabel(DayOfWeek dow) {
         return switch (dow) {
             case MONDAY -> "Mon";
@@ -182,6 +212,10 @@ public class ReportService {
         };
     }
 
+    /**
+     * Chia một tháng thành bốn cột biểu đồ; các ngày sau ngày 28 vẫn nằm trong
+     * bucket thứ tư để giữ contract FE hiện có.
+     */
     private String weekLabel(int dayOfMonth) {
         int week = ((dayOfMonth - 1) / 7) + 1;
         if (week > 4) week = 4;
@@ -225,6 +259,10 @@ public class ReportService {
         return IntStream.rangeClosed(start, end).mapToObj(String::valueOf).toList();
     }
 
+    /**
+     * Tạo cửa sổ biểu đồ dạng rolling cho view month/year và giữ khoảng ngày do
+     * controller truyền vào cho view day/week.
+     */
     private ChartWindow resolveChartWindow(String view, String from, String to) {
         LocalDateTime fromDt = parseDateBound(from, true);
         LocalDate referenceDate = (fromDt != null ? fromDt.toLocalDate() : LocalDate.now());
@@ -232,9 +270,9 @@ public class ReportService {
         if ("month".equals(view)) {
             int refMonth = referenceDate.getMonthValue();
 
-            // Requested behavior:
-            // - month 1..5 => 1..5
-            // - month >= 6 => (month-5)..month
+            // Hành vi mong muốn:
+            // - tháng 1..5 => 1..5
+            // - tháng >= 6 => (tháng-5)..tháng
             int startMonth = Math.max(1, refMonth - 5);
             int endMonth = Math.max(5, refMonth);
 
@@ -265,21 +303,30 @@ public class ReportService {
             );
         }
 
-        // day/week keep current filtered window from ReportController
+        // day/week giữ cửa sổ lọc hiện tại từ ReportController
         List<String> labels = "week".equals(view)
                 ? List.of("1st Week", "2nd Week", "3rd Week", "4th Week")
                 : List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
         return new ChartWindow(from, to, labels);
     }
 
+    /**
+     * Tính tổng giao dịch SAVING của một mục tiêu để hiển thị tiến độ liên quan.
+     */
     public BigDecimal sumSavingByGoal(Long goalId) {
         return transactionRepository.sumSavingByGoalId(goalId);
     }
 
+    /**
+     * Trả về các option danh mục cho form tìm kiếm báo cáo.
+     */
     public List<Category> searchCategories(User user) {
         return categoryRepository.findAllByUser(user.getId());
     }
 
+    /**
+     * Trả về giao dịch theo tháng/năm lịch và ngày tùy chọn.
+     */
     public List<Transaction> calendarTransactions(User user, int month, int year, Integer day) {
         var txns = queryUserTransactions(user, null, null, null, null, null);
         return txns.stream()
@@ -291,6 +338,10 @@ public class ReportService {
                 .toList();
     }
 
+    /**
+     * Tính tỷ trọng chi tiêu của từng danh mục trong kỳ lịch được chọn. Thu nhập
+     * được loại khỏi phần phân bổ này.
+     */
     public List<CalendarSlice> calendarCategorySlices(User user, int month, int year, Integer day) {
         var txns = calendarTransactions(user, month, year, day).stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
